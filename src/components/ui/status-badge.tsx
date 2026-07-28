@@ -1,5 +1,6 @@
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import type { VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
 export const ISSUE_STATUSES = [
   "new",
@@ -23,7 +24,20 @@ const STATUS_CONFIG: Record<IssueStatus, { label: string; variant: BadgeVariant 
   resolved: { label: "Resolved", variant: "status-resolved" },
 };
 
-export function StatusBadge({ status }: { status: IssueStatus }) {
+export function StatusBadge({
+  status,
+  size = "default",
+}: {
+  status: IssueStatus;
+  size?: "default" | "lg";
+}) {
   const config = STATUS_CONFIG[status];
-  return <Badge variant={config.variant}>{config.label}</Badge>;
+  return (
+    <Badge
+      variant={config.variant}
+      className={cn(size === "lg" && "px-4 py-1.5 text-sm font-semibold")}
+    >
+      {config.label}
+    </Badge>
+  );
 }

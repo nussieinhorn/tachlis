@@ -17,7 +17,7 @@ export function OtherProposals({ solutions }: { solutions: Solution[] }) {
     <div className="flex flex-col gap-3">
       <Button variant="ghost" size="sm" className="w-fit" onClick={() => setOpen((o) => !o)}>
         <Icon icon={open ? IconChevronUp : IconChevronDown} size={16} />
-        {open ? "Hide" : "See"} other proposals ({solutions.length})
+        {open ? "Hide" : "See"} archived proposals ({solutions.length})
       </Button>
       {open && (
         <div className="flex flex-col gap-3">

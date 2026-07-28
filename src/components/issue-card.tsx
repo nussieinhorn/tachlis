@@ -3,7 +3,6 @@ import { IconMapPin, IconUsers } from "@tabler/icons-react";
 
 import type { Issue } from "@/lib/mock-data";
 import { getCategory } from "@/lib/mock-data";
-import { SPLASH_TONE_CLASSES } from "@/lib/splash-tone";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Icon } from "@/components/ui/icon";
@@ -14,38 +13,29 @@ export function IssueCard({ issue }: { issue: Issue }) {
   return (
     <Link
       href={`/issues/${issue.slug}`}
-      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
+      className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-6 transition-shadow hover:shadow-md sm:p-8"
     >
-      <div
-        className={`flex h-28 items-center justify-center ${SPLASH_TONE_CLASSES[issue.splashTone]}`}
-      >
-        <Icon icon={category.icon} size={36} className="text-white/90" />
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusBadge status={issue.status} />
+        <Badge variant="outline" className="gap-1">
+          <Icon icon={category.icon} size={14} />
+          {category.label}
+        </Badge>
       </div>
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <Badge variant="outline" className="gap-1">
-            <Icon icon={category.icon} size={14} />
-            {category.label}
-          </Badge>
-          <StatusBadge status={issue.status} />
-        </div>
 
-        <h3 className="font-heading font-semibold text-foreground group-hover:text-primary">
-          {issue.title}
-        </h3>
+      <h3 className="font-heading text-2xl leading-snug font-bold text-foreground group-hover:text-primary sm:text-3xl">
+        {issue.title}
+      </h3>
 
-        <p className="line-clamp-2 text-sm text-muted-foreground">{issue.description}</p>
-
-        <div className="mt-auto flex items-center gap-4 pt-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Icon icon={IconUsers} size={16} />
-            {issue.supporterCount} supporters
-          </span>
-          <span className="flex items-center gap-1">
-            <Icon icon={IconMapPin} size={16} />
-            {issue.location}
-          </span>
-        </div>
+      <div className="mt-auto flex items-center gap-4 pt-2 text-sm text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Icon icon={IconUsers} size={16} />
+          {issue.supporterCount} supporters
+        </span>
+        <span className="flex items-center gap-1">
+          <Icon icon={IconMapPin} size={16} />
+          {issue.location}
+        </span>
       </div>
     </Link>
   );

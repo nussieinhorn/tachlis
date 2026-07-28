@@ -42,14 +42,14 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
         </div>
         <Progress value={progressPct} />
       </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <ul className="flex flex-col gap-2">
+      <CardContent className="flex flex-col gap-4">
+        <ul className="flex flex-col gap-1.5">
           {plan.tasks.map((task) => {
             const config = TASK_STATUS_CONFIG[task.status];
             return (
               <li
                 key={task.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-1.5"
               >
                 <span className="flex items-center gap-2 text-sm text-foreground">
                   {task.status === "done" && (
@@ -63,8 +63,8 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
           })}
         </ul>
 
-        <div className="flex flex-col gap-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Team</h4>
+        <div className="flex flex-col gap-2">
+          <h4 className="text-sm font-medium text-muted-foreground">Action Team</h4>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <Avatar>

@@ -229,39 +229,34 @@ export default function CreateIssueWizard() {
               </p>
             </div>
 
-            <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
-              <div
-                className={`flex h-28 items-center justify-center ${SPLASH_TONE_CLASSES[splashTone]}`}
-              >
-                <Icon icon={category.icon} size={36} className="text-white/90" />
+            <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 sm:p-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status="new" />
+                <Badge variant="outline" className="gap-1">
+                  <Icon icon={category.icon} size={14} />
+                  {category.label}
+                </Badge>
               </div>
-              <div className="flex flex-col gap-3 p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <Badge variant="outline" className="gap-1">
-                    <Icon icon={category.icon} size={14} />
-                    {category.label}
-                  </Badge>
-                  <StatusBadge status="new" />
-                </div>
-                <h3 className="font-heading font-semibold text-foreground">
-                  {title || "Untitled issue"}
-                </h3>
-                <p className="line-clamp-2 text-sm text-muted-foreground">
-                  {description || "No description yet."}
-                </p>
-                <div className="mt-auto flex items-center gap-4 pt-2 text-xs text-muted-foreground">
+              <h3 className="font-heading text-2xl leading-snug font-bold text-foreground sm:text-3xl">
+                {title || "Untitled issue"}
+              </h3>
+              <div className="flex items-center gap-4 pt-2 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Icon icon={IconUsers} size={16} />1 supporter
+                </span>
+                {location && (
                   <span className="flex items-center gap-1">
-                    <Icon icon={IconUsers} size={16} />1 supporter
+                    <Icon icon={IconMapPin} size={16} />
+                    {location}
                   </span>
-                  {location && (
-                    <span className="flex items-center gap-1">
-                      <Icon icon={IconMapPin} size={16} />
-                      {location}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
             </div>
+            {description && (
+              <p className="text-sm text-muted-foreground">
+                Your description is saved with the issue and shown on its detail page.
+              </p>
+            )}
           </div>
         )}
       </div>

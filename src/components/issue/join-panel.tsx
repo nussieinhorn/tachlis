@@ -41,21 +41,24 @@ export function JoinPanel({ initialSupporterCount }: { initialSupporterCount: nu
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-sm text-muted-foreground">
-        <strong className="text-foreground">{supporterCount}</strong> supporters
-      </span>
+    <div className="flex flex-col items-end gap-3 text-right">
+      <div className="flex flex-col items-end">
+        <span className="font-heading text-3xl font-bold text-foreground">{supporterCount}</span>
+        <span className="text-sm text-muted-foreground">supporters</span>
+      </div>
 
       {!joined ? (
         <>
-          <Button onClick={() => setOpen(true)}>Join</Button>
+          <Button size="lg" className="h-12 w-full text-base" onClick={() => setOpen(true)}>
+            Join
+          </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>What brings you here?</DialogTitle>
                 <DialogDescription>
                   Pick what applies — this helps organizers know who to reach out to.
-                  You'll need to join before you can vote.
+                  You&apos;ll need to join before you can vote.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-2">
@@ -86,7 +89,12 @@ export function JoinPanel({ initialSupporterCount }: { initialSupporterCount: nu
           </Dialog>
         </>
       ) : (
-        <Button variant={voted ? "secondary" : "default"} onClick={castVote}>
+        <Button
+          size="lg"
+          variant={voted ? "secondary" : "default"}
+          className="h-12 w-full text-base"
+          onClick={castVote}
+        >
           <Icon icon={voted ? IconCheck : IconArrowUp} />
           {voted ? "Supporting" : "Support this"}
         </Button>

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { IconArrowUp, IconCheck, IconX, IconMessageCircle } from "@tabler/icons-react";
+import { IconArrowUp, IconCheck, IconX, IconMessageCircle, IconStar } from "@tabler/icons-react";
 
-import type { Solution } from "@/lib/mock-data";
+import type { Comment, Solution } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
@@ -15,39 +16,88 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Icon } from "@/components/ui/icon";
+import { cn } from "@/lib/utils";
 
-export function SolutionCard({ solution, headline = false }: { solution: Solution; headline?: boolean }) {
+export function SolutionCard({
+  solution,
+  index,
+  headline = false,
+  leading = false,
+}: {
+  solution: Solution;
+  index?: number;
+  headline?: boolean;
+  leading?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [votes, setVotes] = useState(solution.votes);
   const [voted, setVoted] = useState(false);
+  const [comments, setComments] = useState<Comment[]>(solution.comments);
+  const [draft, setDraft] = useState("");
 
-  function castVote() {
+  function castVote(e?: React.MouseEvent) {
+    e?.stopPropagation();
     if (voted) return;
     setVoted(true);
     setVotes((v) => v + 1);
   }
 
+  function postComment() {
+    if (!draft.trim()) return;
+    setComments((prev) => [
+      ...prev,
+      { id: `local-${prev.length}`, author: "You", body: draft.trim(), createdAt: "just now" },
+    ]);
+    setDraft("");
+  }
+
   return (
     <>
       <Card
-        className={headline ? "border-primary shadow-sm" : "cursor-pointer hover:shadow-sm"}
+        className={cn(
+          "cursor-pointer transition-shadow hover:shadow-sm",
+          headline && "border-primary shadow-sm",
+          leading && "border-status-traction",
+        )}
         onClick={() => setOpen(true)}
       >
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
-            <CardTitle className={headline ? "text-xl" : undefined}>{solution.title}</CardTitle>
-            {solution.status === "chosen" && <Badge variant="status-chosen">Chosen</Badge>}
+            <div className="flex flex-col gap-1">
+              {typeof index === "number" && (
+                <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Solution {index + 1}
+                </span>
+              )}
+              <CardTitle className={headline ? "text-2xl" : "text-xl"}>{solution.title}</CardTitle>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              {solution.status === "chosen" && <Badge variant="status-chosen">Chosen</Badge>}
+              {leading && (
+                <Badge variant="status-traction" className="gap-1">
+                  <Icon icon={IconStar} size={12} />
+                  Leading
+                </Badge>
+              )}
+            </div>
           </div>
-          <CardDescription className="line-clamp-2">{solution.description}</CardDescription>
+          <CardDescription className="line-clamp-3 text-base">
+            {solution.description}
+          </CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1 font-medium text-foreground">
-            <Icon icon={IconArrowUp} size={16} />
-            {votes} votes
-          </span>
-          <span className="flex items-center gap-1">
+        <CardContent className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant={voted ? "secondary" : "outline"}
+            onClick={castVote}
+            className="gap-1.5"
+          >
+            <Icon icon={voted ? IconCheck : IconArrowUp} size={16} />
+            {votes}
+          </Button>
+          <span className="flex items-center gap-1 text-sm text-muted-foreground">
             <Icon icon={IconMessageCircle} size={16} />
-            {solution.comments.length}
+            {comments.length}
           </span>
         </CardContent>
       </Card>
@@ -55,15 +105,20 @@ export function SolutionCard({ solution, headline = false }: { solution: Solutio
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{solution.title}</SheetTitle>
-            <SheetDescription>{solution.description}</SheetDescription>
+            {typeof index === "number" && (
+              <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Solution {index + 1}
+              </span>
+            )}
+            <SheetTitle className="text-xl">{solution.title}</SheetTitle>
+            <SheetDescription className="text-base">{solution.description}</SheetDescription>
           </SheetHeader>
 
           <div className="flex flex-col gap-6 px-6">
             <Button
               variant={voted ? "secondary" : "default"}
               className="w-fit"
-              onClick={castVote}
+              onClick={() => castVote()}
             >
               <Icon icon={IconArrowUp} />
               {votes} {voted ? "· voted" : "votes"}
@@ -87,22 +142,24 @@ export function SolutionCard({ solution, headline = false }: { solution: Solutio
                   Cons
                 </h4>
                 <ul className="flex flex-col gap-1 text-sm text-foreground/80">
-                  {solution.cons.map((con) => (
-                    <li key={con}>• {con}</li>
-                  ))}
+                  {solution.cons.length === 0 ? (
+                    <li className="text-muted-foreground">None reported</li>
+                  ) : (
+                    solution.cons.map((con) => <li key={con}>• {con}</li>)
+                  )}
                 </ul>
               </div>
             </div>
 
             <div className="flex flex-col gap-3 border-t border-border pt-4">
               <h4 className="text-sm font-medium text-muted-foreground">
-                Discussion ({solution.comments.length})
+                Discussion ({comments.length})
               </h4>
-              {solution.comments.length === 0 ? (
+              {comments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No comments yet.</p>
               ) : (
                 <ul className="flex flex-col gap-3">
-                  {solution.comments.map((comment) => (
+                  {comments.map((comment) => (
                     <li key={comment.id} className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium text-foreground">
                         {comment.author}{" "}
@@ -115,6 +172,18 @@ export function SolutionCard({ solution, headline = false }: { solution: Solutio
                   ))}
                 </ul>
               )}
+
+              <div className="flex flex-col gap-2 pt-2">
+                <Textarea
+                  placeholder="Add a comment on this solution..."
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  className="min-h-16"
+                />
+                <Button size="sm" className="w-fit" onClick={postComment} disabled={!draft.trim()}>
+                  Post
+                </Button>
+              </div>
             </div>
           </div>
         </SheetContent>
