@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+
+  /* Warm, optimistic base palette */
+  --background: #fffdf9;
+  --foreground: #241b16;
+
+  --card: #ffffff;
+  --card-foreground: #241b16;
+
+  --popover: #ffffff;
+  --popover-foreground: #241b16;
+
+  --primary: #f45d48;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f2ebe4;
+  --secondary-foreground: #241b16;
+
+  --muted: #f2ebe4;
+  --muted-foreground: #8a8178;
+
+  --accent: #fbe4dc;
+  --accent-foreground: #b8341f;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --border: #e7dcd1;
+  --input: #e7dcd1;
+  --ring: #f45d48;
+
+  /* Issue lifecycle status colors — hue carries meaning, keep fixed */
+  --status-new: #8a8178;
+  --status-traction: #d98c1f;
+  --status-proposed: #3b7dd8;
+  --status-chosen: #f45d48;
+  --status-action: #8b5cf6;
+  --status-resolved: #2f9e5b;
+
+  --status-new-foreground: #ffffff;
+  --status-traction-foreground: #ffffff;
+  --status-proposed-foreground: #ffffff;
+  --status-chosen-foreground: #ffffff;
+  --status-action-foreground: #ffffff;
+  --status-resolved-foreground: #ffffff;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-status-new: var(--status-new);
+  --color-status-traction: var(--status-traction);
+  --color-status-proposed: var(--status-proposed);
+  --color-status-chosen: var(--status-chosen);
+  --color-status-action: var(--status-action);
+  --color-status-resolved: var(--status-resolved);
+
+  --color-status-new-foreground: var(--status-new-foreground);
+  --color-status-traction-foreground: var(--status-traction-foreground);
+  --color-status-proposed-foreground: var(--status-proposed-foreground);
+  --color-status-chosen-foreground: var(--status-chosen-foreground);
+  --color-status-action-foreground: var(--status-action-foreground);
+  --color-status-resolved-foreground: var(--status-resolved-foreground);
+
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-manrope);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
