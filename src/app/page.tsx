@@ -1,96 +1,51 @@
-import {
-  IconBuildingCommunity,
-  IconLeaf,
-  IconSchool,
-  IconRoad,
-  IconHeartHandshake,
-  IconShieldCheck,
-  IconPlus,
-} from "@tabler/icons-react";
+import Link from "next/link";
+import { IconArrowRight } from "@tabler/icons-react";
 
+import { SiteHeader } from "@/components/site-header";
+import { IssueCard } from "@/components/issue-card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { StatusBadge, ISSUE_STATUSES } from "@/components/ui/status-badge";
-import { CategoryTile } from "@/components/category-tile";
 import { Icon } from "@/components/ui/icon";
-
-const CATEGORIES = [
-  { icon: IconBuildingCommunity, label: "Housing" },
-  { icon: IconLeaf, label: "Environment" },
-  { icon: IconSchool, label: "Education" },
-  { icon: IconRoad, label: "Infrastructure" },
-  { icon: IconHeartHandshake, label: "Social Care" },
-  { icon: IconShieldCheck, label: "Safety" },
-];
+import { ISSUES } from "@/lib/mock-data";
 
 export default function Home() {
+  const activeIssues = ISSUES.filter((issue) => issue.status !== "resolved");
+
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-16">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-heading text-3xl font-bold">Tachlis</h1>
-        <p className="text-muted-foreground">
-          Design system check — buttons, lifecycle status badges, and category
-          tiles built on Tabler icons + shadcn-style components.
-        </p>
-      </header>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Buttons</h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button>
-            <Icon icon={IconPlus} />
-            Start your own
+    <>
+      <SiteHeader />
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-10">
+        <section className="flex flex-col items-start gap-3 rounded-xl border border-border bg-card px-6 py-8">
+          <h1 className="font-heading text-2xl font-bold text-foreground sm:text-3xl">
+            From discussion to actually solved.
+          </h1>
+          <p className="max-w-2xl text-muted-foreground">
+            Public issues, proposed solutions, and public action tracking for
+            your community — raise a problem, rally support, and follow it
+            through to a fix.
+          </p>
+          <Button asChild>
+            <Link href="/issues/new">Start your own</Link>
           </Button>
-          <Button variant="secondary">Secondary</Button>
-          <Button variant="outline">Outline</Button>
-          <Button variant="ghost">Ghost</Button>
-          <Button variant="destructive">Destructive</Button>
-        </div>
-      </section>
+        </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Issue lifecycle</h2>
-        <div className="flex flex-wrap gap-2">
-          {ISSUE_STATUSES.map((status) => (
-            <StatusBadge key={status} status={status} />
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-lg font-semibold text-foreground">
+            Active issues
+          </h2>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/solved">
+              See what's been solved
+              <Icon icon={IconArrowRight} size={16} />
+            </Link>
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {activeIssues.map((issue) => (
+            <IssueCard key={issue.id} issue={issue} />
           ))}
         </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Category picker</h2>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-          {CATEGORIES.map((category, i) => (
-            <CategoryTile
-              key={category.label}
-              icon={category.icon}
-              label={category.label}
-              selected={i === 0}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Sample issue card</h2>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle>Pothole epidemic on Elm Street</CardTitle>
-              <StatusBadge status="gaining-traction" />
-            </div>
-            <CardDescription>
-              42 supporters · Downtown / Elm Street
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-foreground/80">
-              Three cars damaged this month. Residents want the city to
-              prioritize repaving before winter.
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-    </main>
+      </main>
+    </>
   );
 }
