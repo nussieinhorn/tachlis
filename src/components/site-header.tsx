@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { IconSearch, IconPlus, IconUserCircle, IconShieldCog, IconUser } from "@tabler/icons-react";
+import { IconPlus, IconUserCircle, IconShieldCog, IconUser, IconCircleCheck, IconList } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { SearchCombobox } from "@/components/search-combobox";
+import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
+import { MyIssuesDialog } from "@/components/my-issues-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +22,7 @@ import { useAdminMode } from "@/lib/admin-mode";
 
 export function SiteHeader() {
   const { isAdmin, setIsAdmin } = useAdminMode();
+  const [myIssuesOpen, setMyIssuesOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
@@ -29,13 +33,7 @@ export function SiteHeader() {
           </Link>
 
           <div className="mx-auto hidden w-full max-w-md sm:block">
-            <div className="relative">
-              <Icon
-                icon={IconSearch}
-                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input placeholder="Search issues..." className="pl-9 text-center" />
-            </div>
+            <SearchCombobox />
           </div>
 
           <div className="ml-auto flex items-center gap-2">
@@ -44,15 +42,14 @@ export function SiteHeader() {
                 Admin mode
               </span>
             )}
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/solved">View Solved</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/issues/new">
-                <Icon icon={IconPlus} />
-                Create Issue
-              </Link>
-            </Button>
+            <CreateIssueDialog
+              trigger={
+                <Button size="sm">
+                  <Icon icon={IconPlus} />
+                  Create Issue
+                </Button>
+              }
+            />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -66,6 +63,17 @@ export function SiteHeader() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuLabel>Prototype account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setMyIssuesOpen(true)}>
+                  <Icon icon={IconList} size={16} />
+                  My issues
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/solved">
+                    <Icon icon={IconCircleCheck} size={16} />
+                    Solved
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsAdmin(false)}>
                   <Icon icon={IconUser} size={16} />
@@ -82,6 +90,7 @@ export function SiteHeader() {
           </div>
         </div>
       </div>
+      <MyIssuesDialog open={myIssuesOpen} onOpenChange={setMyIssuesOpen} />
     </header>
   );
 }

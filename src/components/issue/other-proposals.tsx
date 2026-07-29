@@ -8,7 +8,13 @@ import { SolutionCard } from "@/components/issue/solution-card";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 
-export function OtherProposals({ solutions }: { solutions: Solution[] }) {
+export function OtherProposals({
+  solutions,
+  label = "archived proposals",
+}: {
+  solutions: Solution[];
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
 
   if (solutions.length === 0) return null;
@@ -17,7 +23,7 @@ export function OtherProposals({ solutions }: { solutions: Solution[] }) {
     <div className="flex flex-col gap-3">
       <Button variant="ghost" size="sm" className="w-fit" onClick={() => setOpen((o) => !o)}>
         <Icon icon={open ? IconChevronUp : IconChevronDown} size={16} />
-        {open ? "Hide" : "See"} archived proposals ({solutions.length})
+        {open ? "Hide" : "See"} {label} ({solutions.length})
       </Button>
       {open && (
         <div className="flex flex-col gap-3">

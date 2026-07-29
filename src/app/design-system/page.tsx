@@ -83,7 +83,7 @@ export default function Home() {
               42 supporters · Downtown / Elm Street
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-6">
             <p className="text-sm text-foreground/80">
               Three cars damaged this month. Residents want the city to
               prioritize repaving before winter.

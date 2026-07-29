@@ -25,7 +25,7 @@ export function IssueDescription({
       {descriptionMore && (
         <>
           <Button variant="link" className="w-fit px-0" onClick={() => setOpen(true)}>
-            Load more
+            Read more
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="max-w-lg">

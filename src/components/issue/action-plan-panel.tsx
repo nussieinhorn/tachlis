@@ -4,7 +4,6 @@ import type { ActionPlan, ActionTaskStatus } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, type badgeVariants } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import type { VariantProps } from "class-variance-authority";
 
@@ -17,15 +16,6 @@ const TASK_STATUS_CONFIG: Record<ActionTaskStatus, { label: string; variant: Bad
   stuck: { label: "Stuck", variant: "destructive" },
   done: { label: "Done", variant: "status-resolved" },
 };
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
   const doneCount = plan.tasks.filter((t) => t.status === "done").length;
@@ -42,7 +32,7 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
         </div>
         <Progress value={progressPct} />
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="pb-6">
         <ul className="flex flex-col gap-1.5">
           {plan.tasks.map((task) => {
             const config = TASK_STATUS_CONFIG[task.status];
@@ -62,29 +52,6 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
             );
           })}
         </ul>
-
-        <div className="flex flex-col gap-2">
-          <h4 className="text-sm font-medium text-muted-foreground">Action Team</h4>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Avatar>
-                <AvatarFallback>{initials(plan.lead)}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col leading-tight">
-                <span className="text-sm font-medium text-foreground">{plan.lead}</span>
-                <span className="text-xs text-muted-foreground">Project lead</span>
-              </div>
-            </div>
-            {plan.volunteers.map((name) => (
-              <div key={name} className="flex items-center gap-2">
-                <Avatar>
-                  <AvatarFallback>{initials(name)}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-foreground">{name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
