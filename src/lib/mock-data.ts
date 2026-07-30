@@ -98,6 +98,7 @@ export type Update = {
 
 export type Issue = {
   id: string;
+  communityId?: string;
   title: string;
   description: string;
   descriptionMore?: string;
@@ -107,7 +108,8 @@ export type Issue = {
   status: IssueStatus;
   supporterCount: number;
   shareCount: number;
-  imageCount: number;
+  visitCount: number;
+  viewCount: number;
   createdBy: string;
   createdAt: string;
   solutions: Solution[];
@@ -121,6 +123,7 @@ export const ISSUES: Issue[] = [
   // ---- NEW ----
   {
     id: "3654",
+    communityId: "c101",
     title: "No available apartments for growing families in Boro Park",
     description:
       "Three-bedroom apartments in the 15th Ave / 50th St area have a waitlist of over a year. Young families are being pushed out to neighborhoods far from their parents and shuls.",
@@ -133,7 +136,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 34,
     createdBy: "Yitzy G.",
     shareCount: 117,
-    imageCount: 0,
+    visitCount: 498,
+    viewCount: 811,
     createdAt: "Jan '25",
     solutions: [],
     updates: [],
@@ -148,6 +152,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3655",
+    communityId: "c103",
     title: "Need a community shidduch resource night in Five Towns",
     description:
       "Girls finishing seminary and boys finishing beis medrash have no central place to get guidance on the process. A once-a-month resource night with experienced shadchanim could fill a real gap.",
@@ -160,7 +165,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 21,
     createdBy: "Devorah L.",
     shareCount: 85,
-    imageCount: 2,
+    visitCount: 370,
+    viewCount: 607,
     createdAt: "Feb '25",
     solutions: [],
     updates: [],
@@ -168,6 +174,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3656",
+    communityId: "c105",
     title: "Post-seminary girls lack job training resources in Flatbush",
     description:
       "Girls coming back from seminary in Israel are expected to start earning within months, but there's no structured path into teaching, therapy, or office skills locally.",
@@ -180,7 +187,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 18,
     createdBy: "Miriam K.",
     shareCount: 83,
-    imageCount: 4,
+    visitCount: 362,
+    viewCount: 594,
     createdAt: "Mar '25",
     solutions: [],
     updates: [],
@@ -188,6 +196,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3657",
+    communityId: "c109",
     title: "Not enough shiur space for growing beis medrash in Lakewood",
     description:
       "Enrollment has outgrown the current building by nearly 200 bochurim. Afternoon sedorim are now split across three overflow rooms with poor acoustics.",
@@ -200,7 +209,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 47,
     createdBy: "Reb Shloime F.",
     shareCount: 177,
-    imageCount: 3,
+    visitCount: 738,
+    viewCount: 1195,
     createdAt: "Apr '25",
     solutions: [],
     updates: [],
@@ -208,6 +218,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3658",
+    communityId: "c103",
     title: "New families need a welcoming committee in Five Towns",
     description:
       "Families moving in from out of town have no consistent way to find a shul, a minyan, school openings, or even a good butcher. Word of mouth only goes so far.",
@@ -220,7 +231,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 15,
     createdBy: "Ahuva S.",
     shareCount: 88,
-    imageCount: 0,
+    visitCount: 382,
+    viewCount: 626,
     createdAt: "May '25",
     solutions: [],
     updates: [],
@@ -230,6 +242,7 @@ export const ISSUES: Issue[] = [
   // ---- GAINING TRACTION ----
   {
     id: "3659",
+    communityId: "c107",
     title: "Affordable housing crisis for young Lakewood families",
     description:
       "Starter homes that sold for $280k five years ago are now well past $550k. Kollel and young working families can no longer afford to buy within walking distance of a shul.",
@@ -242,7 +255,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 312,
     createdBy: "Yanky R.",
     shareCount: 986,
-    imageCount: 5,
+    visitCount: 3974,
+    viewCount: 6373,
     createdAt: "Jun '25",
     solutions: [
       {
@@ -315,6 +329,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3660",
+    communityId: "c106",
     title: "Shidduch crisis: not enough shadchanim for post-seminary girls in Flatbush",
     description:
       "Dozens of girls finishing seminary each year are relying on the same handful of overworked shadchanim, with wait times stretching past six months for a first suggestion.",
@@ -327,7 +342,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 189,
     createdBy: "Raizy H.",
     shareCount: 624,
-    imageCount: 2,
+    visitCount: 2526,
+    viewCount: 4056,
     createdAt: "Jul '25",
     solutions: [
       {
@@ -361,6 +377,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3661",
+    communityId: "c109",
     title: "Tuition crisis pushing families to the brink in Lakewood",
     description:
       "With five or six children in yeshiva at once, even dual-income families are taking on debt just to cover tuition. Scholarship committees are overwhelmed and inconsistent between schools.",
@@ -373,7 +390,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 271,
     createdBy: "Aryeh B.",
     shareCount: 877,
-    imageCount: 0,
+    visitCount: 3538,
+    viewCount: 5675,
     createdAt: "Aug '25",
     solutions: [
       {
@@ -408,6 +426,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3662",
+    communityId: "c108",
     title: "Kollel families struggling with rising cost of living in Lakewood",
     description:
       "Kollel stipends haven't kept pace with rent and grocery prices, which have risen sharply over the past three years. Many families rely entirely on outside chesed to get by.",
@@ -420,7 +439,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 204,
     createdBy: "Reb Yankel P.",
     shareCount: 683,
-    imageCount: 3,
+    visitCount: 2762,
+    viewCount: 4434,
     createdAt: "Sep '25",
     solutions: [
       {
@@ -439,6 +459,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3663",
+    communityId: "c105",
     title: "Better lighting needed on Rugby Road walking route in Flatbush",
     description:
       "Families walking to shul on Shabbos along Rugby Road have reported feeling unsafe after dark during winter months, when there's almost no working streetlight for two full blocks.",
@@ -451,7 +472,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 133,
     createdBy: "Shulamis D.",
     shareCount: 477,
-    imageCount: 4,
+    visitCount: 1938,
+    viewCount: 3115,
     createdAt: "Oct '25",
     solutions: [
       {
@@ -482,6 +504,7 @@ export const ISSUES: Issue[] = [
   // ---- SOLUTIONS PROPOSED ----
   {
     id: "3664",
+    communityId: "c110",
     title: "Basement apartment shortage leaving newlyweds stuck at parents'",
     description:
       "New couples in Monsey are waiting six-plus months for a basement apartment to open up, with many staying with parents far longer than planned.",
@@ -494,7 +517,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 96,
     createdBy: "Esti N.",
     shareCount: 373,
-    imageCount: 0,
+    visitCount: 1522,
+    viewCount: 2450,
     createdAt: "Nov '25",
     solutions: [
       {
@@ -526,6 +550,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3665",
+    communityId: "c108",
     title: "Yeshiva bochurim have no structured dating guidance in Lakewood",
     description:
       "Once bochurim start dating, many report feeling completely unprepared, with no one formally walking them through what to expect or how to communicate.",
@@ -538,7 +563,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 58,
     createdBy: "Reb Dovid M.",
     shareCount: 266,
-    imageCount: 2,
+    visitCount: 1094,
+    viewCount: 1765,
     createdAt: "Dec '25",
     solutions: [
       {
@@ -557,6 +583,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3666",
+    communityId: "c112",
     title: "Need expanded kollel stipend program in Bnei Brak",
     description:
       "Several smaller kollelim in Bnei Brak have stipend waitlists of their own, turning away avreichim who want to learn but can't afford to without support.",
@@ -569,7 +596,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 71,
     createdBy: "Reb Yisroel Z.",
     shareCount: 312,
-    imageCount: 4,
+    visitCount: 1278,
+    viewCount: 2059,
     createdAt: "Jan '26",
     solutions: [
       {
@@ -590,6 +618,7 @@ export const ISSUES: Issue[] = [
   // ---- SOLUTION CHOSEN ----
   {
     id: "3667",
+    communityId: "c102",
     title: "Overcrowded classrooms at the Boro Park cheder",
     description:
       "Kindergarten classes are running 28 boys to one rebbi, well above the recommended ratio, after two straight years of enrollment growth outpacing the building.",
@@ -602,7 +631,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 142,
     createdBy: "Menachem O.",
     shareCount: 532,
-    imageCount: 3,
+    visitCount: 2158,
+    viewCount: 3467,
     createdAt: "Feb '26",
     solutions: [
       {
@@ -648,6 +678,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3668",
+    communityId: "c113",
     title: "Yeshiva building needs urgent renovation in Jerusalem",
     description:
       "The main beis medrash roof has been leaking for two winters, and the electrical system was flagged as a fire hazard by an inspector last month.",
@@ -660,7 +691,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 218,
     createdBy: "Rosh Yeshiva's office",
     shareCount: 767,
-    imageCount: 0,
+    visitCount: 3098,
+    viewCount: 4971,
     createdAt: "Mar '26",
     solutions: [
       {
@@ -694,6 +726,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3669",
+    communityId: "c102",
     title: "Bikur cholim volunteers stretched thin in Boro Park",
     description:
       "The local bikur cholim has seen a 40% rise in requests this year with almost no growth in its volunteer base, leaving some families waiting days for meal coverage.",
@@ -706,7 +739,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 165,
     createdBy: "Bikur Cholim coordinator",
     shareCount: 615,
-    imageCount: 5,
+    visitCount: 2490,
+    viewCount: 3999,
     createdAt: "Apr '26",
     solutions: [
       {
@@ -739,6 +773,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3670",
+    communityId: "c112",
     title: "Unsafe crosswalk near the Bnei Brak yeshiva",
     description:
       "Bochurim crossing to get to seder have had two near-misses this month at the unmarked crossing near the yeshiva gate, where cars regularly speed through.",
@@ -751,7 +786,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 187,
     createdBy: "Yeshiva administration",
     shareCount: 688,
-    imageCount: 2,
+    visitCount: 2782,
+    viewCount: 4466,
     createdAt: "May '26",
     solutions: [
       {
@@ -782,6 +818,7 @@ export const ISSUES: Issue[] = [
   // ---- IN ACTION ----
   {
     id: "3671",
+    communityId: "c110",
     title: "Special needs students need more resources in Monsey schools",
     description:
       "Several schools have identified students who would benefit from a dedicated resource room but currently share one overstretched specialist across three buildings.",
@@ -794,7 +831,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 176,
     createdBy: "Mrs. Feldman",
     shareCount: 662,
-    imageCount: 0,
+    visitCount: 2678,
+    viewCount: 4299,
     createdAt: "Jun '26",
     solutions: [
       {
@@ -830,6 +868,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3672",
+    communityId: "c114",
     title: "Seminary girls need safer transportation options in Jerusalem",
     description:
       "Girls walking back from evening chaburos have reported feeling unsafe on poorly lit streets near several seminary dorms.",
@@ -842,7 +881,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 149,
     createdBy: "Seminary dean",
     shareCount: 588,
-    imageCount: 3,
+    visitCount: 2382,
+    viewCount: 3826,
     createdAt: "Jul '26",
     solutions: [
       {
@@ -874,6 +914,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3673",
+    communityId: "c107",
     title: "Eruv repairs needed weekly before Shabbos in Lakewood",
     description:
       "The eastern stretch of the eruv has needed emergency repair almost every week this year, often discovered only hours before Shabbos.",
@@ -886,7 +927,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 231,
     createdBy: "Eruv committee",
     shareCount: 841,
-    imageCount: 4,
+    visitCount: 3394,
+    viewCount: 5445,
     createdAt: "Aug '26",
     solutions: [
       {
@@ -920,6 +962,7 @@ export const ISSUES: Issue[] = [
   // ---- RESOLVED ----
   {
     id: "3674",
+    communityId: "c104",
     title: "Bein hazmanim programming lacking for bochurim in Five Towns",
     description:
       "Bochurim home for bein hazmanim had little structured to do, leading to concerns from parents about idle time between zmanim.",
@@ -932,7 +975,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 88,
     createdBy: "Community Vaad",
     shareCount: 419,
-    imageCount: 0,
+    visitCount: 1706,
+    viewCount: 2744,
     createdAt: "Sep '26",
     solutions: [
       {
@@ -965,6 +1009,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3675",
+    communityId: "c111",
     title: "Tomchei Shabbos needs more volunteer drivers in Monsey",
     description:
       "A shortage of regular drivers meant some families were getting their weekly package hours before Shabbos instead of with time to prepare.",
@@ -977,7 +1022,8 @@ export const ISSUES: Issue[] = [
     supporterCount: 104,
     createdBy: "Tomchei Shabbos coordinator",
     shareCount: 474,
-    imageCount: 2,
+    visitCount: 1926,
+    viewCount: 3096,
     createdAt: "Oct '26",
     solutions: [
       {

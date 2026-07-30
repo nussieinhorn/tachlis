@@ -8,11 +8,15 @@ import { Card, CardContent } from "@/components/ui/card";
 export function IssueSidebar({
   supporterCount,
   shareCount,
+  visitCount,
+  viewCount,
   updates,
   discussion,
 }: {
   supporterCount: number;
   shareCount: number;
+  visitCount: number;
+  viewCount: number;
   updates: Update[];
   discussion: Comment[];
 }) {
@@ -20,7 +24,12 @@ export function IssueSidebar({
     <aside className="flex flex-col gap-4">
       <Card>
         <CardContent className="pt-6 pb-6">
-          <JoinPanel initialSupporterCount={supporterCount} shareCount={shareCount} />
+          <JoinPanel
+            initialSupporterCount={supporterCount}
+            shareCount={shareCount}
+            visitCount={visitCount}
+            viewCount={viewCount}
+          />
         </CardContent>
       </Card>
 

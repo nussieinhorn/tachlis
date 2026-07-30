@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconSparkles } from "@tabler/icons-react";
+import { IconSpeakerphone } from "@tabler/icons-react";
 
 import type { Update } from "@/lib/mock-data";
 import { useAdminMode } from "@/lib/admin-mode";
@@ -50,9 +50,11 @@ export function AdminUpdates({ initialUpdates }: { initialUpdates: Update[] }) {
             {visible.map((update, i) => (
               <li
                 key={`${update.date}-${i}`}
-                className="flex gap-2.5 rounded-lg border-l-4 border-primary/50 bg-accent/30 px-3 py-2.5"
+                className="flex gap-2.5 rounded-lg bg-accent/30 px-3 py-2.5"
               >
-                <Icon icon={IconSparkles} size={16} className="mt-0.5 shrink-0 text-primary" />
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <Icon icon={IconSpeakerphone} size={13} />
+                </span>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm leading-snug font-medium text-foreground">
                     {update.body}

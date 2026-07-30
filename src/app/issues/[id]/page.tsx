@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
-import { IconMapPin, IconCalendar, IconUserCircle } from "@tabler/icons-react";
+import Link from "next/link";
+import { IconMapPin, IconCalendar, IconUserCircle, IconUsersGroup } from "@tabler/icons-react";
 
 import { getIssue, getCategory, ISSUES } from "@/lib/mock-data";
+import { getCommunity } from "@/lib/communities-data";
 import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
@@ -9,14 +11,13 @@ import { Breadcrumbs } from "@/components/issue/breadcrumbs";
 import { IssueAdminBar } from "@/components/issue/issue-admin-bar";
 import { IssueAdminStatus } from "@/components/issue/issue-admin-status";
 import { IssueDescription } from "@/components/issue/issue-description";
-import { ImageGallery } from "@/components/issue/image-gallery";
 import { EditableText } from "@/components/issue/editable-text";
 import { IssueSidebar } from "@/components/issue/issue-sidebar";
 import { SolutionCard } from "@/components/issue/solution-card";
 import { OtherProposals } from "@/components/issue/other-proposals";
 import { ActionPlanPanel } from "@/components/issue/action-plan-panel";
 import { ActionTeamPanel } from "@/components/issue/action-team-panel";
-import { SuggestSolution } from "@/components/issue/suggest-solution";
+import { SolutionsList } from "@/components/issue/solutions-list";
 
 export function generateStaticParams() {
   return ISSUES.map((issue) => ({ id: issue.id }));
@@ -32,6 +33,7 @@ export default async function IssueDetailPage({
   if (!issue) notFound();
 
   const category = getCategory(issue.categorySlug);
+  const community = issue.communityId ? getCommunity(issue.communityId) : undefined;
   const chosenSolutions = issue.solutions.filter((s) =>
     issue.chosenSolutionIds?.includes(s.id),
   );
@@ -39,11 +41,6 @@ export default async function IssueDetailPage({
   const otherSolutions = issue.solutions.filter(
     (s) => !issue.chosenSolutionIds?.includes(s.id),
   );
-
-  const leadingSolutionId =
-    issue.status === "solutions-proposed" && issue.solutions.length > 1
-      ? issue.solutions.reduce((max, s) => (s.votes > max.votes ? s : max), issue.solutions[0]).id
-      : undefined;
 
   return (
     <>
@@ -66,6 +63,15 @@ export default async function IssueDetailPage({
                   <Icon icon={IconMapPin} size={16} />
                   {issue.location}
                 </span>
+                {community && (
+                  <Link
+                    href={`/communities/${community.id}`}
+                    className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                  >
+                    <Icon icon={IconUsersGroup} size={14} />
+                    {community.name}
+                  </Link>
+                )}
               </div>
 
               <EditableText
@@ -91,8 +97,6 @@ export default async function IssueDetailPage({
                 description={issue.description}
                 descriptionMore={issue.descriptionMore}
               />
-
-              <ImageGallery imageCount={issue.imageCount} />
             </div>
 
             {isDecided ? (
@@ -108,33 +112,7 @@ export default async function IssueDetailPage({
                 {issue.actionPlan && <ActionPlanPanel plan={issue.actionPlan} />}
               </section>
             ) : (
-              <section className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="font-heading text-lg font-semibold text-foreground">
-                    Solutions {issue.solutions.length > 0 && `(${issue.solutions.length})`}
-                  </h2>
-                  <SuggestSolution />
-                </div>
-                {issue.solutions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No solutions proposed yet — be the first to suggest one.
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    {issue.solutions.slice(0, 5).map((solution, i) => (
-                      <SolutionCard
-                        key={solution.id}
-                        solution={solution}
-                        index={i}
-                        leading={solution.id === leadingSolutionId}
-                      />
-                    ))}
-                  </div>
-                )}
-                {issue.solutions.length > 5 && (
-                  <OtherProposals solutions={issue.solutions.slice(5)} label="more solutions" />
-                )}
-              </section>
+              <SolutionsList initialSolutions={issue.solutions} issueStatus={issue.status} />
             )}
 
             <ActionTeamPanel actionPlan={issue.actionPlan} />
@@ -143,6 +121,8 @@ export default async function IssueDetailPage({
           <IssueSidebar
             supporterCount={issue.supporterCount}
             shareCount={issue.shareCount}
+            visitCount={issue.visitCount}
+            viewCount={issue.viewCount}
             updates={issue.updates}
             discussion={issue.discussion}
           />

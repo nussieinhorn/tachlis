@@ -16,17 +16,12 @@ const badgeVariants = cva(
         outline: "text-foreground border-border",
         destructive:
           "border-transparent bg-destructive text-destructive-foreground",
-        "status-new": "border-transparent bg-status-new text-status-new-foreground",
-        "status-traction":
-          "border-transparent bg-status-traction text-status-traction-foreground",
-        "status-proposed":
-          "border-transparent bg-status-proposed text-status-proposed-foreground",
-        "status-chosen":
-          "border-transparent bg-status-chosen text-status-chosen-foreground",
-        "status-action":
-          "border-transparent bg-status-action text-status-action-foreground",
-        "status-resolved":
-          "border-transparent bg-status-resolved text-status-resolved-foreground",
+        "status-new": "border-status-new/25 bg-status-new/12 text-status-new",
+        "status-traction": "border-status-traction/25 bg-status-traction/12 text-status-traction",
+        "status-proposed": "border-status-proposed/25 bg-status-proposed/12 text-status-proposed",
+        "status-chosen": "border-status-chosen/25 bg-status-chosen/12 text-status-chosen",
+        "status-action": "border-status-action/25 bg-status-action/12 text-status-action",
+        "status-resolved": "border-status-resolved/25 bg-status-resolved/12 text-status-resolved",
       },
     },
     defaultVariants: {

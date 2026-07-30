@@ -1,16 +1,11 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import {
-  IconPlus,
-  IconCheck,
-  IconUpload,
-  IconX,
-  IconPhoto,
-  IconCopy,
-} from "@tabler/icons-react";
+import { IconPlus, IconCheck, IconX, IconCopy } from "@tabler/icons-react";
 
 import { CATEGORIES, type Issue } from "@/lib/mock-data";
+import { COMMUNITIES, getCommunity } from "@/lib/communities-data";
+import { useAdminMode } from "@/lib/admin-mode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,8 +23,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const STEPS = ["Basics", "Description & images", "Team", "Review"];
+const STEPS = ["Basics", "Description", "Team", "Review"];
 const BRIEF_MAX = 140;
 
 type TeamInvite = { id: string; name: string; phone: string; email: string; canEdit: boolean };
@@ -37,11 +38,15 @@ type TeamInvite = { id: string; name: string; phone: string; email: string; canE
 export function CreateIssueDialog({
   trigger,
   editIssue,
+  lockedCommunityId,
 }: {
   trigger: ReactNode;
   /** When provided, the dialog opens pre-filled in "edit" mode instead of blank "create" mode. */
   editIssue?: Issue;
+  /** When provided (e.g. launched from a community page), the community is pre-set and can't be changed. */
+  lockedCommunityId?: string;
 }) {
+  const { isAdmin } = useAdminMode();
   const isEditing = Boolean(editIssue);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -51,16 +56,19 @@ export function CreateIssueDialog({
   const [title, setTitle] = useState(editIssue?.title ?? "");
   const [categorySlug, setCategorySlug] = useState<string>(editIssue?.categorySlug ?? CATEGORIES[0].slug);
   const [location, setLocation] = useState(editIssue?.location ?? "");
+  const [communityId, setCommunityId] = useState<string | undefined>(
+    lockedCommunityId ?? editIssue?.communityId,
+  );
   const [goLiveDate, setGoLiveDate] = useState("");
   const [showOnHomepage, setShowOnHomepage] = useState(true);
 
   const [brief, setBrief] = useState(editIssue?.description ?? "");
   const [details, setDetails] = useState(editIssue?.descriptionMore ?? "");
-  const [images, setImages] = useState<{ url: string; name: string }[]>([]);
 
   const [team, setTeam] = useState<TeamInvite[]>([]);
 
   const category = CATEGORIES.find((c) => c.slug === categorySlug) ?? CATEGORIES[0];
+  const selectedCommunity = communityId ? getCommunity(communityId) : undefined;
   const fakeId = "3" + Math.floor(600 + Math.random() * 99);
 
   function reset(nextOpen: boolean) {
@@ -71,23 +79,13 @@ export function CreateIssueDialog({
       setTitle(editIssue?.title ?? "");
       setCategorySlug(editIssue?.categorySlug ?? CATEGORIES[0].slug);
       setLocation(editIssue?.location ?? "");
+      setCommunityId(lockedCommunityId ?? editIssue?.communityId);
       setGoLiveDate("");
       setShowOnHomepage(true);
       setBrief(editIssue?.description ?? "");
       setDetails(editIssue?.descriptionMore ?? "");
-      setImages([]);
       setTeam([]);
     }
-  }
-
-  function addImages(files: FileList | null) {
-    if (!files) return;
-    const next = Array.from(files).map((f) => ({ url: URL.createObjectURL(f), name: f.name }));
-    setImages((prev) => [...prev, ...next]);
-  }
-
-  function removeImage(i: number) {
-    setImages((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   function addTeamMember() {
@@ -106,7 +104,7 @@ export function CreateIssueDialog({
   }
 
   function publish() {
-    // TODO(supabase): isEditing ? onUpdateIssue({ id: editIssue.id, ... }) : onCreateIssue({ ... })
+    // TODO(supabase): isEditing ? onUpdateIssue({ id: editIssue.id, ... }) : onCreateIssue({ ..., communityId })
     setPublished(true);
   }
 
@@ -213,6 +211,39 @@ export function CreateIssueDialog({
                     <Label>Location</Label>
                     <LocationSearch value={location} onChange={setLocation} />
                   </div>
+
+                  {isAdmin && (
+                    <div className="flex flex-col gap-1.5">
+                      <Label>Community</Label>
+                      {lockedCommunityId ? (
+                        <div className="flex h-9 items-center rounded-md border border-border bg-muted px-3 text-sm text-muted-foreground">
+                          {getCommunity(lockedCommunityId)?.name}
+                        </div>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="flex h-9 items-center justify-between rounded-md border border-input px-3 text-sm text-foreground hover:bg-accent"
+                            >
+                              {selectedCommunity?.name ?? "Public (no community)"}
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
+                            <DropdownMenuItem onClick={() => setCommunityId(undefined)}>
+                              Public (no community)
+                            </DropdownMenuItem>
+                            {COMMUNITIES.map((c) => (
+                              <DropdownMenuItem key={c.id} onClick={() => setCommunityId(c.id)}>
+                                {c.name}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="go-live">Goes live</Label>
@@ -272,37 +303,6 @@ export function CreateIssueDialog({
                       onChange={setDetails}
                       placeholder="Full background, rich text — bold, lists, multiple paragraphs..."
                     />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Images</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {images.map((img, i) => (
-                        <div key={img.url} className="relative">
-                          <div className="flex size-16 items-center justify-center overflow-hidden rounded-lg bg-muted">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={img.url} alt={img.name} className="size-full object-cover" />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeImage(i)}
-                            className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-foreground text-background"
-                            aria-label="Remove image"
-                          >
-                            <Icon icon={IconX} size={12} />
-                          </button>
-                        </div>
-                      ))}
-                      <label className="flex size-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-muted-foreground hover:bg-accent">
-                        <Icon icon={IconUpload} size={18} />
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => addImages(e.target.files)}
-                        />
-                      </label>
-                    </div>
                   </div>
                 </div>
               )}
@@ -366,17 +366,14 @@ export function CreateIssueDialog({
                       <Icon icon={category.icon} size={14} />
                       {category.label}
                     </Badge>
+                    {selectedCommunity && (
+                      <Badge variant="secondary">{selectedCommunity.name}</Badge>
+                    )}
                   </div>
                   <h3 className="font-heading text-xl leading-snug font-bold text-foreground">
                     {title || "Untitled issue"}
                   </h3>
                   <p className="text-sm text-muted-foreground">{brief || "No description yet."}</p>
-                  {images.length > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Icon icon={IconPhoto} size={14} />
-                      {images.length} image{images.length > 1 ? "s" : ""} attached
-                    </div>
-                  )}
                   {location && (
                     <p className="text-xs text-muted-foreground">{location}</p>
                   )}

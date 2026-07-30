@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { IconPlus, IconUserCircle, IconShieldCog, IconUser, IconCircleCheck, IconList } from "@tabler/icons-react";
+import { IconPlus, IconUserCircle, IconShieldCog, IconUser, IconCircleCheck, IconList, IconUsersGroup } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -32,7 +32,7 @@ export function SiteHeader() {
             Tachlis
           </Link>
 
-          <div className="mx-auto hidden w-full max-w-md sm:block">
+          <div className="hidden sm:block">
             <SearchCombobox />
           </div>
 
@@ -67,6 +67,12 @@ export function SiteHeader() {
                 <DropdownMenuItem onClick={() => setMyIssuesOpen(true)}>
                   <Icon icon={IconList} size={16} />
                   My issues
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/communities">
+                    <Icon icon={IconUsersGroup} size={16} />
+                    My Communities
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/solved">

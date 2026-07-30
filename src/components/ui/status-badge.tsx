@@ -35,7 +35,7 @@ export function StatusBadge({
   return (
     <Badge
       variant={config.variant}
-      className={cn(size === "lg" && "px-4 py-1.5 text-sm font-semibold")}
+      className={cn(size === "lg" && "px-2.5 py-1 font-semibold")}
     >
       {config.label}
     </Badge>

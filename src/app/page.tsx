@@ -1,6 +1,6 @@
 import { SiteHeader } from "@/components/site-header";
 import { IssueBrowser } from "@/components/issue-browser";
-import { GlobeBackground } from "@/components/globe-background";
+import { CommunityRow } from "@/components/community-row";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
 import { Button } from "@/components/ui/button";
 import { ISSUES } from "@/lib/mock-data";
@@ -12,8 +12,7 @@ export default function Home() {
     <>
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-14">
-        <section className="relative flex flex-col items-center gap-5 overflow-hidden py-6 text-center">
-          <GlobeBackground />
+        <section className="flex flex-col items-center gap-5 py-6 text-center">
           <h1 className="font-heading max-w-2xl text-4xl font-bold text-foreground sm:text-5xl">
             From discussion to actually solved.
           </h1>
@@ -30,6 +29,8 @@ export default function Home() {
             }
           />
         </section>
+
+        <CommunityRow />
 
         <IssueBrowser issues={activeIssues} />
       </main>

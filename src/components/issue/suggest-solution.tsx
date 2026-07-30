@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { IconPlus, IconSparkles, IconX } from "@tabler/icons-react";
 
+import type { Solution, SolutionStatus } from "@/lib/mock-data";
+import { useAdminMode } from "@/lib/admin-mode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +28,23 @@ function generatePlaceholderProsCons(title: string): { pros: string[]; cons: str
   };
 }
 
-export function SuggestSolution() {
+const STATUS_OPTIONS: { value: SolutionStatus; label: string }[] = [
+  { value: "proposed", label: "Proposed" },
+  { value: "considering", label: "Considering" },
+  { value: "trending", label: "Trending" },
+  { value: "chosen", label: "Chosen" },
+  { value: "rejected", label: "Rejected" },
+];
+
+export function SuggestSolution({
+  size = "default",
+  onAdminAdd,
+}: {
+  size?: "default" | "lg";
+  /** Only called in admin mode — the new solution is added live, not submitted for review. */
+  onAdminAdd?: (solution: Solution) => void;
+}) {
+  const { isAdmin } = useAdminMode();
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [title, setTitle] = useState("");
@@ -37,6 +55,7 @@ export function SuggestSolution() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [joinTeam, setJoinTeam] = useState(false);
+  const [status, setStatus] = useState<SolutionStatus>("proposed");
 
   function generate() {
     const result = generatePlaceholderProsCons(title || description);
@@ -63,6 +82,7 @@ export function SuggestSolution() {
       setEmail("");
       setPhone("");
       setJoinTeam(false);
+      setStatus("proposed");
     }
   }
 
@@ -72,12 +92,45 @@ export function SuggestSolution() {
     setSubmitted(true);
   }
 
+  function submitAdmin() {
+    // TODO(supabase): onAddSolution({ issueId, title, description, pros, cons, status })
+    onAdminAdd?.({
+      id: `local-solution-${Date.now()}`,
+      title,
+      description,
+      pros,
+      cons,
+      votes: 0,
+      status,
+      comments: [],
+    });
+    reset(false);
+  }
+
+  const triggerLabel = size === "lg" ? "Suggest solution" : "Suggest solution";
+
   return (
     <>
-      <Button variant="outline" className="w-fit" onClick={() => setOpen(true)}>
-        <Icon icon={IconPlus} />
-        Suggest a solution
-      </Button>
+      {isAdmin ? (
+        <Button
+          variant="outline"
+          size={size === "lg" ? "lg" : "icon"}
+          onClick={() => setOpen(true)}
+          aria-label="Add a solution"
+        >
+          <Icon icon={IconPlus} />
+        </Button>
+      ) : (
+        <Button
+          variant="outline"
+          size={size === "lg" ? "lg" : "default"}
+          className="w-fit"
+          onClick={() => setOpen(true)}
+        >
+          <Icon icon={IconPlus} />
+          {triggerLabel}
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={reset}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
@@ -95,9 +148,11 @@ export function SuggestSolution() {
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>Suggest a solution</DialogTitle>
+                <DialogTitle>{isAdmin ? "Add a solution" : "Suggest a solution"}</DialogTitle>
                 <DialogDescription>
-                  Propose an approach — admins review submissions before they go live.
+                  {isAdmin
+                    ? "You're adding this directly — it'll appear in the list right away."
+                    : "Propose an approach — admins review submissions before they go live."}
                 </DialogDescription>
               </DialogHeader>
 
@@ -121,6 +176,28 @@ export function SuggestSolution() {
                     className="min-h-20"
                   />
                 </div>
+
+                {isAdmin && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Status</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {STATUS_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setStatus(opt.value)}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                            status === opt.value
+                              ? "border-primary bg-accent text-accent-foreground"
+                              : "border-border text-muted-foreground"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <Button
                   type="button"
@@ -167,39 +244,49 @@ export function SuggestSolution() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-2 border-t border-border pt-3 sm:grid-cols-3">
-                  <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
-                  <Input
-                    placeholder="Email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Phone (optional)"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={joinTeam}
-                    onChange={(e) => setJoinTeam(e.target.checked)}
-                    className="size-4 rounded border-border"
-                  />
-                  I'd like to join the action team if this is chosen
-                </label>
+                {!isAdmin && (
+                  <>
+                    <div className="grid grid-cols-1 gap-2 border-t border-border pt-3 sm:grid-cols-3">
+                      <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
+                      <Input
+                        placeholder="Email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Phone (optional)"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={joinTeam}
+                        onChange={(e) => setJoinTeam(e.target.checked)}
+                        className="size-4 rounded border-border"
+                      />
+                      I'd like to join the action team if this is chosen
+                    </label>
+                  </>
+                )}
               </div>
 
               <DialogFooter>
-                <Button
-                  onClick={submit}
-                  disabled={!title.trim() || !description.trim() || !name.trim() || !email.trim()}
-                >
-                  Submit for review
-                </Button>
+                {isAdmin ? (
+                  <Button onClick={submitAdmin} disabled={!title.trim() || !description.trim()}>
+                    Add solution
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={submit}
+                    disabled={!title.trim() || !description.trim() || !name.trim() || !email.trim()}
+                  >
+                    Submit for review
+                  </Button>
+                )}
               </DialogFooter>
             </>
           )}
