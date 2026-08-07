@@ -15,17 +15,19 @@ import { Icon } from "@/components/ui/icon";
 export function PrivateIssueGate({
   issueId,
   issueTitle,
+  isPrivate,
   children,
 }: {
   issueId: string;
   issueTitle: string;
+  isPrivate: boolean;
   children: ReactNode;
 }) {
   const { isAdmin } = useAdminMode();
   const { user } = useFakeSession();
   const { hasAccess } = usePrivateAccess();
 
-  const granted = isAdmin || hasAccess(issueId, user?.email);
+  const granted = !isPrivate || isAdmin || hasAccess(issueId, user?.email);
   if (granted) return <>{children}</>;
 
   return <PrivateIssueGateScreen issueId={issueId} issueTitle={issueTitle} />;
