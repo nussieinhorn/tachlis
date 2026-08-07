@@ -1,6 +1,5 @@
 import { SiteHeader } from "@/components/site-header";
 import { IssueBrowser } from "@/components/issue-browser";
-import { CommunityRow } from "@/components/community-row";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
 import { Button } from "@/components/ui/button";
 import { ISSUES } from "@/lib/mock-data";
@@ -29,8 +28,6 @@ export default function Home() {
             }
           />
         </section>
-
-        <CommunityRow />
 
         <IssueBrowser issues={activeIssues} />
       </main>

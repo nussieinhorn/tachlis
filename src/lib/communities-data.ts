@@ -19,6 +19,8 @@ export type Community = {
   privacy: "public" | "private";
   memberCount: number;
   tone: CommunityTone;
+  /** Fake session user's email who created this community. Seed communities are ownerless. */
+  ownerId?: string;
 };
 
 // TODO(supabase): communities table — id, name, description, location,
@@ -163,6 +165,10 @@ export const COMMUNITIES: Community[] = [
 
 export function getCommunity(id: string): Community | undefined {
   return COMMUNITIES.find((c) => c.id === id);
+}
+
+export function getCommunitiesOwnedBy(email: string): Community[] {
+  return COMMUNITIES.filter((c) => c.ownerId === email);
 }
 
 export function getCommunityIssueCount(id: string): number {

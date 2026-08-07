@@ -10,11 +10,11 @@ import {
   IconDots,
   IconPencil,
   IconTrash,
+  IconLock,
 } from "@tabler/icons-react";
 
 import { COMMUNITY_TONE_CLASSES, getCommunityIssueCount, type Community } from "@/lib/communities-data";
 import { useAdminMode } from "@/lib/admin-mode";
-import { useCommunityMembership } from "@/lib/community-membership";
 import { pluralize } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
@@ -28,10 +28,8 @@ import {
 
 export function CommunityCard({ community }: { community: Community }) {
   const { isAdmin } = useAdminMode();
-  const { isJoined } = useCommunityMembership();
   const [deleted, setDeleted] = useState(false);
   const issueCount = getCommunityIssueCount(community.id);
-  const joined = isJoined(community.id);
 
   if (deleted) {
     return (
@@ -85,7 +83,12 @@ export function CommunityCard({ community }: { community: Community }) {
             <Icon icon={IconUsersGroup} size={20} />
           </div>
           <div className="flex flex-col overflow-hidden">
-            <span className="truncate font-heading font-semibold text-foreground">{community.name}</span>
+            <span className="flex items-center gap-1.5 truncate font-heading font-semibold text-foreground">
+              {community.privacy === "private" && (
+                <Icon icon={IconLock} size={14} className="shrink-0 text-muted-foreground" />
+              )}
+              {community.name}
+            </span>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Icon icon={IconMapPin} size={12} />
               {community.location}
@@ -95,7 +98,6 @@ export function CommunityCard({ community }: { community: Community }) {
 
         <div className="flex items-center gap-2">
           <Badge variant="outline">{community.privacy === "private" ? "Private" : "Public"}</Badge>
-          {joined && <Badge variant="status-resolved">Joined</Badge>}
         </div>
 
         <div className="mt-auto flex items-center gap-4 pt-1 text-sm text-muted-foreground">

@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { IconMapPin, IconCalendar, IconUserCircle, IconUsersGroup } from "@tabler/icons-react";
+import { IconMapPin, IconCalendar, IconUserCircle } from "@tabler/icons-react";
 
 import { getIssue, getCategory, ISSUES } from "@/lib/mock-data";
 import { getCommunity } from "@/lib/communities-data";
@@ -18,6 +17,9 @@ import { OtherProposals } from "@/components/issue/other-proposals";
 import { ActionPlanPanel } from "@/components/issue/action-plan-panel";
 import { ActionTeamPanel } from "@/components/issue/action-team-panel";
 import { SolutionsList } from "@/components/issue/solutions-list";
+import { IssueCommunityLink } from "@/components/issue/issue-community-link";
+import { PrivateIssueGate } from "@/components/issue/private-issue-gate";
+import { AccessRequestsWidget } from "@/components/issue/access-requests-widget";
 
 export function generateStaticParams() {
   return ISSUES.map((issue) => ({ id: issue.id }));
@@ -45,10 +47,14 @@ export default async function IssueDetailPage({
   return (
     <>
       <SiteHeader />
+      <PrivateIssueGate issueId={issue.id} issueTitle={issue.title}>
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumbs id={issue.id} />
-          <IssueAdminBar issue={issue} />
+          <div className="flex items-center gap-2">
+            {issue.visibility === "private" && <AccessRequestsWidget issueId={issue.id} />}
+            <IssueAdminBar issue={issue} />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[2fr_1fr]">
@@ -63,15 +69,7 @@ export default async function IssueDetailPage({
                   <Icon icon={IconMapPin} size={16} />
                   {issue.location}
                 </span>
-                {community && (
-                  <Link
-                    href={`/communities/${community.id}`}
-                    className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                  >
-                    <Icon icon={IconUsersGroup} size={14} />
-                    {community.name}
-                  </Link>
-                )}
+                {community && <IssueCommunityLink community={community} />}
               </div>
 
               <EditableText
@@ -128,6 +126,7 @@ export default async function IssueDetailPage({
           />
         </div>
       </main>
+      </PrivateIssueGate>
     </>
   );
 }

@@ -8,6 +8,7 @@ import {
   type Community,
   type CommunityTone,
 } from "@/lib/communities-data";
+import { useFakeSession } from "@/lib/fake-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,11 +31,17 @@ type Invite = { id: string; name: string; email: string };
 export function CreateCommunityDialog({
   trigger,
   editCommunity,
+  quickMode,
+  onCreated,
 }: {
   trigger: ReactNode;
   editCommunity?: Community;
+  /** Skips the Invite step and confirmation screen — used from inside the Create Issue wizard. */
+  quickMode?: boolean;
+  onCreated?: (community: Community) => void;
 }) {
   const isEditing = Boolean(editCommunity);
+  const { user, addCommunity } = useFakeSession();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
@@ -42,6 +49,7 @@ export function CreateCommunityDialog({
 
   const [name, setName] = useState(editCommunity?.name ?? "");
   const [description, setDescription] = useState(editCommunity?.description ?? "");
+  const [location, setLocation] = useState(editCommunity?.location ?? "");
   const [tone, setTone] = useState<CommunityTone>(editCommunity?.tone ?? "coral");
   const [privacy, setPrivacy] = useState<"public" | "private">(editCommunity?.privacy ?? "public");
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -56,6 +64,7 @@ export function CreateCommunityDialog({
       setShowFirstIssuePrompt(false);
       setName(editCommunity?.name ?? "");
       setDescription(editCommunity?.description ?? "");
+      setLocation(editCommunity?.location ?? "");
       setTone(editCommunity?.tone ?? "coral");
       setPrivacy(editCommunity?.privacy ?? "public");
       setInvites([]);
@@ -74,9 +83,28 @@ export function CreateCommunityDialog({
 
   function finish() {
     // TODO(supabase): isEditing ? onUpdateCommunity({ id: editCommunity.id, ... }) : onCreateCommunity({ ..., invites })
+    if (!isEditing) {
+      const created: Community = {
+        id: fakeId,
+        name: name.trim(),
+        description,
+        location,
+        privacy,
+        memberCount: 1,
+        tone,
+        ownerId: user?.email,
+      };
+      addCommunity(created);
+      if (quickMode) {
+        onCreated?.(created);
+        reset(false);
+        return;
+      }
+    }
     setDone(true);
   }
 
+  const singlePage = isEditing || quickMode;
   const canAdvance = step === 0 ? name.trim().length > 0 : true;
 
   return (
@@ -128,11 +156,13 @@ export function CreateCommunityDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>{isEditing ? "Edit community" : STEPS[step]}</DialogTitle>
+              <DialogTitle>
+                {isEditing ? "Edit community" : quickMode ? "Create a new community" : STEPS[step]}
+              </DialogTitle>
             </DialogHeader>
 
             <div className="flex-1 overflow-y-auto px-1">
-              {(step === 0 || isEditing) && (
+              {(step === 0 || singlePage) && (
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="community-name">Community name</Label>
@@ -152,6 +182,15 @@ export function CreateCommunityDialog({
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="What's this community about?"
                       className="min-h-16"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="community-location">Location</Label>
+                    <Input
+                      id="community-location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="e.g. Lakewood, NJ"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -201,7 +240,7 @@ export function CreateCommunityDialog({
                 </div>
               )}
 
-              {step === 1 && !isEditing && (
+              {step === 1 && !singlePage && (
                 <div className="flex flex-col gap-4">
                   <p className="text-sm text-muted-foreground">
                     Invite people to join {name || "this community"}.
@@ -233,14 +272,14 @@ export function CreateCommunityDialog({
             </div>
 
             <div className="flex items-center justify-between border-t border-border pt-3">
-              {!isEditing && step > 0 ? (
+              {!singlePage && step > 0 ? (
                 <Button variant="ghost" size="sm" onClick={() => setStep((s) => s - 1)}>
                   Back
                 </Button>
               ) : (
                 <span />
               )}
-              {!isEditing && step < STEPS.length - 1 ? (
+              {!singlePage && step < STEPS.length - 1 ? (
                 <Button size="sm" onClick={() => setStep((s) => s + 1)} disabled={!canAdvance}>
                   Next
                 </Button>

@@ -6,10 +6,12 @@ import { IconSearch } from "@tabler/icons-react";
 
 import { ISSUES } from "@/lib/mock-data";
 import { COMMUNITIES } from "@/lib/communities-data";
+import { useAdminMode } from "@/lib/admin-mode";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 
 export function SearchCombobox() {
+  const { isAdmin } = useAdminMode();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -26,8 +28,10 @@ export function SearchCombobox() {
   const communityResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return COMMUNITIES.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 3);
-  }, [query]);
+    return COMMUNITIES.filter(
+      (c) => (c.privacy === "public" || isAdmin) && c.name.toLowerCase().includes(q),
+    ).slice(0, 3);
+  }, [query, isAdmin]);
 
   const hasResults = issueResults.length > 0 || communityResults.length > 0;
 

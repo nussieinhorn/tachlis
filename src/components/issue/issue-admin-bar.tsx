@@ -2,13 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { IconDots, IconEye, IconEyeOff, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconAdjustments, IconDots, IconEye, IconEyeOff, IconPencil, IconTrash } from "@tabler/icons-react";
 
 import type { Issue } from "@/lib/mock-data";
 import { useAdminMode } from "@/lib/admin-mode";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
+import { IssueSettingsDialog } from "@/components/issue/issue-settings-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +48,15 @@ export function IssueAdminBar({ issue }: { issue: Issue }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <IssueSettingsDialog
+              issue={issue}
+              trigger={
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Icon icon={IconAdjustments} size={16} />
+                  Issue settings
+                </DropdownMenuItem>
+              }
+            />
             <DropdownMenuItem onClick={() => setHidden((h) => !h)}>
               <Icon icon={hidden ? IconEye : IconEyeOff} size={16} />
               {hidden ? "Unhide" : "Hide"}

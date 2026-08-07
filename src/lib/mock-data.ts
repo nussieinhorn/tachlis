@@ -7,6 +7,23 @@ import {
   IconGift,
   IconBuildingCommunity,
   IconShieldCheck,
+  IconCertificate,
+  IconRoute,
+  IconHeartbeat,
+  IconShoppingBag,
+  IconDroplet,
+  IconConfetti,
+  IconBus,
+  IconBriefcase,
+  IconBrain,
+  IconWheelchair,
+  IconTent,
+  IconArmchair,
+  IconBuildingChurch,
+  IconBuildingSkyscraper,
+  IconShieldLock,
+  IconCoin,
+  IconDeviceLaptop,
 } from "@tabler/icons-react";
 
 import type { IconComponent } from "@/components/ui/icon";
@@ -27,6 +44,23 @@ export const CATEGORIES: Category[] = [
   { slug: "chesed", label: "Chesed", icon: IconGift },
   { slug: "housing", label: "Housing", icon: IconBuildingCommunity },
   { slug: "safety", label: "Safety", icon: IconShieldCheck },
+  { slug: "kashrus", label: "Kashrus", icon: IconCertificate },
+  { slug: "eruv", label: "Eruv", icon: IconRoute },
+  { slug: "bikur-cholim", label: "Bikur Cholim", icon: IconHeartbeat },
+  { slug: "tomchei-shabbos", label: "Tomchei Shabbos", icon: IconShoppingBag },
+  { slug: "mikvah", label: "Mikvah", icon: IconDroplet },
+  { slug: "simchas-events", label: "Simchas & Events", icon: IconConfetti },
+  { slug: "transportation", label: "Transportation", icon: IconBus },
+  { slug: "employment-parnassah", label: "Employment & Parnassah", icon: IconBriefcase },
+  { slug: "mental-health", label: "Mental Health", icon: IconBrain },
+  { slug: "special-needs", label: "Special Needs", icon: IconWheelchair },
+  { slug: "youth-camps", label: "Youth & Camps", icon: IconTent },
+  { slug: "eldercare", label: "Eldercare", icon: IconArmchair },
+  { slug: "shul-minyan", label: "Shul & Minyan", icon: IconBuildingChurch },
+  { slug: "zoning-development", label: "Zoning & Development", icon: IconBuildingSkyscraper },
+  { slug: "security", label: "Security", icon: IconShieldLock },
+  { slug: "tzedaka-finance", label: "Tzedaka & Finance", icon: IconCoin },
+  { slug: "technology-media", label: "Technology & Media", icon: IconDeviceLaptop },
 ];
 
 export const LOCATIONS = [
@@ -117,12 +151,32 @@ export type Issue = {
   updates: Update[];
   discussion: Comment[];
   actionPlan?: ActionPlan;
+  /** Settings captured by the Create Issue wizard. Store-only for this prototype phase — not enforced. */
+  visibility: "public" | "private";
+  showOnHomepage: boolean;
+  showInSearch: boolean;
+  supportRequiresLogin: boolean;
+  voteRequiresLogin: boolean;
+  allowSuggestSolutions: boolean;
+  goLiveDate?: string;
+  votingCloseDate?: string;
+  hiddenDate?: string;
+};
+
+const DEFAULT_ISSUE_SETTINGS = {
+  visibility: "public" as const,
+  showOnHomepage: true,
+  showInSearch: true,
+  supportRequiresLogin: false,
+  voteRequiresLogin: false,
+  allowSuggestSolutions: true,
 };
 
 export const ISSUES: Issue[] = [
   // ---- NEW ----
   {
     id: "3654",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c101",
     title: "No available apartments for growing families in Boro Park",
     description:
@@ -152,6 +206,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3655",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c103",
     title: "Need a community shidduch resource night in Five Towns",
     description:
@@ -174,6 +229,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3656",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c105",
     title: "Post-seminary girls lack job training resources in Flatbush",
     description:
@@ -196,6 +252,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3657",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c109",
     title: "Not enough shiur space for growing beis medrash in Lakewood",
     description:
@@ -218,6 +275,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3658",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c103",
     title: "New families need a welcoming committee in Five Towns",
     description:
@@ -242,6 +300,7 @@ export const ISSUES: Issue[] = [
   // ---- GAINING TRACTION ----
   {
     id: "3659",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c107",
     title: "Affordable housing crisis for young Lakewood families",
     description:
@@ -329,6 +388,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3660",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c106",
     title: "Shidduch crisis: not enough shadchanim for post-seminary girls in Flatbush",
     description:
@@ -377,6 +437,12 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3661",
+    visibility: "private",
+    showOnHomepage: true,
+    showInSearch: true,
+    supportRequiresLogin: false,
+    voteRequiresLogin: false,
+    allowSuggestSolutions: true,
     communityId: "c109",
     title: "Tuition crisis pushing families to the brink in Lakewood",
     description:
@@ -426,6 +492,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3662",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c108",
     title: "Kollel families struggling with rising cost of living in Lakewood",
     description:
@@ -459,6 +526,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3663",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c105",
     title: "Better lighting needed on Rugby Road walking route in Flatbush",
     description:
@@ -504,6 +572,7 @@ export const ISSUES: Issue[] = [
   // ---- SOLUTIONS PROPOSED ----
   {
     id: "3664",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c110",
     title: "Basement apartment shortage leaving newlyweds stuck at parents'",
     description:
@@ -550,6 +619,12 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3665",
+    visibility: "private",
+    showOnHomepage: true,
+    showInSearch: true,
+    supportRequiresLogin: false,
+    voteRequiresLogin: false,
+    allowSuggestSolutions: true,
     communityId: "c108",
     title: "Yeshiva bochurim have no structured dating guidance in Lakewood",
     description:
@@ -583,6 +658,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3666",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c112",
     title: "Need expanded kollel stipend program in Bnei Brak",
     description:
@@ -618,6 +694,7 @@ export const ISSUES: Issue[] = [
   // ---- SOLUTION CHOSEN ----
   {
     id: "3667",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c102",
     title: "Overcrowded classrooms at the Boro Park cheder",
     description:
@@ -678,6 +755,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3668",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c113",
     title: "Yeshiva building needs urgent renovation in Jerusalem",
     description:
@@ -726,6 +804,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3669",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c102",
     title: "Bikur cholim volunteers stretched thin in Boro Park",
     description:
@@ -773,6 +852,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3670",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c112",
     title: "Unsafe crosswalk near the Bnei Brak yeshiva",
     description:
@@ -818,6 +898,7 @@ export const ISSUES: Issue[] = [
   // ---- IN ACTION ----
   {
     id: "3671",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c110",
     title: "Special needs students need more resources in Monsey schools",
     description:
@@ -868,6 +949,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3672",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c114",
     title: "Seminary girls need safer transportation options in Jerusalem",
     description:
@@ -914,6 +996,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3673",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c107",
     title: "Eruv repairs needed weekly before Shabbos in Lakewood",
     description:
@@ -962,6 +1045,7 @@ export const ISSUES: Issue[] = [
   // ---- RESOLVED ----
   {
     id: "3674",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c104",
     title: "Bein hazmanim programming lacking for bochurim in Five Towns",
     description:
@@ -1009,6 +1093,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: "3675",
+    ...DEFAULT_ISSUE_SETTINGS,
     communityId: "c111",
     title: "Tomchei Shabbos needs more volunteer drivers in Monsey",
     description:

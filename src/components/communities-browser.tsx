@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 
 import { COMMUNITIES } from "@/lib/communities-data";
-import { useCommunityMembership } from "@/lib/community-membership";
+import { useAdminMode } from "@/lib/admin-mode";
+import { useFakeSession } from "@/lib/fake-session";
 import { CommunityCard } from "@/components/community-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,19 +13,25 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const PAGE_SIZE = 12;
 
 export function CommunitiesBrowser() {
-  const { joinedIds } = useCommunityMembership();
+  const { isAdmin } = useAdminMode();
+  const { user, createdCommunities } = useFakeSession();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"all" | "mine">("all");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
+  const visibleCommunities = useMemo(() => {
+    const all = [...COMMUNITIES, ...createdCommunities];
+    return isAdmin ? all : all.filter((c) => c.privacy === "public");
+  }, [isAdmin, createdCommunities]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return COMMUNITIES.filter((c) => {
+    return visibleCommunities.filter((c) => {
       const matchesQuery = !q || c.name.toLowerCase().includes(q);
-      const matchesTab = tab === "all" || joinedIds.has(c.id);
+      const matchesTab = tab === "all" || c.ownerId === user?.email;
       return matchesQuery && matchesTab;
     });
-  }, [query, tab, joinedIds]);
+  }, [query, tab, visibleCommunities, user]);
 
   const visible = filtered.slice(0, visibleCount);
 
@@ -56,7 +63,11 @@ export function CommunitiesBrowser() {
 
       {filtered.length === 0 ? (
         <p className="text-muted-foreground">
-          {tab === "mine" ? "You haven't joined any communities yet." : "No communities match your search."}
+          {tab === "mine"
+            ? user
+              ? "You haven't created any communities yet."
+              : "Sign in when creating a community to see it here."
+            : "No communities match your search."}
         </p>
       ) : (
         <>
