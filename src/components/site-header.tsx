@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { IconPlus, IconUserCircle, IconShieldCog, IconUser, IconCircleCheck, IconList, IconUsersGroup } from "@tabler/icons-react";
 
@@ -9,7 +8,6 @@ import { Icon } from "@/components/ui/icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchCombobox } from "@/components/search-combobox";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
-import { MyIssuesDialog } from "@/components/my-issues-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +20,6 @@ import { useAdminMode } from "@/lib/admin-mode";
 
 export function SiteHeader() {
   const { isAdmin, setIsAdmin } = useAdminMode();
-  const [myIssuesOpen, setMyIssuesOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
@@ -64,12 +61,14 @@ export function SiteHeader() {
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuLabel>Prototype account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setMyIssuesOpen(true)}>
-                  <Icon icon={IconList} size={16} />
-                  My issues
+                <DropdownMenuItem asChild>
+                  <Link href="/my-issues">
+                    <Icon icon={IconList} size={16} />
+                    My issues
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/communities">
+                  <Link href="/my-communities">
                     <Icon icon={IconUsersGroup} size={16} />
                     My Communities
                   </Link>
@@ -96,7 +95,6 @@ export function SiteHeader() {
           </div>
         </div>
       </div>
-      <MyIssuesDialog open={myIssuesOpen} onOpenChange={setMyIssuesOpen} />
     </header>
   );
 }

@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { IconArrowUp, IconCheck, IconX, IconMessageCircle, IconStar, IconDots, IconEyeOff, IconEye, IconTrash } from "@tabler/icons-react";
+import { IconArrowUp, IconCheck, IconX, IconMessageCircle, IconDots, IconEyeOff, IconEye, IconTrash, IconPencil } from "@tabler/icons-react";
 
-import type { Comment, Solution, SolutionStatus } from "@/lib/mock-data";
+import type { Solution, SolutionStatus } from "@/lib/mock-data";
 import { useAdminMode } from "@/lib/admin-mode";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge, type badgeVariants } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
@@ -24,11 +23,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
+import { CommentThread } from "@/components/issue/comment-thread";
+import { SolutionEditDialog } from "@/components/issue/solution-edit-dialog";
 import type { VariantProps } from "class-variance-authority";
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 
-const SOLUTION_STATUS_CONFIG: Record<SolutionStatus, { label: string; variant: BadgeVariant }> = {
+export const SOLUTION_STATUS_CONFIG: Record<SolutionStatus, { label: string; variant: BadgeVariant }> = {
   proposed: { label: "Proposed", variant: "secondary" },
   considering: { label: "Considering", variant: "status-proposed" },
   trending: { label: "Trending", variant: "status-traction" },
@@ -40,39 +41,28 @@ export function SolutionCard({
   solution,
   index,
   headline = false,
-  leading = false,
+  onUpdate,
+  onHide,
+  onDelete,
 }: {
   solution: Solution;
   index?: number;
   headline?: boolean;
-  leading?: boolean;
+  onUpdate: (patch: Partial<Solution>) => void;
+  onHide: () => void;
+  onDelete: () => void;
 }) {
   const { isAdmin } = useAdminMode();
   const [open, setOpen] = useState(false);
   const [votes, setVotes] = useState(solution.votes);
   const [voted, setVoted] = useState(false);
-  const [comments, setComments] = useState<Comment[]>(solution.comments);
-  const [draft, setDraft] = useState("");
-  const [status, setStatus] = useState<SolutionStatus>(solution.status);
-  const [hidden, setHidden] = useState(false);
-  const [deleted, setDeleted] = useState(false);
 
-  const statusConfig = SOLUTION_STATUS_CONFIG[status];
+  const statusConfig = SOLUTION_STATUS_CONFIG[solution.status];
+  const hidden = Boolean(solution.hidden);
 
-  function changeStatus(next: SolutionStatus) {
-    // TODO(supabase): onUpdateSolutionStatus({ solutionId: solution.id, status: next })
-    setStatus(next);
-  }
-
-  if (deleted) {
-    return (
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border px-4 py-2.5 text-sm text-muted-foreground">
-        <span>"{solution.title}" was deleted.</span>
-        <button type="button" className="font-medium text-primary hover:underline" onClick={() => setDeleted(false)}>
-          Undo
-        </button>
-      </div>
-    );
+  function changeStatus(next: SolutionStatus, e?: React.MouseEvent) {
+    e?.stopPropagation();
+    onUpdate({ status: next });
   }
 
   if (hidden && !isAdmin) return null;
@@ -85,15 +75,51 @@ export function SolutionCard({
     setVotes((v) => v + 1);
   }
 
-  function postComment() {
-    // TODO(supabase): onCommentOnSolution({ solutionId: solution.id, body: draft })
-    if (!draft.trim()) return;
-    setComments((prev) => [
-      ...prev,
-      { id: `local-${prev.length}`, author: "You", body: draft.trim(), createdAt: "just now" },
-    ]);
-    setDraft("");
-  }
+  const adminMenu = isAdmin && (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          aria-label="Solution options"
+        >
+          <Icon icon={IconDots} size={16} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <SolutionEditDialog
+          solution={solution}
+          onSave={onUpdate}
+          trigger={
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <Icon icon={IconPencil} size={16} />
+              Edit
+            </DropdownMenuItem>
+          }
+        />
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation();
+            onHide();
+          }}
+        >
+          <Icon icon={hidden ? IconEye : IconEyeOff} size={16} />
+          {hidden ? "Unhide" : "Hide"}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <Icon icon={IconTrash} size={16} />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <>
@@ -101,7 +127,6 @@ export function SolutionCard({
         className={cn(
           "cursor-pointer transition-shadow hover:shadow-sm",
           headline && "border-primary shadow-sm",
-          leading && "border-status-traction",
           hidden && isAdmin && "opacity-50",
         )}
         onClick={() => setOpen(true)}
@@ -117,78 +142,30 @@ export function SolutionCard({
               <CardTitle className={headline ? "text-2xl" : "text-xl"}>{solution.title}</CardTitle>
             </div>
             <div className="flex shrink-0 items-start gap-1">
-              <div className="flex flex-col items-end gap-2">
-                {isAdmin ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button type="button" onClick={(e) => e.stopPropagation()}>
-                        <Badge variant={statusConfig.variant} className="cursor-pointer">
-                          {statusConfig.label}
-                        </Badge>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {(Object.keys(SOLUTION_STATUS_CONFIG) as SolutionStatus[]).map((s) => (
-                        <DropdownMenuItem
-                          key={s}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            changeStatus(s);
-                          }}
-                        >
-                          {SOLUTION_STATUS_CONFIG[s].label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-                )}
-                {leading && (
-                  <Badge variant="status-traction" className="gap-1">
-                    <Icon icon={IconStar} size={12} />
-                    Leading
-                  </Badge>
-                )}
-              </div>
-              {isAdmin && (
+              {isAdmin ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={(e) => e.stopPropagation()}
-                      className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      aria-label="Solution options"
-                    >
-                      <Icon icon={IconDots} size={16} />
+                    <button type="button" onClick={(e) => e.stopPropagation()}>
+                      <Badge variant={statusConfig.variant} className="cursor-pointer">
+                        {statusConfig.label}
+                      </Badge>
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setHidden((h) => !h);
-                      }}
-                    >
-                      <Icon icon={hidden ? IconEye : IconEyeOff} size={16} />
-                      {hidden ? "Unhide" : "Hide"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleted(true);
-                      }}
-                    >
-                      <Icon icon={IconTrash} size={16} />
-                      Delete
-                    </DropdownMenuItem>
+                    {(Object.keys(SOLUTION_STATUS_CONFIG) as SolutionStatus[]).map((s) => (
+                      <DropdownMenuItem key={s} onClick={(e) => changeStatus(s, e)}>
+                        {SOLUTION_STATUS_CONFIG[s].label}
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+              ) : (
+                <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
               )}
+              {adminMenu}
             </div>
           </div>
-          <CardDescription className="line-clamp-3 text-base">
+          <CardDescription className="line-clamp-2 text-base">
             {solution.description}
           </CardDescription>
         </CardHeader>
@@ -204,7 +181,7 @@ export function SolutionCard({
           </Button>
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
             <Icon icon={IconMessageCircle} size={16} />
-            {comments.length}
+            {solution.comments.length}
           </span>
         </CardContent>
       </Card>
@@ -212,11 +189,12 @@ export function SolutionCard({
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="overflow-y-auto sm:max-w-xl">
           <SheetHeader className="gap-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 pr-8">
               <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {typeof index === "number" ? `Solution ${index + 1}` : "Solution"} · #{solution.id}
               </span>
               <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+              <div className="ml-auto">{adminMenu}</div>
             </div>
             <Button
               size="lg"
@@ -232,6 +210,19 @@ export function SolutionCard({
           </SheetHeader>
 
           <div className="flex flex-col gap-6 px-6">
+            {isAdmin && solution.submitter && (
+              <div className="flex flex-col gap-1 rounded-lg border border-dashed border-border bg-muted/40 p-3">
+                <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Submitted by (admin only)
+                </span>
+                <span className="text-sm text-foreground">{solution.submitter.name}</span>
+                <span className="text-sm text-muted-foreground">{solution.submitter.email}</span>
+                {solution.submitter.phone && (
+                  <span className="text-sm text-muted-foreground">{solution.submitter.phone}</span>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <h4 className="flex items-center gap-1 text-sm font-medium text-status-resolved">
@@ -277,37 +268,13 @@ export function SolutionCard({
 
             <div className="flex flex-col gap-3 border-t border-border pt-4">
               <h4 className="text-sm font-medium text-muted-foreground">
-                Discussion ({comments.length})
+                Discussion ({solution.comments.length})
               </h4>
-              {comments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No comments yet.</p>
-              ) : (
-                <ul className="flex flex-col gap-3">
-                  {comments.map((comment) => (
-                    <li key={comment.id} className="flex flex-col gap-0.5">
-                      <span className="text-sm font-medium text-foreground">
-                        {comment.author}{" "}
-                        <span className="text-xs font-normal text-muted-foreground">
-                          {comment.createdAt}
-                        </span>
-                      </span>
-                      <span className="text-sm text-foreground/80">{comment.body}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <div className="flex flex-col gap-2 pt-2">
-                <Textarea
-                  placeholder="Add a comment on this solution..."
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  className="min-h-16"
-                />
-                <Button size="sm" className="w-fit" onClick={postComment} disabled={!draft.trim()}>
-                  Post
-                </Button>
-              </div>
+              <CommentThread
+                initialComments={solution.comments}
+                postPlaceholder="Add a comment on this solution..."
+                emptyText="No comments yet."
+              />
             </div>
           </div>
         </SheetContent>

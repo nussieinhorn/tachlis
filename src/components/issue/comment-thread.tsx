@@ -5,6 +5,9 @@ import { useState } from "react";
 import type { Comment } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 5;
 
 function CommentRow({
   comment,
@@ -72,13 +75,22 @@ function CommentRow({
   );
 }
 
-export function Discussion({ initialComments }: { initialComments: Comment[] }) {
+export function CommentThread({
+  initialComments,
+  postPlaceholder = "Add to the discussion...",
+  emptyText = "No discussion yet — be the first to say something.",
+}: {
+  initialComments: Comment[];
+  postPlaceholder?: string;
+  emptyText?: string;
+}) {
   const [comments, setComments] = useState(initialComments);
   const [draft, setDraft] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   function post() {
     if (!draft.trim()) return;
-    // TODO(supabase): onPostComment({ issueId, body: draft })
+    // TODO(supabase): onPostComment({ body: draft })
     setComments((prev) => [
       { id: `local-${Date.now()}`, author: "You", body: draft.trim(), createdAt: "just now" },
       ...prev,
@@ -103,27 +115,42 @@ export function Discussion({ initialComments }: { initialComments: Comment[] }) 
     );
   }
 
+  const visible = comments.slice(0, visibleCount);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Textarea
-          placeholder="Add to the discussion..."
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-        />
+        <Textarea placeholder={postPlaceholder} value={draft} onChange={(e) => setDraft(e.target.value)} />
         <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim()}>
           Post
         </Button>
       </div>
 
       {comments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No discussion yet — be the first to say something.</p>
+        <p className="text-sm text-muted-foreground">{emptyText}</p>
       ) : (
-        <ul className="flex flex-col gap-4 border-t border-border pt-4">
-          {comments.map((comment) => (
-            <CommentRow key={comment.id} comment={comment} onReply={reply} />
-          ))}
-        </ul>
+        <div
+          className={cn(
+            "flex flex-col gap-4 border-t border-border pt-4",
+            comments.length > PAGE_SIZE && "max-h-[500px] overflow-y-auto pr-1",
+          )}
+        >
+          <ul className="flex flex-col gap-4">
+            {visible.map((comment) => (
+              <CommentRow key={comment.id} comment={comment} onReply={reply} />
+            ))}
+          </ul>
+          {visibleCount < comments.length && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-fit"
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            >
+              Load more
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

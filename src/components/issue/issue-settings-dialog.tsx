@@ -8,6 +8,7 @@ import { COMMUNITIES, getCommunity, getCommunitiesOwnedBy, type Community } from
 import { useAdminMode } from "@/lib/admin-mode";
 import { useFakeSession } from "@/lib/fake-session";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
+import { SettingRow } from "@/components/issue/setting-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,9 +33,6 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const [communityMode, setCommunityMode] = useState<"standalone" | "community">(
-    issue.communityId ? "community" : "standalone",
-  );
   const [communityId, setCommunityId] = useState<string | undefined>(issue.communityId);
   const [visibility, setVisibility] = useState<"public" | "private">(issue.visibility);
   const [showOnHomepage, setShowOnHomepage] = useState(issue.showOnHomepage);
@@ -42,6 +40,7 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
   const [supportRequiresLogin, setSupportRequiresLogin] = useState(issue.supportRequiresLogin);
   const [voteRequiresLogin, setVoteRequiresLogin] = useState(issue.voteRequiresLogin);
   const [allowSuggestSolutions, setAllowSuggestSolutions] = useState(issue.allowSuggestSolutions);
+  const [commentsEnabled, setCommentsEnabled] = useState(issue.commentsEnabled);
   const [goLiveDate, setGoLiveDate] = useState(issue.goLiveDate ?? "");
   const [votingCloseDate, setVotingCloseDate] = useState(issue.votingCloseDate ?? "");
   const [hiddenDate, setHiddenDate] = useState(issue.hiddenDate ?? "");
@@ -57,7 +56,6 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
     setOpen(nextOpen);
     if (!nextOpen) {
       setSaved(false);
-      setCommunityMode(issue.communityId ? "community" : "standalone");
       setCommunityId(issue.communityId);
       setVisibility(issue.visibility);
       setShowOnHomepage(issue.showOnHomepage);
@@ -65,6 +63,7 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
       setSupportRequiresLogin(issue.supportRequiresLogin);
       setVoteRequiresLogin(issue.voteRequiresLogin);
       setAllowSuggestSolutions(issue.allowSuggestSolutions);
+      setCommentsEnabled(issue.commentsEnabled);
       setGoLiveDate(issue.goLiveDate ?? "");
       setVotingCloseDate(issue.votingCloseDate ?? "");
       setHiddenDate(issue.hiddenDate ?? "");
@@ -97,70 +96,6 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
             <div className="flex-1 overflow-y-auto px-1">
               <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-1.5">
-                  <Label>Community</Label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setCommunityMode("standalone")}
-                      className={cn(
-                        "flex-1 rounded-md border px-3 py-2 text-sm",
-                        communityMode === "standalone" ? "border-primary bg-accent" : "border-input",
-                      )}
-                    >
-                      Standalone
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCommunityMode("community")}
-                      className={cn(
-                        "flex-1 rounded-md border px-3 py-2 text-sm",
-                        communityMode === "community" ? "border-primary bg-accent" : "border-input",
-                      )}
-                    >
-                      In a community
-                    </button>
-                  </div>
-
-                  {communityMode === "community" && (
-                    <div className="flex flex-col gap-1.5 pt-1">
-                      {selectableCommunities.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">No communities available.</p>
-                      ) : (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              type="button"
-                              className="flex h-9 items-center justify-between rounded-md border border-input px-3 text-sm text-foreground hover:bg-accent"
-                            >
-                              {selectedCommunity?.name ?? "Choose a community"}
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-                            {selectableCommunities.map((c) => (
-                              <DropdownMenuItem key={c.id} onClick={() => setCommunityId(c.id)}>
-                                {c.name}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                      {isAdmin && (
-                        <CreateCommunityDialog
-                          quickMode
-                          onCreated={(c) => setCommunityId(c.id)}
-                          trigger={
-                            <Button type="button" variant="outline" size="sm" className="w-fit">
-                              <Icon icon={IconPlus} size={16} />
-                              Create new community
-                            </Button>
-                          }
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-1.5">
                   <Label>Issue visibility</Label>
                   <div className="flex gap-2">
                     <button
@@ -184,30 +119,43 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
                       Private
                     </button>
                   </div>
+                  <p className="text-left text-xs text-muted-foreground">
+                    {visibility === "public"
+                      ? "Anyone can find this issue on Tachlis and in search. You choose whether support or voting requires signing in below."
+                      : "Hidden from search and the homepage. Only people you approve can view or engage with it."}
+                  </p>
                 </div>
 
-                {visibility === "public" && (
-                  <div className="flex flex-col gap-2">
-                    <ToggleRow label="Show on homepage" checked={showOnHomepage} onChange={setShowOnHomepage} />
-                    <ToggleRow label="Show in search" checked={showInSearch} onChange={setShowInSearch} />
-                    <ToggleRow
-                      label="Support requires login"
-                      checked={supportRequiresLogin}
-                      onChange={setSupportRequiresLogin}
-                    />
-                    <ToggleRow
-                      label="Voting requires login"
-                      checked={voteRequiresLogin}
-                      onChange={setVoteRequiresLogin}
-                    />
-                  </div>
-                )}
-
-                <ToggleRow
-                  label="Allow people to suggest solutions"
-                  checked={allowSuggestSolutions}
-                  onChange={setAllowSuggestSolutions}
-                />
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <SettingRow
+                    label="Show on homepage"
+                    checked={showOnHomepage}
+                    onChange={setShowOnHomepage}
+                    disabled={visibility === "private"}
+                  />
+                  <SettingRow
+                    label="Show in search"
+                    checked={showInSearch}
+                    onChange={setShowInSearch}
+                    disabled={visibility === "private"}
+                  />
+                  <SettingRow
+                    label="Support requires login"
+                    checked={supportRequiresLogin}
+                    onChange={setSupportRequiresLogin}
+                  />
+                  <SettingRow
+                    label="Voting requires login"
+                    checked={voteRequiresLogin}
+                    onChange={setVoteRequiresLogin}
+                  />
+                  <SettingRow
+                    label="Allow suggested solutions"
+                    checked={allowSuggestSolutions}
+                    onChange={setAllowSuggestSolutions}
+                  />
+                  <SettingRow label="Allow comments" checked={commentsEnabled} onChange={setCommentsEnabled} />
+                </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
@@ -238,6 +186,49 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
                     />
                   </div>
                 </div>
+
+                <div className="flex flex-col gap-1.5 border-t border-border pt-4">
+                  <Label>Community</Label>
+                  <p className="text-xs text-muted-foreground">Want this issue to live inside a community?</p>
+                  {selectableCommunities.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex h-9 items-center justify-between rounded-md border border-input px-3 text-sm text-foreground hover:bg-accent"
+                        >
+                          {selectedCommunity?.name ?? "Standalone (no community)"}
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
+                        <DropdownMenuItem onClick={() => setCommunityId(undefined)}>
+                          Standalone (no community)
+                        </DropdownMenuItem>
+                        {selectableCommunities.map((c) => (
+                          <DropdownMenuItem key={c.id} onClick={() => setCommunityId(c.id)}>
+                            {c.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                  <CreateCommunityDialog
+                    quickMode
+                    onCreated={(c) => setCommunityId(c.id)}
+                    trigger={
+                      <button type="button" className="w-fit text-sm font-medium text-primary hover:underline">
+                        {selectableCommunities.length > 0 ? (
+                          <span className="flex items-center gap-1">
+                            <Icon icon={IconPlus} size={14} />
+                            Create another community
+                          </span>
+                        ) : (
+                          "Create a new community"
+                        )}
+                      </button>
+                    }
+                  />
+                </div>
               </div>
             </div>
 
@@ -250,36 +241,5 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-function ToggleRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={cn(
-        "flex h-9 items-center gap-2 rounded-md border px-3 text-sm",
-        checked ? "border-primary bg-accent" : "border-input",
-      )}
-    >
-      <span
-        className={cn(
-          "flex size-4 items-center justify-center rounded border",
-          checked ? "border-primary bg-primary text-primary-foreground" : "border-border",
-        )}
-      >
-        {checked && <Icon icon={IconCheck} size={12} />}
-      </span>
-      {label}
-    </button>
   );
 }

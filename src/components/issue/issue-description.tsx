@@ -18,6 +18,7 @@ export function IssueDescription({
   descriptionMore?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const paragraphs = descriptionMore?.split("\n\n") ?? [];
 
   return (
     <div className="flex flex-col gap-3">
@@ -28,11 +29,19 @@ export function IssueDescription({
             Read more
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="flex max-h-[80vh] flex-col overflow-hidden sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>More background</DialogTitle>
               </DialogHeader>
-              <p className="text-foreground/80 leading-relaxed">{descriptionMore}</p>
+              <div className="flex-1 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-4">
+                  {paragraphs.map((paragraph, i) => (
+                    <p key={i} className="text-foreground/80 leading-relaxed">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
         </>

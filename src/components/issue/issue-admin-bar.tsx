@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { IconAdjustments, IconDots, IconEye, IconEyeOff, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconAdjustments, IconCopy, IconDots, IconEye, IconEyeOff, IconPencil, IconTrash } from "@tabler/icons-react";
 
 import type { Issue } from "@/lib/mock-data";
 import { useAdminMode } from "@/lib/admin-mode";
@@ -54,6 +54,15 @@ export function IssueAdminBar({ issue }: { issue: Issue }) {
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Icon icon={IconAdjustments} size={16} />
                   Issue settings
+                </DropdownMenuItem>
+              }
+            />
+            <CreateIssueDialog
+              duplicateFrom={issue}
+              trigger={
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Icon icon={IconCopy} size={16} />
+                  Duplicate
                 </DropdownMenuItem>
               }
             />

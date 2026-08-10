@@ -8,15 +8,13 @@ import { useFakeSession } from "@/lib/fake-session";
 import { CommunityCard } from "@/components/community-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const PAGE_SIZE = 12;
 
 export function CommunitiesBrowser() {
   const { isAdmin } = useAdminMode();
-  const { user, createdCommunities } = useFakeSession();
+  const { createdCommunities } = useFakeSession();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"all" | "mine">("all");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const visibleCommunities = useMemo(() => {
@@ -26,30 +24,14 @@ export function CommunitiesBrowser() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return visibleCommunities.filter((c) => {
-      const matchesQuery = !q || c.name.toLowerCase().includes(q);
-      const matchesTab = tab === "all" || c.ownerId === user?.email;
-      return matchesQuery && matchesTab;
-    });
-  }, [query, tab, visibleCommunities, user]);
+    return visibleCommunities.filter((c) => !q || c.name.toLowerCase().includes(q));
+  }, [query, visibleCommunities]);
 
   const visible = filtered.slice(0, visibleCount);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs
-          value={tab}
-          onValueChange={(v) => {
-            setTab(v as "all" | "mine");
-            setVisibleCount(PAGE_SIZE);
-          }}
-        >
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="mine">My Communities</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <Input
           placeholder="Search communities..."
           value={query}
@@ -62,13 +44,7 @@ export function CommunitiesBrowser() {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-muted-foreground">
-          {tab === "mine"
-            ? user
-              ? "You haven't created any communities yet."
-              : "Sign in when creating a community to see it here."
-            : "No communities match your search."}
-        </p>
+        <p className="text-muted-foreground">No communities match your search.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

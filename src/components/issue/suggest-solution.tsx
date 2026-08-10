@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconPlus, IconSparkles, IconX } from "@tabler/icons-react";
+import { IconCheck, IconPlus, IconSparkles, IconX } from "@tabler/icons-react";
 
 import type { Solution, SolutionStatus } from "@/lib/mock-data";
 import { useAdminMode } from "@/lib/admin-mode";
@@ -18,6 +18,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/ui/icon";
+
+type ProConItem = { id: string; text: string; source: "ai" | "manual" };
 
 // Placeholder heuristic — swap for a real generation call once there's a backend.
 function generatePlaceholderProsCons(title: string): { pros: string[]; cons: string[] } {
@@ -49,25 +51,46 @@ export function SuggestSolution({
   const [submitted, setSubmitted] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [pros, setPros] = useState<string[]>([]);
-  const [cons, setCons] = useState<string[]>([]);
+  const [pros, setPros] = useState<ProConItem[]>([]);
+  const [cons, setCons] = useState<ProConItem[]>([]);
+  const [newPro, setNewPro] = useState("");
+  const [newCon, setNewCon] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [joinTeam, setJoinTeam] = useState(false);
   const [status, setStatus] = useState<SolutionStatus>("proposed");
 
+  const hasProsCons = pros.length > 0 || cons.length > 0;
+
   function generate() {
     const result = generatePlaceholderProsCons(title || description);
-    setPros(result.pros);
-    setCons(result.cons);
+    setPros((prev) => [
+      ...prev.filter((p) => p.source === "manual"),
+      ...result.pros.map((text, i) => ({ id: `ai-pro-${Date.now()}-${i}`, text, source: "ai" as const })),
+    ]);
+    setCons((prev) => [
+      ...prev.filter((c) => c.source === "manual"),
+      ...result.cons.map((text, i) => ({ id: `ai-con-${Date.now()}-${i}`, text, source: "ai" as const })),
+    ]);
   }
 
-  function removePro(i: number) {
-    setPros((prev) => prev.filter((_, idx) => idx !== i));
+  function addManualPro() {
+    if (!newPro.trim()) return;
+    setPros((prev) => [...prev, { id: `manual-pro-${Date.now()}`, text: newPro.trim(), source: "manual" }]);
+    setNewPro("");
   }
-  function removeCon(i: number) {
-    setCons((prev) => prev.filter((_, idx) => idx !== i));
+  function addManualCon() {
+    if (!newCon.trim()) return;
+    setCons((prev) => [...prev, { id: `manual-con-${Date.now()}`, text: newCon.trim(), source: "manual" }]);
+    setNewCon("");
+  }
+
+  function removePro(id: string) {
+    setPros((prev) => prev.filter((p) => p.id !== id));
+  }
+  function removeCon(id: string) {
+    setCons((prev) => prev.filter((c) => c.id !== id));
   }
 
   function reset(nextOpen: boolean) {
@@ -78,6 +101,8 @@ export function SuggestSolution({
       setDescription("");
       setPros([]);
       setCons([]);
+      setNewPro("");
+      setNewCon("");
       setName("");
       setEmail("");
       setPhone("");
@@ -98,8 +123,8 @@ export function SuggestSolution({
       id: `local-solution-${Date.now()}`,
       title,
       description,
-      pros,
-      cons,
+      pros: pros.map((p) => p.text),
+      cons: cons.map((c) => c.text),
       votes: 0,
       status,
       comments: [],
@@ -208,41 +233,73 @@ export function SuggestSolution({
                   disabled={!title.trim() && !description.trim()}
                 >
                   <Icon icon={IconSparkles} size={16} />
-                  Generate pros &amp; cons
+                  {hasProsCons ? "Regenerate pros & cons" : "Generate pros & cons"}
                 </Button>
 
-                {(pros.length > 0 || cons.length > 0) && (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="flex flex-col gap-1.5">
-                      <Label>Pros</Label>
-                      {pros.map((pro, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between gap-2 rounded-lg bg-status-resolved/10 px-3 py-1.5 text-sm"
-                        >
-                          {pro}
-                          <button type="button" onClick={() => removePro(i)} aria-label="Remove">
-                            <Icon icon={IconX} size={14} className="text-muted-foreground" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <Label>Cons</Label>
-                      {cons.map((con, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between gap-2 rounded-lg bg-destructive/10 px-3 py-1.5 text-sm"
-                        >
-                          {con}
-                          <button type="button" onClick={() => removeCon(i)} aria-label="Remove">
-                            <Icon icon={IconX} size={14} className="text-muted-foreground" />
-                          </button>
-                        </div>
-                      ))}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Pros</Label>
+                    {pros.map((pro) => (
+                      <div
+                        key={pro.id}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-status-resolved/10 px-3 py-1.5 text-sm"
+                      >
+                        {pro.text}
+                        <button type="button" onClick={() => removePro(pro.id)} aria-label="Remove">
+                          <Icon icon={IconX} size={14} className="text-muted-foreground" />
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        value={newPro}
+                        onChange={(e) => setNewPro(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addManualPro())}
+                        placeholder="Add your own..."
+                        className="h-8 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={addManualPro}
+                        aria-label="Add pro"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Icon icon={IconCheck} size={14} />
+                      </button>
                     </div>
                   </div>
-                )}
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Cons</Label>
+                    {cons.map((con) => (
+                      <div
+                        key={con.id}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-destructive/10 px-3 py-1.5 text-sm"
+                      >
+                        {con.text}
+                        <button type="button" onClick={() => removeCon(con.id)} aria-label="Remove">
+                          <Icon icon={IconX} size={14} className="text-muted-foreground" />
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        value={newCon}
+                        onChange={(e) => setNewCon(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addManualCon())}
+                        placeholder="Add your own..."
+                        className="h-8 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={addManualCon}
+                        aria-label="Add con"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Icon icon={IconCheck} size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                 {!isAdmin && (
                   <>
@@ -261,6 +318,9 @@ export function SuggestSolution({
                         onChange={(e) => setPhone(e.target.value)}
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Only visible to admins — never shown publicly.
+                    </p>
                     <label className="flex items-center gap-2 text-sm text-foreground">
                       <input
                         type="checkbox"

@@ -1,7 +1,19 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { IconCheck, IconX, IconCopy, IconPlus, IconChevronDown } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import {
+  IconCheck,
+  IconX,
+  IconCopy,
+  IconLink,
+  IconPlus,
+  IconChevronDown,
+  IconBrandWhatsapp,
+  IconBrandFacebook,
+  IconBrandTiktok,
+  IconBrandInstagram,
+} from "@tabler/icons-react";
 
 import { CATEGORIES, type Issue } from "@/lib/mock-data";
 import { COMMUNITIES, getCommunity, getCommunitiesOwnedBy, type Community } from "@/lib/communities-data";
@@ -17,6 +29,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Progress } from "@/components/ui/progress";
 import { LocationSearch } from "@/components/location-search";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
+import { SettingRow } from "@/components/issue/setting-row";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import {
@@ -34,53 +47,64 @@ import {
 
 const STEPS = ["Basic info", "Settings", "Team", "Review"];
 
+const BIG_SHARE_TARGETS = [
+  { label: "WhatsApp", icon: IconBrandWhatsapp, urlPrefix: "https://wa.me/?text=" },
+  { label: "Facebook", icon: IconBrandFacebook, urlPrefix: "https://www.facebook.com/sharer/sharer.php?u=" },
+  { label: "TikTok", icon: IconBrandTiktok, urlPrefix: "https://www.tiktok.com/upload?url=" },
+  { label: "Instagram", icon: IconBrandInstagram, urlPrefix: "https://www.instagram.com/?url=" },
+];
+
 type TeamInvite = { id: string; name: string; phone: string; email: string; canEdit: boolean };
 
 export function CreateIssueDialog({
   trigger,
   editIssue,
+  duplicateFrom,
   lockedCommunityId,
 }: {
   trigger: ReactNode;
   /** When provided, the dialog opens pre-filled in "edit" mode instead of blank "create" mode. */
   editIssue?: Issue;
+  /** When provided, the wizard opens in normal create mode pre-filled from this issue (Publish creates a new one). */
+  duplicateFrom?: Issue;
   /** When provided (e.g. launched from a community page), the community is pre-set and can't be changed. */
   lockedCommunityId?: string;
 }) {
   const { isAdmin } = useAdminMode();
   const { isSignedIn, user, createdCommunities } = useFakeSession();
+  const router = useRouter();
   const isEditing = Boolean(editIssue);
+  const source = editIssue ?? duplicateFrom;
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [published, setPublished] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const [title, setTitle] = useState(editIssue?.title ?? "");
-  const [description, setDescription] = useState(editIssue?.description ?? "");
-  const [categorySlug, setCategorySlug] = useState<string>(editIssue?.categorySlug ?? CATEGORIES[0].slug);
-  const [location, setLocation] = useState(editIssue?.location ?? "");
+  const [title, setTitle] = useState(source?.title ?? "");
+  const [description, setDescription] = useState(source?.description ?? "");
+  const [categorySlug, setCategorySlug] = useState<string | undefined>(source?.categorySlug);
+  const [location, setLocation] = useState(source?.location ?? "");
 
-  const [communityMode, setCommunityMode] = useState<"standalone" | "community">(
-    (lockedCommunityId ?? editIssue?.communityId) ? "community" : "standalone",
-  );
   const [communityId, setCommunityId] = useState<string | undefined>(
-    lockedCommunityId ?? editIssue?.communityId,
+    lockedCommunityId ?? source?.communityId,
   );
 
-  const [visibility, setVisibility] = useState<"public" | "private">(editIssue?.visibility ?? "public");
-  const [showOnHomepage, setShowOnHomepage] = useState(editIssue?.showOnHomepage ?? true);
-  const [showInSearch, setShowInSearch] = useState(editIssue?.showInSearch ?? true);
-  const [supportRequiresLogin, setSupportRequiresLogin] = useState(editIssue?.supportRequiresLogin ?? false);
-  const [voteRequiresLogin, setVoteRequiresLogin] = useState(editIssue?.voteRequiresLogin ?? false);
-  const [allowSuggestSolutions, setAllowSuggestSolutions] = useState(editIssue?.allowSuggestSolutions ?? true);
-  const [goLiveDate, setGoLiveDate] = useState(editIssue?.goLiveDate ?? "");
-  const [votingCloseDate, setVotingCloseDate] = useState(editIssue?.votingCloseDate ?? "");
-  const [hiddenDate, setHiddenDate] = useState(editIssue?.hiddenDate ?? "");
+  const [visibility, setVisibility] = useState<"public" | "private">(source?.visibility ?? "public");
+  const [showOnHomepage, setShowOnHomepage] = useState(source?.showOnHomepage ?? true);
+  const [showInSearch, setShowInSearch] = useState(source?.showInSearch ?? true);
+  const [supportRequiresLogin, setSupportRequiresLogin] = useState(source?.supportRequiresLogin ?? false);
+  const [voteRequiresLogin, setVoteRequiresLogin] = useState(source?.voteRequiresLogin ?? false);
+  const [allowSuggestSolutions, setAllowSuggestSolutions] = useState(source?.allowSuggestSolutions ?? true);
+  const [commentsEnabled, setCommentsEnabled] = useState(source?.commentsEnabled ?? true);
+  const [goLiveDate, setGoLiveDate] = useState(source?.goLiveDate ?? "");
+  const [votingCloseDate, setVotingCloseDate] = useState(source?.votingCloseDate ?? "");
+  const [hiddenDate, setHiddenDate] = useState(source?.hiddenDate ?? "");
 
   const [team, setTeam] = useState<TeamInvite[]>([]);
 
-  const category = CATEGORIES.find((c) => c.slug === categorySlug) ?? CATEGORIES[0];
+  const category = CATEGORIES.find((c) => c.slug === categorySlug);
   const fakeId = "3" + Math.floor(600 + Math.random() * 99);
+  const publishedUrl = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
 
   const ownedCommunities: Community[] = [
     ...getCommunitiesOwnedBy(user?.email ?? ""),
@@ -98,21 +122,21 @@ export function CreateIssueDialog({
     if (!nextOpen) {
       setStep(0);
       setPublished(false);
-      setTitle(editIssue?.title ?? "");
-      setDescription(editIssue?.description ?? "");
-      setCategorySlug(editIssue?.categorySlug ?? CATEGORIES[0].slug);
-      setLocation(editIssue?.location ?? "");
-      setCommunityMode((lockedCommunityId ?? editIssue?.communityId) ? "community" : "standalone");
-      setCommunityId(lockedCommunityId ?? editIssue?.communityId);
-      setVisibility(editIssue?.visibility ?? "public");
-      setShowOnHomepage(editIssue?.showOnHomepage ?? true);
-      setShowInSearch(editIssue?.showInSearch ?? true);
-      setSupportRequiresLogin(editIssue?.supportRequiresLogin ?? false);
-      setVoteRequiresLogin(editIssue?.voteRequiresLogin ?? false);
-      setAllowSuggestSolutions(editIssue?.allowSuggestSolutions ?? true);
-      setGoLiveDate(editIssue?.goLiveDate ?? "");
-      setVotingCloseDate(editIssue?.votingCloseDate ?? "");
-      setHiddenDate(editIssue?.hiddenDate ?? "");
+      setTitle(source?.title ?? "");
+      setDescription(source?.description ?? "");
+      setCategorySlug(source?.categorySlug);
+      setLocation(source?.location ?? "");
+      setCommunityId(lockedCommunityId ?? source?.communityId);
+      setVisibility(source?.visibility ?? "public");
+      setShowOnHomepage(source?.showOnHomepage ?? true);
+      setShowInSearch(source?.showInSearch ?? true);
+      setSupportRequiresLogin(source?.supportRequiresLogin ?? false);
+      setVoteRequiresLogin(source?.voteRequiresLogin ?? false);
+      setAllowSuggestSolutions(source?.allowSuggestSolutions ?? true);
+      setCommentsEnabled(source?.commentsEnabled ?? true);
+      setGoLiveDate(source?.goLiveDate ?? "");
+      setVotingCloseDate(source?.votingCloseDate ?? "");
+      setHiddenDate(source?.hiddenDate ?? "");
       setTeam([]);
     }
   }
@@ -138,27 +162,36 @@ export function CreateIssueDialog({
   }
 
   function copyLink() {
-    navigator.clipboard?.writeText(`https://tachlis.org/issues/${fakeId}`);
+    navigator.clipboard?.writeText(`${publishedUrl}/issues/${editIssue?.id ?? fakeId}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
 
+  function done() {
+    if (isEditing) {
+      reset(false);
+    } else {
+      setOpen(false);
+      router.push("/issues/3659");
+    }
+  }
+
   const canAdvance =
-    (step === 0 && title.trim().length > 0 && description.trim().length > 0) ||
-    (step === 1 && (communityMode === "standalone" || Boolean(communityId))) ||
+    (step === 0 && title.trim().length > 0 && description.trim().length > 0 && Boolean(categorySlug)) ||
+    step === 1 ||
     step === 2 ||
     step === 3;
 
   const basicInfoFields = (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="title">Title</Label>
         <Input
           id="title"
-          placeholder="e.g. Pothole epidemic on Elm Street"
+          placeholder="Give your issue a clear, specific title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           autoFocus
+          className="h-auto rounded-none border-x-0 border-t-0 border-b-2 border-input px-0 font-heading text-2xl font-semibold shadow-none placeholder:font-normal placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-0 md:text-3xl"
         />
       </div>
       <div className="flex flex-col gap-1.5">
@@ -180,8 +213,10 @@ export function CreateIssueDialog({
               className="flex h-9 items-center justify-between gap-2 rounded-md border border-input px-3 text-sm text-foreground hover:bg-accent"
             >
               <span className="flex items-center gap-2">
-                <Icon icon={category.icon} size={16} />
-                {category.label}
+                {category && <Icon icon={category.icon} size={16} />}
+                <span className={cn(!category && "text-muted-foreground")}>
+                  {category?.label ?? "Select a category"}
+                </span>
               </span>
               <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
             </button>
@@ -206,80 +241,6 @@ export function CreateIssueDialog({
   const settingsFields = (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
-        <Label>Community</Label>
-        {lockedCommunityId ? (
-          <div className="flex h-9 items-center rounded-md border border-border bg-muted px-3 text-sm text-muted-foreground">
-            {getCommunity(lockedCommunityId)?.name}
-          </div>
-        ) : (
-          <>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setCommunityMode("standalone")}
-                className={cn(
-                  "flex-1 rounded-md border px-3 py-2 text-sm",
-                  communityMode === "standalone" ? "border-primary bg-accent" : "border-input",
-                )}
-              >
-                Standalone
-              </button>
-              <button
-                type="button"
-                onClick={() => setCommunityMode("community")}
-                className={cn(
-                  "flex-1 rounded-md border px-3 py-2 text-sm",
-                  communityMode === "community" ? "border-primary bg-accent" : "border-input",
-                )}
-              >
-                In a community
-              </button>
-            </div>
-
-            {communityMode === "community" && (
-              <div className="flex flex-col gap-1.5 pt-1">
-                {!isAdmin && !user ? (
-                  <p className="text-xs text-muted-foreground">Sign in to attach this issue to a community.</p>
-                ) : selectableCommunities.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    You haven&apos;t created any communities yet — create one below.
-                  </p>
-                ) : (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="flex h-9 items-center justify-between rounded-md border border-input px-3 text-sm text-foreground hover:bg-accent"
-                      >
-                        {selectedCommunity?.name ?? "Choose a community"}
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-                      {selectableCommunities.map((c) => (
-                        <DropdownMenuItem key={c.id} onClick={() => setCommunityId(c.id)}>
-                          {c.name}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                <CreateCommunityDialog
-                  quickMode
-                  onCreated={(c) => setCommunityId(c.id)}
-                  trigger={
-                    <Button type="button" variant="outline" size="sm" className="w-fit">
-                      <Icon icon={IconPlus} size={16} />
-                      Create new community
-                    </Button>
-                  }
-                />
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
         <Label>Issue visibility</Label>
         <div className="flex gap-2">
           <button
@@ -303,26 +264,39 @@ export function CreateIssueDialog({
             Private
           </button>
         </div>
+        <p className="text-left text-xs text-muted-foreground">
+          {visibility === "public"
+            ? "Anyone can find this issue on Tachlis and in search. You choose whether support or voting requires signing in below."
+            : "Hidden from search and the homepage. Only people you approve can view or engage with it."}
+        </p>
       </div>
 
-      {visibility === "public" && (
-        <div className="flex flex-col gap-2">
-          <ToggleRow label="Show on homepage" checked={showOnHomepage} onChange={setShowOnHomepage} />
-          <ToggleRow label="Show in search" checked={showInSearch} onChange={setShowInSearch} />
-          <ToggleRow
-            label="Support requires login"
-            checked={supportRequiresLogin}
-            onChange={setSupportRequiresLogin}
-          />
-          <ToggleRow label="Voting requires login" checked={voteRequiresLogin} onChange={setVoteRequiresLogin} />
-        </div>
-      )}
-
-      <ToggleRow
-        label="Allow people to suggest solutions"
-        checked={allowSuggestSolutions}
-        onChange={setAllowSuggestSolutions}
-      />
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        <SettingRow
+          label="Show on homepage"
+          checked={showOnHomepage}
+          onChange={setShowOnHomepage}
+          disabled={visibility === "private"}
+        />
+        <SettingRow
+          label="Show in search"
+          checked={showInSearch}
+          onChange={setShowInSearch}
+          disabled={visibility === "private"}
+        />
+        <SettingRow
+          label="Support requires login"
+          checked={supportRequiresLogin}
+          onChange={setSupportRequiresLogin}
+        />
+        <SettingRow label="Voting requires login" checked={voteRequiresLogin} onChange={setVoteRequiresLogin} />
+        <SettingRow
+          label="Allow suggested solutions"
+          checked={allowSuggestSolutions}
+          onChange={setAllowSuggestSolutions}
+        />
+        <SettingRow label="Allow comments" checked={commentsEnabled} onChange={setCommentsEnabled} />
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">
@@ -343,6 +317,63 @@ export function CreateIssueDialog({
           <Input id="hidden-date" type="date" value={hiddenDate} onChange={(e) => setHiddenDate(e.target.value)} />
         </div>
       </div>
+
+      <div className="flex flex-col gap-1.5 border-t border-border pt-4">
+        <Label>Community</Label>
+        {lockedCommunityId ? (
+          <div className="flex h-9 items-center rounded-md border border-border bg-muted px-3 text-sm text-muted-foreground">
+            {getCommunity(lockedCommunityId)?.name}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs text-muted-foreground">Want this issue to live inside a community?</p>
+            {!isAdmin && !user ? (
+              <p className="text-xs text-muted-foreground">Sign in to attach this issue to a community.</p>
+            ) : (
+              <>
+                {selectableCommunities.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex h-9 items-center justify-between rounded-md border border-input px-3 text-sm text-foreground hover:bg-accent"
+                      >
+                        {selectedCommunity?.name ?? "Standalone (no community)"}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
+                      <DropdownMenuItem onClick={() => setCommunityId(undefined)}>
+                        Standalone (no community)
+                      </DropdownMenuItem>
+                      {selectableCommunities.map((c) => (
+                        <DropdownMenuItem key={c.id} onClick={() => setCommunityId(c.id)}>
+                          {c.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                <CreateCommunityDialog
+                  quickMode
+                  onCreated={(c) => setCommunityId(c.id)}
+                  trigger={
+                    <button type="button" className="w-fit text-sm font-medium text-primary hover:underline">
+                      {selectableCommunities.length > 0 ? (
+                        <span className="flex items-center gap-1">
+                          <Icon icon={IconPlus} size={14} />
+                          Create another community
+                        </span>
+                      ) : (
+                        "Create a new community"
+                      )}
+                    </button>
+                  }
+                />
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -354,29 +385,53 @@ export function CreateIssueDialog({
         className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-2xl"
       >
         {published ? (
-          <div className="flex flex-col items-center gap-4 py-6 text-center">
-            <div className="flex size-14 items-center justify-center rounded-full bg-status-resolved/15 text-status-resolved">
-              <Icon icon={IconCheck} size={28} />
+          isEditing ? (
+            <div className="flex flex-col items-center gap-4 py-6 text-center">
+              <div className="flex size-14 items-center justify-center rounded-full bg-status-resolved/15 text-status-resolved">
+                <Icon icon={IconCheck} size={28} />
+              </div>
+              <DialogHeader>
+                <DialogTitle className="text-center">Changes saved!</DialogTitle>
+              </DialogHeader>
+              <p className="max-w-sm text-sm text-muted-foreground">Your changes are live.</p>
+              <Button onClick={done}>Done</Button>
             </div>
-            <DialogHeader>
-              <DialogTitle className="text-center">
-                {isEditing ? "Changes saved!" : "Published!"}
-              </DialogTitle>
-            </DialogHeader>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              This is a static prototype, so nothing was actually saved — but here's the
-              confirmation you'd see once it's live.
-            </p>
-            <div className="flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2">
-              <span className="flex-1 truncate text-left text-sm text-muted-foreground">
-                tachlis.org/issues/{editIssue?.id ?? fakeId}
-              </span>
-              <button type="button" onClick={copyLink} aria-label="Copy link">
-                <Icon icon={copied ? IconCheck : IconCopy} size={16} />
-              </button>
+          ) : (
+            <div className="flex flex-col items-center gap-5 py-4 text-center">
+              <div className="flex size-14 items-center justify-center rounded-full bg-status-resolved/15 text-status-resolved">
+                <Icon icon={IconCheck} size={28} />
+              </div>
+              <DialogHeader>
+                <DialogTitle className="text-center font-heading text-2xl">You&apos;re live!</DialogTitle>
+              </DialogHeader>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Your issue is published — time to rally support and get it solved.
+              </p>
+              <div className="flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2">
+                <span className="flex-1 truncate text-left text-sm text-muted-foreground">
+                  tachlis.org/issues/{editIssue?.id ?? fakeId}
+                </span>
+                <button type="button" onClick={copyLink} aria-label="Copy link">
+                  <Icon icon={copied ? IconCheck : IconLink} size={16} />
+                </button>
+              </div>
+              <div className="grid w-full grid-cols-4 gap-2">
+                {BIG_SHARE_TARGETS.map((target) => (
+                  <a
+                    key={target.label}
+                    href={`${target.urlPrefix}${encodeURIComponent(`${publishedUrl}/issues/${editIssue?.id ?? fakeId}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-border px-2 py-4 text-xs font-medium text-foreground transition-colors hover:border-primary hover:bg-accent"
+                  >
+                    <Icon icon={target.icon} size={26} />
+                    {target.label}
+                  </a>
+                ))}
+              </div>
+              <Button onClick={done}>Done</Button>
             </div>
-            <Button onClick={() => reset(false)}>Done</Button>
-          </div>
+          )
         ) : showAuthGate ? (
           <>
             <DialogHeader>
@@ -487,10 +542,12 @@ export function CreateIssueDialog({
                 <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={editIssue?.status ?? "new"} />
-                    <Badge variant="outline" className="gap-1">
-                      <Icon icon={category.icon} size={14} />
-                      {category.label}
-                    </Badge>
+                    {category && (
+                      <Badge variant="outline" className="gap-1">
+                        <Icon icon={category.icon} size={14} />
+                        {category.label}
+                      </Badge>
+                    )}
                     <Badge variant="outline">{visibility === "private" ? "Private" : "Public"}</Badge>
                     {selectedCommunity && (
                       <Badge variant="secondary">{selectedCommunity.name}</Badge>
@@ -542,36 +599,5 @@ export function CreateIssueDialog({
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-function ToggleRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={cn(
-        "flex h-9 items-center gap-2 rounded-md border px-3 text-sm",
-        checked ? "border-primary bg-accent" : "border-input",
-      )}
-    >
-      <span
-        className={cn(
-          "flex size-4 items-center justify-center rounded border",
-          checked ? "border-primary bg-primary text-primary-foreground" : "border-border",
-        )}
-      >
-        {checked && <Icon icon={IconCheck} size={12} />}
-      </span>
-      {label}
-    </button>
   );
 }

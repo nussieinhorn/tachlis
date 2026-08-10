@@ -104,6 +104,9 @@ export type Solution = {
   votes: number;
   status: SolutionStatus;
   comments: Comment[];
+  hidden?: boolean;
+  deleted?: boolean;
+  submitter?: { name: string; email: string; phone?: string };
 };
 
 export type ActionTaskStatus =
@@ -158,9 +161,15 @@ export type Issue = {
   supportRequiresLogin: boolean;
   voteRequiresLogin: boolean;
   allowSuggestSolutions: boolean;
+  commentsEnabled: boolean;
   goLiveDate?: string;
   votingCloseDate?: string;
   hiddenDate?: string;
+  /** Breakdown of supporterCount by intent level, for the sidebar info-icon demo. */
+  supporterBreakdown?: { justSupport: number; resonates: number; willingToHelp: number };
+  links?: { id: string; label: string; url: string }[];
+  /** Whether non-admins can still see the other (non-chosen) solutions once one is picked. Default true. */
+  showHiddenSolutionsAfterChosen?: boolean;
 };
 
 const DEFAULT_ISSUE_SETTINGS = {
@@ -170,6 +179,7 @@ const DEFAULT_ISSUE_SETTINGS = {
   supportRequiresLogin: false,
   voteRequiresLogin: false,
   allowSuggestSolutions: true,
+  commentsEnabled: true,
 };
 
 export const ISSUES: Issue[] = [
@@ -306,12 +316,17 @@ export const ISSUES: Issue[] = [
     description:
       "Starter homes that sold for $280k five years ago are now well past $550k. Kollel and young working families can no longer afford to buy within walking distance of a shul.",
     descriptionMore:
-      "This has become the top complaint at nearly every town hall in the past year. Several ideas are circulating — from a community-backed subsidized mortgage fund to lobbying the township for higher-density zoning near Route 9 — but nothing has been formally proposed until now.",
+      "This has become the top complaint at nearly every town hall in the past year. Several ideas are circulating — from a community-backed subsidized mortgage fund to lobbying the township for higher-density zoning near Route 9 — but nothing has been formally proposed until now.\n\nReal estate agents active in the area report that inventory has dropped by nearly 40% over the same period, as older residents hold onto homes rather than downsizing into a market with few affordable options to move into. Meanwhile, new construction has skewed almost entirely toward larger, higher-end homes aimed at buyers relocating from New York and Los Angeles, doing little to relieve pressure at the entry-level price point.\n\nSeveral askanim have floated the idea of a community land trust, similar to models used in a handful of other frum communities, where the land itself stays under community ownership and only the home is sold — keeping the purchase price meaningfully lower in perpetuity. Others have pushed back, arguing the township is more likely to approve straightforward rezoning than a land trust structure it has never dealt with before.\n\nWhatever the mechanism, there's broad agreement that the status quo isn't sustainable. Young families increasingly report looking at communities two or three hours away, worried that if this isn't solved in the next few years, an entire generation of Lakewood-raised couples will simply build their lives somewhere else.",
     categorySlug: "housing",
     locationArea: "Lakewood",
     location: "Lakewood, NJ",
     status: "gaining-traction",
     supporterCount: 312,
+    supporterBreakdown: { justSupport: 178, resonates: 92, willingToHelp: 42 },
+    links: [
+      { id: "link-1", label: "Fundraising page", url: "https://example.com/lakewood-housing-fund" },
+      { id: "link-2", label: "WhatsApp group", url: "https://chat.whatsapp.com/example" },
+    ],
     createdBy: "Yanky R.",
     shareCount: 986,
     visitCount: 3974,
@@ -400,6 +415,7 @@ export const ISSUES: Issue[] = [
     location: "Flatbush, Brooklyn",
     status: "gaining-traction",
     supporterCount: 189,
+    supporterBreakdown: { justSupport: 121, resonates: 51, willingToHelp: 17 },
     createdBy: "Raizy H.",
     shareCount: 624,
     visitCount: 2526,
@@ -416,6 +432,7 @@ export const ISSUES: Issue[] = [
         votes: 88,
         status: "proposed",
         comments: [],
+        submitter: { name: "Chana Feldman", email: "chana.feldman@example.com", phone: "555-0142" },
       },
       {
         id: "s7",
@@ -427,6 +444,7 @@ export const ISSUES: Issue[] = [
         votes: 61,
         status: "proposed",
         comments: [],
+        submitter: { name: "Devorah L.", email: "devorah.l@example.com" },
       },
     ],
     updates: [
@@ -443,6 +461,7 @@ export const ISSUES: Issue[] = [
     supportRequiresLogin: false,
     voteRequiresLogin: false,
     allowSuggestSolutions: true,
+    commentsEnabled: true,
     communityId: "c109",
     title: "Tuition crisis pushing families to the brink in Lakewood",
     description:
@@ -625,6 +644,7 @@ export const ISSUES: Issue[] = [
     supportRequiresLogin: false,
     voteRequiresLogin: false,
     allowSuggestSolutions: true,
+    commentsEnabled: true,
     communityId: "c108",
     title: "Yeshiva bochurim have no structured dating guidance in Lakewood",
     description:
@@ -700,12 +720,13 @@ export const ISSUES: Issue[] = [
     description:
       "Kindergarten classes are running 28 boys to one rebbi, well above the recommended ratio, after two straight years of enrollment growth outpacing the building.",
     descriptionMore:
-      "The school board approved renting adjacent space starting this coming school year, ending an eight-month back-and-forth over cost.",
+      "The school board approved renting adjacent space starting this coming school year, ending an eight-month back-and-forth over cost.\n\nThe crowding first became a serious concern two enrollment cycles ago, when a wave of young families moved into the neighborhood following the completion of several new apartment buildings on 15th Avenue. The cheder's building committee initially hoped the growth would level off, but registration for the coming year came in even higher than projected.\n\nParents raised the issue repeatedly at PTA meetings, citing not just the ratio itself but the toll on the rebbeim, several of whom were covering material at a slower pace simply to manage the room. The storefront being leased sits immediately next door and previously housed a shoe store that closed last year, making the timeline for renovation unusually short.",
     categorySlug: "education",
     locationArea: "Boro Park",
     location: "Boro Park, Brooklyn",
     status: "solution-chosen",
     supporterCount: 142,
+    supporterBreakdown: { justSupport: 88, resonates: 39, willingToHelp: 15 },
     createdBy: "Menachem O.",
     shareCount: 532,
     visitCount: 2158,

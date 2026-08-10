@@ -8,6 +8,7 @@ import { useAdminMode } from "@/lib/admin-mode";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Icon } from "@/components/ui/icon";
+import { AlertsSignup } from "@/components/issue/alerts-signup";
 
 const PAGE_SIZE = 10;
 
@@ -28,6 +29,8 @@ export function AdminUpdates({ initialUpdates }: { initialUpdates: Update[] }) {
 
   return (
     <div className="flex flex-col gap-4">
+      <AlertsSignup />
+
       {isAdmin && (
         <div className="flex flex-col gap-2 rounded-lg border border-dashed border-primary/40 bg-accent/40 p-3">
           <Textarea

@@ -11,9 +11,15 @@ import { Icon } from "@/components/ui/icon";
 export function OtherProposals({
   solutions,
   label = "archived proposals",
+  onUpdate,
+  onHide,
+  onDelete,
 }: {
   solutions: Solution[];
   label?: string;
+  onUpdate: (id: string, patch: Partial<Solution>) => void;
+  onHide: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -28,7 +34,13 @@ export function OtherProposals({
       {open && (
         <div className="flex flex-col gap-3">
           {solutions.map((solution) => (
-            <SolutionCard key={solution.id} solution={solution} />
+            <SolutionCard
+              key={solution.id}
+              solution={solution}
+              onUpdate={(patch) => onUpdate(solution.id, patch)}
+              onHide={() => onHide(solution.id)}
+              onDelete={() => onDelete(solution.id)}
+            />
           ))}
         </div>
       )}

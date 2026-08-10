@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { IconMail } from "@tabler/icons-react";
+import { IconEye, IconEyeOff, IconMail, IconTrash, IconUserCheck, IconUserX } from "@tabler/icons-react";
 
 import type { ActionPlan } from "@/lib/mock-data";
+import { useAdminMode } from "@/lib/admin-mode";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Icon } from "@/components/ui/icon";
+
+type PendingRequest = { name: string; email: string; phone: string };
+
+// Demo-only pending requests so admins have something to approve without a second session.
+const SEED_PENDING: PendingRequest[] = [
+  { name: "Shloimy Katz", email: "shloimy.katz@example.com", phone: "555-0110" },
+  { name: "Malky Rosen", email: "malky.rosen@example.com", phone: "555-0187" },
+];
 
 function initials(name: string) {
   return name
@@ -28,14 +38,26 @@ function initials(name: string) {
 }
 
 export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
+  const { isAdmin } = useAdminMode();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [manageTab, setManageTab] = useState<"pending" | "active">("pending");
   const [submitted, setSubmitted] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  const members = actionPlan ? [actionPlan.lead, ...actionPlan.volunteers] : [];
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(
+    actionPlan ? SEED_PENDING : [],
+  );
+  const [approvedNames, setApprovedNames] = useState<string[]>([]);
+  const [removedNames, setRemovedNames] = useState<Set<string>>(new Set());
+  const [hiddenNames, setHiddenNames] = useState<Set<string>>(new Set());
+
+  const baseMembers = actionPlan ? [actionPlan.lead, ...actionPlan.volunteers] : [];
+  const allActiveMembers = [...baseMembers, ...approvedNames];
+  const members = allActiveMembers.filter((name) => !removedNames.has(name));
   const openTasks = actionPlan?.tasks.filter((t) => t.status !== "done") ?? [];
 
   function toggleTask(taskId: string) {
@@ -59,6 +81,32 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
     }
   }
 
+  function approve(request: PendingRequest) {
+    // TODO(supabase): onApproveActionTeamRequest({ email: request.email })
+    setApprovedNames((prev) => [...prev, request.name]);
+    setPendingRequests((prev) => prev.filter((r) => r.email !== request.email));
+  }
+
+  function reject(request: PendingRequest) {
+    // TODO(supabase): onRejectActionTeamRequest({ email: request.email })
+    setPendingRequests((prev) => prev.filter((r) => r.email !== request.email));
+  }
+
+  function removeMember(name: string) {
+    // TODO(supabase): onRemoveActionTeamMember({ name })
+    setRemovedNames((prev) => new Set(prev).add(name));
+  }
+
+  function toggleHideMember(name: string) {
+    // TODO(supabase): onToggleActionTeamMemberVisibility({ name })
+    setHiddenNames((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
   return (
     <section className="flex flex-col gap-3 border-t border-border pt-6">
       <div className="flex items-center gap-3">
@@ -70,6 +118,18 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
         >
           Join!
         </button>
+        {isAdmin && pendingRequests.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setManageTab("pending");
+              setManageOpen(true);
+            }}
+            className="rounded-full bg-status-traction/15 px-2.5 py-0.5 text-xs font-medium text-status-traction hover:bg-status-traction/25"
+          >
+            {pendingRequests.length} pending
+          </button>
+        )}
         <a
           href="mailto:admin@tachlis.org"
           className="ml-auto flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline"
@@ -92,10 +152,10 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
           </div>
           <button
             type="button"
-            onClick={() => setDetailsOpen(true)}
+            onClick={() => (isAdmin ? setManageOpen(true) : setDetailsOpen(true))}
             className="text-sm font-medium text-primary hover:underline"
           >
-            Details
+            {isAdmin ? "Manage" : "Details"}
           </button>
         </div>
       )}
@@ -120,6 +180,92 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
               </li>
             ))}
           </ul>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={manageOpen} onOpenChange={setManageOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage action team</DialogTitle>
+            <DialogDescription>Approve requests or manage current members.</DialogDescription>
+          </DialogHeader>
+          <Tabs value={manageTab} onValueChange={(v) => setManageTab(v as "pending" | "active")}>
+            <TabsList className="w-full">
+              <TabsTrigger value="pending">Pending ({pendingRequests.length})</TabsTrigger>
+              <TabsTrigger value="active">Active ({members.length})</TabsTrigger>
+            </TabsList>
+            <TabsContent value="pending" className="flex flex-col gap-2 pt-3">
+              {pendingRequests.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No pending requests.</p>
+              ) : (
+                pendingRequests.map((request) => (
+                  <div
+                    key={request.email}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
+                  >
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="truncate text-sm font-medium text-foreground">{request.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{request.email}</span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button size="sm" variant="outline" onClick={() => approve(request)}>
+                        <Icon icon={IconUserCheck} size={14} />
+                        Approve
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => reject(request)}
+                        className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="Reject"
+                      >
+                        <Icon icon={IconUserX} size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </TabsContent>
+            <TabsContent value="active" className="flex flex-col gap-2 pt-3">
+              {members.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No active members yet.</p>
+              ) : (
+                members.map((name, i) => (
+                  <div
+                    key={name}
+                    className={
+                      "flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2" +
+                      (hiddenNames.has(name) ? " opacity-50" : "")
+                    }
+                  >
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="truncate text-sm font-medium text-foreground">{name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {i === 0 ? "Project lead" : "Volunteer"}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleHideMember(name)}
+                        className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        aria-label={hiddenNames.has(name) ? "Unhide" : "Hide"}
+                      >
+                        <Icon icon={hiddenNames.has(name) ? IconEye : IconEyeOff} size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeMember(name)}
+                        className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="Remove"
+                      >
+                        <Icon icon={IconTrash} size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
