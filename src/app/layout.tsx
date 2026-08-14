@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
-import { AdminModeProvider } from "@/lib/admin-mode";
 import { AuthProvider } from "@/lib/auth";
-import { CreatedCommunitiesProvider } from "@/lib/created-communities";
-import { PrivateAccessProvider } from "@/lib/private-access";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,13 +30,7 @@ export default function RootLayout({
       className={`${inter.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AdminModeProvider>
-          <AuthProvider>
-            <CreatedCommunitiesProvider>
-              <PrivateAccessProvider>{children}</PrivateAccessProvider>
-            </CreatedCommunitiesProvider>
-          </AuthProvider>
-        </AdminModeProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

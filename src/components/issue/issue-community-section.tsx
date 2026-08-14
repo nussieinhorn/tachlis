@@ -4,15 +4,11 @@ import Link from "next/link";
 import { IconLock, IconUsersGroup } from "@tabler/icons-react";
 
 import type { Community } from "@/lib/communities-data";
-import { useAdminMode } from "@/lib/admin-mode";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 
 export function IssueCommunitySection({ community }: { community: Community }) {
-  const { isAdmin } = useAdminMode();
   const isPrivate = community.privacy === "private";
-
-  if (isPrivate && !isAdmin) return null;
 
   return (
     <section className="flex flex-col gap-3 border-t border-border pt-6">

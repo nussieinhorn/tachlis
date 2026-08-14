@@ -2,8 +2,16 @@ import { SiteHeader } from "@/components/site-header";
 import { CommunitiesBrowser } from "@/components/communities-browser";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { Button } from "@/components/ui/button";
+import { getCommunities, getCommunityIssueCount, getEditableCommunityIds } from "@/lib/supabase/queries";
 
-export default function CommunitiesDirectory() {
+export default async function CommunitiesDirectory() {
+  const communities = await getCommunities();
+  const [editableIds, issueCountEntries] = await Promise.all([
+    getEditableCommunityIds(),
+    Promise.all(communities.map(async (c) => [c.id, await getCommunityIssueCount(c.id)] as const)),
+  ]);
+  const issueCounts = Object.fromEntries(issueCountEntries);
+
   return (
     <>
       <SiteHeader />
@@ -18,7 +26,7 @@ export default function CommunitiesDirectory() {
           <CreateCommunityDialog trigger={<Button>Create community</Button>} />
         </div>
 
-        <CommunitiesBrowser />
+        <CommunitiesBrowser communities={communities} issueCounts={issueCounts} editableIds={[...editableIds]} />
       </main>
     </>
   );

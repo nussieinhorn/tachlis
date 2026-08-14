@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { ISSUE_STATUSES, StatusBadge, type IssueStatus } from "@/components/ui/status-badge";
-import { useAdminMode } from "@/lib/admin-mode";
+import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,11 +12,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function IssueAdminStatus({ initialStatus }: { initialStatus: IssueStatus }) {
-  const { isAdmin } = useAdminMode();
+export function IssueAdminStatus({
+  issueId,
+  initialStatus,
+  canEdit,
+}: {
+  issueId: string;
+  initialStatus: IssueStatus;
+  canEdit: boolean;
+}) {
+  const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
 
-  if (!isAdmin) return <StatusBadge status={status} size="lg" />;
+  useEffect(() => {
+    setStatus(initialStatus);
+  }, [initialStatus]);
+
+  if (!canEdit) return <StatusBadge status={status} size="lg" />;
+
+  async function updateStatus(next: IssueStatus) {
+    const supabase = createClient();
+    const { error } = await supabase.from("issues").update({ status: next }).eq("id", issueId);
+    if (!error) {
+      setStatus(next);
+      router.refresh();
+    }
+  }
 
   return (
     <DropdownMenu>
@@ -26,13 +48,7 @@ export function IssueAdminStatus({ initialStatus }: { initialStatus: IssueStatus
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {ISSUE_STATUSES.map((s) => (
-          <DropdownMenuItem
-            key={s}
-            onClick={() => {
-              // TODO(supabase): onUpdateIssueStatus({ issueId, status: s })
-              setStatus(s);
-            }}
-          >
+          <DropdownMenuItem key={s} onClick={() => updateStatus(s)}>
             <StatusBadge status={s} />
           </DropdownMenuItem>
         ))}

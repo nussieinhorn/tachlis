@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { IconUserPlus } from "@tabler/icons-react";
 
-import { usePrivateAccess } from "@/lib/private-access";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import {
@@ -14,12 +16,50 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+type PendingRequest = { id: string; name: string; email: string };
+
 export function AccessRequestsWidget({ issueId }: { issueId: string }) {
-  const { pendingByIssue, approve, approveAll } = usePrivateAccess();
-  const pending = pendingByIssue[issueId] ?? [];
+  const router = useRouter();
+  const [pending, setPending] = useState<PendingRequest[]>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const supabase = createClient();
+    supabase
+      .from("private_access_requests")
+      .select("id, requester:profiles!private_access_requests_user_id_fkey(name, email)")
+      .eq("issue_id", issueId)
+      .eq("status", "pending")
+      .then(({ data }) => {
+        setPending(
+          (data ?? []).map((r) => {
+            const requester = r.requester as { name: string; email: string } | null;
+            return { id: r.id, name: requester?.name ?? "", email: requester?.email ?? "" };
+          }),
+        );
+      });
+  }, [open, issueId]);
+
+  async function approve(id: string) {
+    const supabase = createClient();
+    await supabase.from("private_access_requests").update({ status: "approved" }).eq("id", id);
+    setPending((prev) => prev.filter((r) => r.id !== id));
+    router.refresh();
+  }
+
+  async function approveAll() {
+    const supabase = createClient();
+    await supabase
+      .from("private_access_requests")
+      .update({ status: "approved" })
+      .in("id", pending.map((r) => r.id));
+    setPending([]);
+    router.refresh();
+  }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Icon icon={IconUserPlus} size={16} />
@@ -38,18 +78,18 @@ export function AccessRequestsWidget({ issueId }: { issueId: string }) {
           <div className="flex flex-col gap-3">
             <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
               {pending.map((request) => (
-                <li key={request.email} className="flex items-center justify-between gap-3 px-3 py-2">
+                <li key={request.id} className="flex items-center justify-between gap-3 px-3 py-2">
                   <div className="flex flex-col overflow-hidden">
                     <span className="truncate text-sm font-medium text-foreground">{request.name}</span>
                     <span className="truncate text-xs text-muted-foreground">{request.email}</span>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => approve(issueId, request.email)}>
+                  <Button size="sm" variant="outline" onClick={() => approve(request.id)}>
                     Approve
                   </Button>
                 </li>
               ))}
             </ul>
-            <Button type="button" size="sm" onClick={() => approveAll(issueId)} className="w-fit">
+            <Button type="button" size="sm" onClick={approveAll} className="w-fit">
               Approve all
             </Button>
           </div>

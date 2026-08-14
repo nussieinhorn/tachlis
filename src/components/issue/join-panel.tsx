@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   IconCheck,
   IconShare,
@@ -11,6 +11,8 @@ import {
 } from "@tabler/icons-react";
 
 import { INTENT_TAGS, type IntentTag } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
 import { formatCompactNumber, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,44 +60,87 @@ const LEVELS: {
 type DialogState = "options" | "contact" | "thanks";
 
 export function JoinPanel({
+  issueId,
   initialSupporterCount,
   shareCount,
   visitCount,
   viewCount,
   supporterBreakdown,
 }: {
+  issueId: string;
   initialSupporterCount: number;
   shareCount: number;
   visitCount: number;
   viewCount: number;
   supporterBreakdown?: { justSupport: number; resonates: number; willingToHelp: number };
 }) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [supported, setSupported] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>("options");
+  const [pendingTag, setPendingTag] = useState<IntentTag | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [supporterCount, setSupporterCount] = useState(initialSupporterCount);
+  const [error, setError] = useState<string | null>(null);
 
-  function chooseOption(tag: IntentTag) {
-    // TODO(supabase): onSupportIssue({ issueId, tag })
-    setSupported(true);
-    setSupporterCount((c) => c + 1);
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    supabase
+      .from("issue_supports")
+      .select("id")
+      .eq("issue_id", issueId)
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setSupported(true);
+      });
+  }, [user, issueId]);
 
+  async function chooseOption(tag: IntentTag) {
     if (tag === "willing-to-help") {
+      setPendingTag(tag);
       setDialogState("contact");
       return;
     }
 
+    setError(null);
+    const supabase = createClient();
+    const { error: insertError } = await supabase
+      .from("issue_supports")
+      .insert({ issue_id: issueId, user_id: user?.id ?? null, level: tag });
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+    setSupported(true);
+    setSupporterCount((c) => c + 1);
     setDialogState("thanks");
     setTimeout(() => setOpen(false), 1500);
   }
 
-  function completeContact() {
-    // TODO(supabase): onSupportIssueContact({ issueId, name, email, phone })
+  async function completeContact() {
+    if (!pendingTag) return;
+    setError(null);
+    const supabase = createClient();
+    const { error: insertError } = await supabase.from("issue_supports").insert({
+      issue_id: issueId,
+      user_id: user?.id ?? null,
+      level: pendingTag,
+      contact_name: name.trim(),
+      contact_email: email.trim(),
+      contact_phone: phone.trim() || null,
+    });
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+    setSupported(true);
+    setSupporterCount((c) => c + 1);
     setDialogState("thanks");
     setTimeout(() => setOpen(false), 1500);
   }
@@ -105,9 +150,11 @@ export function JoinPanel({
     if (!nextOpen) {
       setTimeout(() => {
         setDialogState("options");
+        setPendingTag(null);
         setName("");
         setEmail("");
         setPhone("");
+        setError(null);
       }, 200);
     }
   }
@@ -211,6 +258,7 @@ export function JoinPanel({
                   );
                 })}
               </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
             </>
           )}
 
@@ -237,6 +285,7 @@ export function JoinPanel({
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
               <DialogFooter>
                 <Button onClick={completeContact} disabled={!name.trim() || !email.trim()}>
                   Complete

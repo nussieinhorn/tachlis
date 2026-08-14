@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { IconDots, IconExternalLink, IconLink, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 
-import { useAdminMode } from "@/lib/admin-mode";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,28 +89,45 @@ function LinkFormDialog({
   );
 }
 
-export function IssueLinksSection({ initialLinks }: { initialLinks?: IssueLink[] }) {
-  const { isAdmin } = useAdminMode();
+export function IssueLinksSection({
+  issueId,
+  initialLinks,
+  canEdit,
+}: {
+  issueId: string;
+  initialLinks?: IssueLink[];
+  canEdit: boolean;
+}) {
+  const router = useRouter();
   const [links, setLinks] = useState<IssueLink[]>(initialLinks ?? []);
   const [addOpen, setAddOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<IssueLink | null>(null);
 
-  function addLink(label: string, url: string) {
-    // TODO(supabase): onAddIssueLink({ label, url })
-    setLinks((prev) => [...prev, { id: `link-${Date.now()}`, label, url }]);
+  async function addLink(label: string, url: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase.from("issue_links").insert({ issue_id: issueId, label, url }).select().single();
+    if (error || !data) return;
+    setLinks((prev) => [...prev, { id: data.id, label: data.label, url: data.url }]);
+    router.refresh();
   }
 
-  function updateLink(id: string, label: string, url: string) {
-    // TODO(supabase): onUpdateIssueLink({ id, label, url })
+  async function updateLink(id: string, label: string, url: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from("issue_links").update({ label, url }).eq("id", id);
+    if (error) return;
     setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, label, url } : l)));
+    router.refresh();
   }
 
-  function deleteLink(id: string) {
-    // TODO(supabase): onDeleteIssueLink({ id })
+  async function deleteLink(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from("issue_links").delete().eq("id", id);
+    if (error) return;
     setLinks((prev) => prev.filter((l) => l.id !== id));
+    router.refresh();
   }
 
-  if (links.length === 0 && !isAdmin) return null;
+  if (links.length === 0 && !canEdit) return null;
 
   return (
     <Card>
@@ -135,7 +153,7 @@ export function IssueLinksSection({ initialLinks }: { initialLinks?: IssueLink[]
                   <span className="truncate">{link.label}</span>
                   <Icon icon={IconExternalLink} size={12} className="shrink-0 text-muted-foreground" />
                 </a>
-                {isAdmin && (
+                {canEdit && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
@@ -163,7 +181,7 @@ export function IssueLinksSection({ initialLinks }: { initialLinks?: IssueLink[]
           </ul>
         )}
 
-        {isAdmin && (
+        {canEdit && (
           <Button variant="outline" size="sm" className="w-fit" onClick={() => setAddOpen(true)}>
             <Icon icon={IconPlus} size={16} />
             Add link

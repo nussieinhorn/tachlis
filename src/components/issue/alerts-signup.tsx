@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { IconBellRinging } from "@tabler/icons-react";
 
 import { useAuth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
 import { AuthGate } from "@/components/auth-gate";
 import { Icon } from "@/components/ui/icon";
 import {
@@ -14,22 +15,38 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-export function AlertsSignup() {
+export function AlertsSignup({ issueId }: { issueId: string }) {
   const { isSignedIn, user } = useAuth();
   const [open, setOpen] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const wasSignedIn = useRef(isSignedIn);
 
   useEffect(() => {
-    if (open && !wasSignedIn.current && isSignedIn) {
+    if (!user) return;
+    const supabase = createClient();
+    supabase
+      .from("issue_alert_subscriptions")
+      .select("issue_id")
+      .eq("issue_id", issueId)
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setSubscribed(Boolean(data)));
+  }, [user, issueId]);
+
+  useEffect(() => {
+    wasSignedIn.current = isSignedIn;
+  }, [isSignedIn]);
+
+  async function toggle() {
+    if (!user) return;
+    const supabase = createClient();
+    if (subscribed) {
+      await supabase.from("issue_alert_subscriptions").delete().eq("issue_id", issueId).eq("user_id", user.id);
+      setSubscribed(false);
+    } else {
+      await supabase.from("issue_alert_subscriptions").insert({ issue_id: issueId, user_id: user.id });
       setSubscribed(true);
     }
-    wasSignedIn.current = isSignedIn;
-  }, [isSignedIn, open]);
-
-  function toggle() {
-    // TODO(supabase): onSubscribeToIssueAlerts({ issueId, email: user?.email })
-    setSubscribed((v) => !v);
   }
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { IconCheck, IconPlus, IconUsersGroup, IconX } from "@tabler/icons-react";
 
 import {
@@ -9,7 +10,8 @@ import {
   type CommunityTone,
 } from "@/lib/communities-data";
 import { useAuth } from "@/lib/auth";
-import { useCreatedCommunities } from "@/lib/created-communities";
+import { createClient } from "@/lib/supabase/client";
+import { AuthGate } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,11 +45,14 @@ export function CreateCommunityDialog({
 }) {
   const isEditing = Boolean(editCommunity);
   const { user } = useAuth();
-  const { addCommunity } = useCreatedCommunities();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const [showFirstIssuePrompt, setShowFirstIssuePrompt] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | undefined>(undefined);
 
   const [name, setName] = useState(editCommunity?.name ?? "");
   const [description, setDescription] = useState(editCommunity?.description ?? "");
@@ -56,20 +61,21 @@ export function CreateCommunityDialog({
   const [privacy, setPrivacy] = useState<"public" | "private">(editCommunity?.privacy ?? "public");
   const [invites, setInvites] = useState<Invite[]>([]);
 
-  const fakeId = "c" + Math.floor(200 + Math.random() * 90);
-
   function reset(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen) {
       setStep(0);
       setDone(false);
       setShowFirstIssuePrompt(false);
+      setError(null);
+      setCreatedId(undefined);
       setName(editCommunity?.name ?? "");
       setDescription(editCommunity?.description ?? "");
       setLocation(editCommunity?.location ?? "");
       setTone(editCommunity?.tone ?? "coral");
       setPrivacy(editCommunity?.privacy ?? "public");
       setInvites([]);
+      router.refresh();
     }
   }
 
@@ -83,25 +89,66 @@ export function CreateCommunityDialog({
     setInvites((prev) => prev.filter((i) => i.id !== id));
   }
 
-  function finish() {
-    // TODO(supabase): isEditing ? onUpdateCommunity({ id: editCommunity.id, ... }) : onCreateCommunity({ ..., invites })
-    if (!isEditing) {
-      const created: Community = {
-        id: fakeId,
-        name: name.trim(),
-        description,
-        location,
-        privacy,
-        memberCount: 1,
-        tone,
-        ownerId: user?.email,
-      };
-      addCommunity(created);
-      if (quickMode) {
-        onCreated?.(created);
-        reset(false);
+  async function finish() {
+    if (!user || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const supabase = createClient();
+
+    if (isEditing && editCommunity) {
+      const { error: updateError } = await supabase
+        .from("communities")
+        .update({ name: name.trim(), description, location, tone, privacy })
+        .eq("id", editCommunity.id);
+      setSubmitting(false);
+      if (updateError) {
+        setError(updateError.message);
         return;
       }
+      setDone(true);
+      return;
+    }
+
+    const { data, error: insertError } = await supabase
+      .from("communities")
+      .insert({ name: name.trim(), description, location, tone, privacy, owner_id: user.id })
+      .select()
+      .single();
+    if (insertError || !data) {
+      setSubmitting(false);
+      setError(insertError?.message ?? "Something went wrong.");
+      return;
+    }
+
+    for (const invite of invites) {
+      if (!invite.email.trim()) continue;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", invite.email.trim())
+        .maybeSingle();
+      if (profile) {
+        await supabase.from("community_editors").insert({ community_id: data.id, user_id: profile.id });
+      }
+    }
+
+    setSubmitting(false);
+    setCreatedId(data.id);
+
+    if (quickMode) {
+      const created: Community = {
+        id: data.id,
+        name: data.name,
+        description: data.description ?? "",
+        location: data.location ?? "",
+        privacy: data.privacy as Community["privacy"],
+        memberCount: 0,
+        tone: data.tone as CommunityTone,
+        ownerId: data.owner_id ?? undefined,
+      };
+      onCreated?.(created);
+      reset(false);
+      return;
     }
     setDone(true);
   }
@@ -113,8 +160,20 @@ export function CreateCommunityDialog({
     <Dialog open={open} onOpenChange={reset}>
       <span onClick={() => setOpen(true)}>{trigger}</span>
       <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-lg">
-        {done ? (
-          showFirstIssuePrompt ? (
+        {!user ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="sr-only">Sign in</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <AuthGate
+                title="Sign in to create a community"
+                description="You'll need an account to create and manage a community."
+              />
+            </div>
+          </>
+        ) : done ? (
+          showFirstIssuePrompt && createdId ? (
             <div className="flex flex-col items-center gap-4 py-6 text-center">
               <div className="flex size-14 items-center justify-center rounded-full bg-status-resolved/15 text-status-resolved">
                 <Icon icon={IconCheck} size={28} />
@@ -130,7 +189,7 @@ export function CreateCommunityDialog({
                   Not now
                 </Button>
                 <CreateIssueDialog
-                  lockedCommunityId={fakeId}
+                  lockedCommunityId={createdId}
                   trigger={<Button onClick={() => reset(false)}>Create first issue</Button>}
                 />
               </div>
@@ -145,10 +204,6 @@ export function CreateCommunityDialog({
                   {isEditing ? "Changes saved!" : "Community created!"}
                 </DialogTitle>
               </DialogHeader>
-              <p className="max-w-sm text-sm text-muted-foreground">
-                This is a static prototype, so nothing was actually saved — but here's the
-                confirmation you'd see once it's live.
-              </p>
               {!isEditing && (
                 <Button onClick={() => setShowFirstIssuePrompt(true)}>Continue</Button>
               )}
@@ -273,6 +328,8 @@ export function CreateCommunityDialog({
               )}
             </div>
 
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
             <div className="flex items-center justify-between border-t border-border pt-3">
               {!singlePage && step > 0 ? (
                 <Button variant="ghost" size="sm" onClick={() => setStep((s) => s - 1)}>
@@ -286,8 +343,8 @@ export function CreateCommunityDialog({
                   Next
                 </Button>
               ) : (
-                <Button size="sm" onClick={finish} disabled={!canAdvance}>
-                  {isEditing ? "Save changes" : "Create community"}
+                <Button size="sm" onClick={finish} disabled={!canAdvance || submitting}>
+                  {submitting ? "Saving..." : isEditing ? "Save changes" : "Create community"}
                 </Button>
               )}
             </div>

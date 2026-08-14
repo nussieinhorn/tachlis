@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconCheck,
@@ -16,10 +16,9 @@ import {
 } from "@tabler/icons-react";
 
 import { CATEGORIES, type Issue } from "@/lib/mock-data";
-import { COMMUNITIES, getCommunity, getCommunitiesOwnedBy, type Community } from "@/lib/communities-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import type { Community } from "@/lib/communities-data";
 import { useAuth } from "@/lib/auth";
-import { useCreatedCommunities } from "@/lib/created-communities";
+import { createClient } from "@/lib/supabase/client";
 import { AuthGate } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,9 +70,7 @@ export function CreateIssueDialog({
   /** When provided (e.g. launched from a community page), the community is pre-set and can't be changed. */
   lockedCommunityId?: string;
 }) {
-  const { isAdmin } = useAdminMode();
   const { isSignedIn, user } = useAuth();
-  const { createdCommunities } = useCreatedCommunities();
   const router = useRouter();
   const isEditing = Boolean(editIssue);
   const source = editIssue ?? duplicateFrom;
@@ -81,6 +78,11 @@ export function CreateIssueDialog({
   const [step, setStep] = useState(0);
   const [published, setPublished] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | undefined>(undefined);
+  const [ownedCommunities, setOwnedCommunities] = useState<Community[]>([]);
+  const [lockedCommunity, setLockedCommunity] = useState<Community | undefined>(undefined);
 
   const [title, setTitle] = useState(source?.title ?? "");
   const [description, setDescription] = useState(source?.description ?? "");
@@ -105,19 +107,60 @@ export function CreateIssueDialog({
   const [team, setTeam] = useState<TeamInvite[]>([]);
 
   const category = CATEGORIES.find((c) => c.slug === categorySlug);
-  const fakeId = "3" + Math.floor(600 + Math.random() * 99);
   const publishedUrl = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
 
-  const ownedCommunities: Community[] = [
-    ...getCommunitiesOwnedBy(user?.email ?? ""),
-    ...createdCommunities.filter((c) => c.ownerId === user?.email),
-  ];
-  const selectableCommunities = isAdmin ? [...COMMUNITIES, ...createdCommunities] : ownedCommunities;
+  useEffect(() => {
+    if (!open || !user) return;
+    const supabase = createClient();
+    supabase
+      .from("communities")
+      .select("*")
+      .eq("owner_id", user.id)
+      .then(({ data }) => {
+        setOwnedCommunities(
+          (data ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            description: c.description ?? "",
+            location: c.location ?? "",
+            privacy: c.privacy as Community["privacy"],
+            memberCount: 0,
+            tone: c.tone as Community["tone"],
+            ownerId: c.owner_id ?? undefined,
+          })),
+        );
+      });
+  }, [open, user]);
+
+  useEffect(() => {
+    if (!lockedCommunityId) return;
+    const supabase = createClient();
+    supabase
+      .from("communities")
+      .select("*")
+      .eq("id", lockedCommunityId)
+      .maybeSingle()
+      .then(({ data: c }) => {
+        if (!c) return;
+        setLockedCommunity({
+          id: c.id,
+          name: c.name,
+          description: c.description ?? "",
+          location: c.location ?? "",
+          privacy: c.privacy as Community["privacy"],
+          memberCount: 0,
+          tone: c.tone as Community["tone"],
+          ownerId: c.owner_id ?? undefined,
+        });
+      });
+  }, [lockedCommunityId]);
+
+  const selectableCommunities = ownedCommunities;
   const selectedCommunity = communityId
-    ? (getCommunity(communityId) ?? selectableCommunities.find((c) => c.id === communityId))
+    ? (lockedCommunity ?? selectableCommunities.find((c) => c.id === communityId))
     : undefined;
 
-  const showAuthGate = !isEditing && !isAdmin && !isSignedIn;
+  const showAuthGate = !isEditing && !isSignedIn;
 
   function reset(nextOpen: boolean) {
     setOpen(nextOpen);
@@ -140,6 +183,9 @@ export function CreateIssueDialog({
       setVotingCloseDate(source?.votingCloseDate ?? "");
       setHiddenDate(source?.hiddenDate ?? "");
       setTeam([]);
+      setError(null);
+      setCreatedId(undefined);
+      router.refresh();
     }
   }
 
@@ -158,13 +204,69 @@ export function CreateIssueDialog({
     setTeam((prev) => prev.filter((m) => m.id !== id));
   }
 
-  function publish() {
-    // TODO(supabase): isEditing ? onUpdateIssue({ id: editIssue.id, ... }) : onCreateIssue({ ..., communityId, visibility, ... })
+  async function publish() {
+    if (!user || submitting || !categorySlug) return;
+    setSubmitting(true);
+    setError(null);
+    const supabase = createClient();
+
+    const payload = {
+      title: title.trim(),
+      description,
+      category_slug: categorySlug,
+      location: location || null,
+      community_id: communityId ?? null,
+      visibility,
+      show_on_homepage: showOnHomepage,
+      show_in_search: showInSearch,
+      support_requires_login: supportRequiresLogin,
+      vote_requires_login: voteRequiresLogin,
+      allow_suggest_solutions: allowSuggestSolutions,
+      comments_enabled: commentsEnabled,
+      go_live_date: goLiveDate || null,
+      voting_close_date: votingCloseDate || null,
+      hidden_date: hiddenDate || null,
+    };
+
+    if (isEditing && editIssue) {
+      const { error: updateError } = await supabase.from("issues").update(payload).eq("id", editIssue.id);
+      setSubmitting(false);
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      setPublished(true);
+      return;
+    }
+
+    const { data, error: insertError } = await supabase
+      .from("issues")
+      .insert({ ...payload, owner_id: user.id })
+      .select()
+      .single();
+    if (insertError || !data) {
+      setSubmitting(false);
+      setError(insertError?.message ?? "Something went wrong.");
+      return;
+    }
+
+    for (const member of team) {
+      if (!member.canEdit || !member.email.trim()) continue;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", member.email.trim())
+        .maybeSingle();
+      if (profile) await supabase.from("issue_editors").insert({ issue_id: data.id, user_id: profile.id });
+    }
+
+    setSubmitting(false);
+    setCreatedId(data.id);
     setPublished(true);
   }
 
   function copyLink() {
-    navigator.clipboard?.writeText(`${publishedUrl}/issues/${editIssue?.id ?? fakeId}`);
+    navigator.clipboard?.writeText(`${publishedUrl}/issues/${editIssue?.id ?? createdId}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -174,7 +276,8 @@ export function CreateIssueDialog({
       reset(false);
     } else {
       setOpen(false);
-      router.push("/issues/3659");
+      router.push(`/issues/${createdId}`);
+      router.refresh();
     }
   }
 
@@ -324,12 +427,12 @@ export function CreateIssueDialog({
         <Label>Community</Label>
         {lockedCommunityId ? (
           <div className="flex h-9 items-center rounded-md border border-border bg-muted px-3 text-sm text-muted-foreground">
-            {getCommunity(lockedCommunityId)?.name}
+            {lockedCommunity?.name}
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
             <p className="text-xs text-muted-foreground">Want this issue to live inside a community?</p>
-            {!isAdmin && !user ? (
+            {!user ? (
               <p className="text-xs text-muted-foreground">Sign in to attach this issue to a community.</p>
             ) : (
               <>
@@ -411,7 +514,7 @@ export function CreateIssueDialog({
               </p>
               <div className="flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2">
                 <span className="flex-1 truncate text-left text-sm text-muted-foreground">
-                  tachlis.org/issues/{editIssue?.id ?? fakeId}
+                  tachlis.org/issues/{editIssue?.id ?? createdId}
                 </span>
                 <button type="button" onClick={copyLink} aria-label="Copy link">
                   <Icon icon={copied ? IconCheck : IconLink} size={16} />
@@ -421,7 +524,7 @@ export function CreateIssueDialog({
                 {BIG_SHARE_TARGETS.map((target) => (
                   <a
                     key={target.label}
-                    href={`${target.urlPrefix}${encodeURIComponent(`${publishedUrl}/issues/${editIssue?.id ?? fakeId}`)}`}
+                    href={`${target.urlPrefix}${encodeURIComponent(`${publishedUrl}/issues/${editIssue?.id ?? createdId}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex flex-col items-center gap-1.5 rounded-xl border border-border px-2 py-4 text-xs font-medium text-foreground transition-colors hover:border-primary hover:bg-accent"
@@ -458,9 +561,10 @@ export function CreateIssueDialog({
                 {settingsFields}
               </div>
             </div>
+            {error && <p className="px-1 text-sm text-destructive">{error}</p>}
             <div className="flex items-center justify-end border-t border-border pt-3">
-              <Button size="sm" onClick={publish}>
-                Save changes
+              <Button size="sm" onClick={publish} disabled={submitting}>
+                {submitting ? "Saving..." : "Save changes"}
               </Button>
             </div>
           </>
@@ -592,11 +696,12 @@ export function CreateIssueDialog({
                   Next
                 </Button>
               ) : (
-                <Button size="sm" onClick={publish}>
-                  Publish
+                <Button size="sm" onClick={publish} disabled={submitting}>
+                  {submitting ? "Publishing..." : "Publish"}
                 </Button>
               )}
             </div>
+            {error && <p className="px-1 pt-2 text-sm text-destructive">{error}</p>}
           </>
         )}
       </DialogContent>

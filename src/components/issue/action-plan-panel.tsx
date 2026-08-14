@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   IconCheck,
   IconChevronDown,
@@ -15,7 +16,7 @@ import {
 } from "@tabler/icons-react";
 
 import type { ActionPlan, ActionTask, ActionTaskStatus } from "@/lib/mock-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, type badgeVariants } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -42,33 +43,41 @@ const TASK_STATUS_CONFIG: Record<ActionTaskStatus, { label: string; variant: Bad
 
 const STATUS_KEYS = Object.keys(TASK_STATUS_CONFIG) as ActionTaskStatus[];
 
-export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
-  const { isAdmin } = useAdminMode();
-  const [tasks, setTasks] = useState<ActionTask[]>(plan.tasks);
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+export function ActionPlanPanel({
+  actionPlanId,
+  plan,
+  canEdit,
+}: {
+  actionPlanId: string;
+  plan: ActionPlan;
+  canEdit: boolean;
+}) {
+  const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
-  const visibleTasks = isAdmin ? tasks : tasks.filter((t) => !hiddenIds.has(t.id));
+  const tasks = plan.tasks;
+  const visibleTasks = canEdit ? tasks : tasks.filter((t) => !t.hidden);
   const doneCount = tasks.filter((t) => t.status === "done").length;
   const progressPct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
 
-  function move(id: string, dir: -1 | 1) {
-    // TODO(supabase): onReorderActionTasks({ taskId: id, direction: dir })
-    setTasks((prev) => {
-      const idx = prev.findIndex((t) => t.id === id);
-      const nextIdx = idx + dir;
-      if (idx === -1 || nextIdx < 0 || nextIdx >= prev.length) return prev;
-      const copy = [...prev];
-      [copy[idx], copy[nextIdx]] = [copy[nextIdx], copy[idx]];
-      return copy;
-    });
+  async function move(id: string, dir: -1 | 1) {
+    const idx = tasks.findIndex((t) => t.id === id);
+    const otherIdx = idx + dir;
+    if (idx === -1 || otherIdx < 0 || otherIdx >= tasks.length) return;
+    const supabase = createClient();
+    await Promise.all([
+      supabase.from("action_tasks").update({ sort_order: otherIdx }).eq("id", tasks[idx].id),
+      supabase.from("action_tasks").update({ sort_order: idx }).eq("id", tasks[otherIdx].id),
+    ]);
+    router.refresh();
   }
 
-  function changeStatus(id: string, status: ActionTaskStatus) {
-    // TODO(supabase): onUpdateActionTaskStatus({ taskId: id, status })
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+  async function changeStatus(id: string, status: ActionTaskStatus) {
+    const supabase = createClient();
+    await supabase.from("action_tasks").update({ status }).eq("id", id);
+    router.refresh();
   }
 
   function startEdit(task: ActionTask) {
@@ -76,46 +85,48 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
     setEditText(task.title);
   }
 
-  function saveEdit() {
-    // TODO(supabase): onUpdateActionTaskTitle({ taskId: editingId, title: editText })
-    setTasks((prev) =>
-      prev.map((t) => (t.id === editingId ? { ...t, title: editText.trim() || t.title } : t)),
-    );
+  async function saveEdit() {
+    if (!editingId) return;
+    const supabase = createClient();
+    await supabase.from("action_tasks").update({ title: editText.trim() }).eq("id", editingId);
     setEditingId(null);
+    router.refresh();
   }
 
-  function toggleHide(id: string) {
-    // TODO(supabase): onToggleActionTaskVisibility({ taskId: id })
-    setHiddenIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  async function toggleHide(id: string, hidden: boolean) {
+    const supabase = createClient();
+    await supabase.from("action_tasks").update({ hidden: !hidden }).eq("id", id);
+    router.refresh();
+  }
+
+  async function duplicate(task: ActionTask) {
+    const supabase = createClient();
+    await supabase.from("action_tasks").insert({
+      action_plan_id: actionPlanId,
+      title: task.title,
+      status: task.status,
+      sort_order: tasks.length,
     });
+    router.refresh();
   }
 
-  function duplicate(id: string) {
-    // TODO(supabase): onDuplicateActionTask({ taskId: id })
-    setTasks((prev) => {
-      const idx = prev.findIndex((t) => t.id === id);
-      const task = prev[idx];
-      if (!task) return prev;
-      const copy = [...prev];
-      copy.splice(idx + 1, 0, { ...task, id: `${task.id}-copy-${Date.now()}` });
-      return copy;
-    });
+  async function remove(id: string) {
+    const supabase = createClient();
+    await supabase.from("action_tasks").delete().eq("id", id);
+    router.refresh();
   }
 
-  function remove(id: string) {
-    // TODO(supabase): onDeleteActionTask({ taskId: id })
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-  }
-
-  function addTask() {
+  async function addTask() {
     if (!newTaskTitle.trim()) return;
-    // TODO(supabase): onAddActionTask({ title: newTaskTitle })
-    setTasks((prev) => [...prev, { id: `task-${Date.now()}`, title: newTaskTitle.trim(), status: "not-started" }]);
+    const supabase = createClient();
+    await supabase.from("action_tasks").insert({
+      action_plan_id: actionPlanId,
+      title: newTaskTitle.trim(),
+      status: "not-started",
+      sort_order: tasks.length,
+    });
     setNewTaskTitle("");
+    router.refresh();
   }
 
   return (
@@ -133,14 +144,13 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
         <ul className="flex flex-col gap-1.5">
           {visibleTasks.map((task) => {
             const config = TASK_STATUS_CONFIG[task.status];
-            const hidden = hiddenIds.has(task.id);
             const isEditing = editingId === task.id;
             return (
               <li
                 key={task.id}
                 className={
                   "group flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-1.5" +
-                  (hidden && isAdmin ? " opacity-50" : "")
+                  (task.hidden && canEdit ? " opacity-50" : "")
                 }
               >
                 {isEditing ? (
@@ -166,7 +176,7 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
                 )}
 
                 <div className="flex shrink-0 items-center gap-1.5">
-                  {isAdmin ? (
+                  {canEdit ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button type="button">
@@ -187,7 +197,7 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
                     <Badge variant={config.variant}>{config.label}</Badge>
                   )}
 
-                  {isAdmin && (
+                  {canEdit && (
                     <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
                         type="button"
@@ -220,11 +230,11 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
                             <Icon icon={IconPencil} size={16} />
                             Edit name
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => toggleHide(task.id)}>
-                            <Icon icon={hidden ? IconEye : IconEyeOff} size={16} />
-                            {hidden ? "Unhide" : "Hide"}
+                          <DropdownMenuItem onClick={() => toggleHide(task.id, Boolean(task.hidden))}>
+                            <Icon icon={task.hidden ? IconEye : IconEyeOff} size={16} />
+                            {task.hidden ? "Unhide" : "Hide"}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => duplicate(task.id)}>
+                          <DropdownMenuItem onClick={() => duplicate(task)}>
                             <Icon icon={IconCopy} size={16} />
                             Duplicate
                           </DropdownMenuItem>
@@ -242,7 +252,7 @@ export function ActionPlanPanel({ plan }: { plan: ActionPlan }) {
           })}
         </ul>
 
-        {isAdmin && (
+        {canEdit && (
           <div className="flex items-center gap-2">
             <Input
               placeholder="Add a task..."

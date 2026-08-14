@@ -1,53 +1,51 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { IconArrowLeft, IconLock } from "@tabler/icons-react";
 
-import { useAdminMode } from "@/lib/admin-mode";
 import { useAuth } from "@/lib/auth";
-import { usePrivateAccess } from "@/lib/private-access";
+import { createClient } from "@/lib/supabase/client";
 import { AuthGate } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 
-export function PrivateIssueGate({
-  issueId,
-  issueTitle,
-  isPrivate,
-  children,
-}: {
-  issueId: string;
-  issueTitle: string;
-  isPrivate: boolean;
-  children: ReactNode;
-}) {
-  const { isAdmin } = useAdminMode();
-  const { user } = useAuth();
-  const { hasAccess } = usePrivateAccess();
-
-  const granted = !isPrivate || isAdmin || hasAccess(issueId, user?.email);
-  if (granted) return <>{children}</>;
-
-  return <PrivateIssueGateScreen issueId={issueId} issueTitle={issueTitle} />;
-}
-
-function PrivateIssueGateScreen({ issueId, issueTitle }: { issueId: string; issueTitle: string }) {
-  const { isSignedIn, user, profile } = useAuth();
-  const { hasPendingRequest, requestAccess } = usePrivateAccess();
+export function PrivateIssueGate({ issueId, issueTitle }: { issueId: string; issueTitle: string }) {
+  const { isSignedIn, user } = useAuth();
   const [email, setEmail] = useState(user?.email ?? "");
   const [submitted, setSubmitted] = useState(false);
+  const [alreadyPending, setAlreadyPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.email) setEmail(user.email);
   }, [user?.email]);
 
-  const alreadyPending = hasPendingRequest(issueId, user?.email);
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    supabase
+      .from("private_access_requests")
+      .select("id")
+      .eq("issue_id", issueId)
+      .eq("user_id", user.id)
+      .eq("status", "pending")
+      .maybeSingle()
+      .then(({ data }) => setAlreadyPending(Boolean(data)));
+  }, [user, issueId]);
 
-  function submitRequest() {
-    if (!user || !email.trim()) return;
-    requestAccess(issueId, profile?.name ?? user.email ?? "", email.trim());
+  async function submitRequest() {
+    if (!user) return;
+    setError(null);
+    const supabase = createClient();
+    const { error: insertError } = await supabase
+      .from("private_access_requests")
+      .insert({ issue_id: issueId, user_id: user.id });
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
     setSubmitted(true);
   }
 
@@ -80,10 +78,11 @@ function PrivateIssueGateScreen({ issueId, issueTitle }: { issueId: string; issu
           <Input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            disabled
             placeholder="Your email"
           />
-          <Button type="button" onClick={submitRequest} disabled={!email.trim()}>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="button" onClick={submitRequest}>
             Request access
           </Button>
         </div>

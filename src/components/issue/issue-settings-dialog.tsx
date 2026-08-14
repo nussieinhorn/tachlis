@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { IconCheck, IconPlus } from "@tabler/icons-react";
 
 import type { Issue } from "@/lib/mock-data";
-import { COMMUNITIES, getCommunity, getCommunitiesOwnedBy, type Community } from "@/lib/communities-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import type { Community } from "@/lib/communities-data";
 import { useAuth } from "@/lib/auth";
-import { useCreatedCommunities } from "@/lib/created-communities";
+import { createClient } from "@/lib/supabase/client";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { SettingRow } from "@/components/issue/setting-row";
 import { Button } from "@/components/ui/button";
@@ -29,11 +29,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger: ReactNode }) {
-  const { isAdmin } = useAdminMode();
   const { user } = useAuth();
-  const { createdCommunities } = useCreatedCommunities();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ownedCommunities, setOwnedCommunities] = useState<Community[]>([]);
 
   const [communityId, setCommunityId] = useState<string | undefined>(issue.communityId);
   const [visibility, setVisibility] = useState<"public" | "private">(issue.visibility);
@@ -47,17 +49,37 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
   const [votingCloseDate, setVotingCloseDate] = useState(issue.votingCloseDate ?? "");
   const [hiddenDate, setHiddenDate] = useState(issue.hiddenDate ?? "");
 
-  const selectableCommunities: Community[] = isAdmin
-    ? [...COMMUNITIES, ...createdCommunities]
-    : [...getCommunitiesOwnedBy(user?.email ?? ""), ...createdCommunities.filter((c) => c.ownerId === user?.email)];
-  const selectedCommunity = communityId
-    ? (getCommunity(communityId) ?? selectableCommunities.find((c) => c.id === communityId))
-    : undefined;
+  useEffect(() => {
+    if (!open || !user) return;
+    const supabase = createClient();
+    supabase
+      .from("communities")
+      .select("*")
+      .eq("owner_id", user.id)
+      .then(({ data }) => {
+        setOwnedCommunities(
+          (data ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            description: c.description ?? "",
+            location: c.location ?? "",
+            privacy: c.privacy as Community["privacy"],
+            memberCount: 0,
+            tone: c.tone as Community["tone"],
+            ownerId: c.owner_id ?? undefined,
+          })),
+        );
+      });
+  }, [open, user]);
+
+  const selectableCommunities = ownedCommunities;
+  const selectedCommunity = communityId ? selectableCommunities.find((c) => c.id === communityId) : undefined;
 
   function reset(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen) {
       setSaved(false);
+      setError(null);
       setCommunityId(issue.communityId);
       setVisibility(issue.visibility);
       setShowOnHomepage(issue.showOnHomepage);
@@ -69,11 +91,36 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
       setGoLiveDate(issue.goLiveDate ?? "");
       setVotingCloseDate(issue.votingCloseDate ?? "");
       setHiddenDate(issue.hiddenDate ?? "");
+      router.refresh();
     }
   }
 
-  function save() {
-    // TODO(supabase): onUpdateIssueSettings({ id: issue.id, communityId, visibility, ... })
+  async function save() {
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("issues")
+      .update({
+        community_id: communityId ?? null,
+        visibility,
+        show_on_homepage: showOnHomepage,
+        show_in_search: showInSearch,
+        support_requires_login: supportRequiresLogin,
+        vote_requires_login: voteRequiresLogin,
+        allow_suggest_solutions: allowSuggestSolutions,
+        comments_enabled: commentsEnabled,
+        go_live_date: goLiveDate || null,
+        voting_close_date: votingCloseDate || null,
+        hidden_date: hiddenDate || null,
+      })
+      .eq("id", issue.id);
+    setSubmitting(false);
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
     setSaved(true);
   }
 
@@ -234,9 +281,10 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
               </div>
             </div>
 
+            {error && <p className="px-1 text-sm text-destructive">{error}</p>}
             <div className="flex items-center justify-end border-t border-border pt-3">
-              <Button size="sm" onClick={save}>
-                Save settings
+              <Button size="sm" onClick={save} disabled={submitting}>
+                {submitting ? "Saving..." : "Save settings"}
               </Button>
             </div>
           </>

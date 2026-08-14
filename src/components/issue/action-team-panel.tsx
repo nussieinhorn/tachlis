@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { IconEye, IconEyeOff, IconMail, IconTrash, IconUserCheck, IconUserX } from "@tabler/icons-react";
 
 import type { ActionPlan } from "@/lib/mock-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +21,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Icon } from "@/components/ui/icon";
 
-type PendingRequest = { name: string; email: string; phone: string };
-
-// Demo-only pending requests so admins have something to approve without a second session.
-const SEED_PENDING: PendingRequest[] = [
-  { name: "Shloimy Katz", email: "shloimy.katz@example.com", phone: "555-0110" },
-  { name: "Malky Rosen", email: "malky.rosen@example.com", phone: "555-0187" },
-];
+type PendingRequest = { id: string; name: string; email: string; phone: string | null; taskIds: string[] };
 
 function initials(name: string) {
   return name
@@ -37,28 +32,47 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
-  const { isAdmin } = useAdminMode();
+export function ActionTeamPanel({
+  issueId,
+  actionPlan,
+  canEdit,
+}: {
+  issueId: string;
+  actionPlan?: ActionPlan;
+  canEdit: boolean;
+}) {
+  const router = useRouter();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [manageTab, setManageTab] = useState<"pending" | "active">("pending");
   const [submitted, setSubmitted] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
 
-  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(
-    actionPlan ? SEED_PENDING : [],
-  );
-  const [approvedNames, setApprovedNames] = useState<string[]>([]);
-  const [removedNames, setRemovedNames] = useState<Set<string>>(new Set());
-  const [hiddenNames, setHiddenNames] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!canEdit) return;
+    const supabase = createClient();
+    supabase
+      .from("action_team_requests")
+      .select("id, name, email, phone, task_ids")
+      .eq("issue_id", issueId)
+      .eq("status", "pending")
+      .then(({ data }) => {
+        setPendingRequests(
+          (data ?? []).map((r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, taskIds: r.task_ids ?? [] })),
+        );
+      });
+  }, [canEdit, issueId]);
 
-  const baseMembers = actionPlan ? [actionPlan.lead, ...actionPlan.volunteers] : [];
-  const allActiveMembers = [...baseMembers, ...approvedNames];
-  const members = allActiveMembers.filter((name) => !removedNames.has(name));
-  const openTasks = actionPlan?.tasks.filter((t) => t.status !== "done") ?? [];
+  const lead = actionPlan?.lead;
+  const teamMembers = actionPlan?.teamMembers ?? [];
+  const visibleMembers = teamMembers.filter((m) => canEdit || !m.hidden);
+  const openTasks = actionPlan?.tasks.filter((t) => t.status !== "done" && !t.hidden) ?? [];
 
   function toggleTask(taskId: string) {
     setSelectedTasks((prev) =>
@@ -66,8 +80,17 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
     );
   }
 
-  function onSubmitJoin() {
-    // TODO(supabase): onJoinActionTeam({ issueId, taskIds: selectedTasks, email, phone })
+  async function onSubmitJoin() {
+    const supabase = createClient();
+    const { error } = await supabase.from("action_team_requests").insert({
+      issue_id: issueId,
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim() || null,
+      message: message.trim() || null,
+      task_ids: selectedTasks,
+    });
+    if (error) return;
     setSubmitted(true);
   }
 
@@ -76,35 +99,39 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
     if (!open) {
       setSubmitted(false);
       setSelectedTasks([]);
+      setName("");
       setEmail("");
       setPhone("");
+      setMessage("");
     }
   }
 
-  function approve(request: PendingRequest) {
-    // TODO(supabase): onApproveActionTeamRequest({ email: request.email })
-    setApprovedNames((prev) => [...prev, request.name]);
-    setPendingRequests((prev) => prev.filter((r) => r.email !== request.email));
+  async function approve(request: PendingRequest) {
+    const supabase = createClient();
+    await supabase
+      .from("action_team_members")
+      .insert({ issue_id: issueId, name: request.name, email: request.email, phone: request.phone, role: "volunteer", status: "active" });
+    await supabase.from("action_team_requests").update({ status: "approved" }).eq("id", request.id);
+    setPendingRequests((prev) => prev.filter((r) => r.id !== request.id));
+    router.refresh();
   }
 
-  function reject(request: PendingRequest) {
-    // TODO(supabase): onRejectActionTeamRequest({ email: request.email })
-    setPendingRequests((prev) => prev.filter((r) => r.email !== request.email));
+  async function reject(request: PendingRequest) {
+    const supabase = createClient();
+    await supabase.from("action_team_requests").update({ status: "rejected" }).eq("id", request.id);
+    setPendingRequests((prev) => prev.filter((r) => r.id !== request.id));
   }
 
-  function removeMember(name: string) {
-    // TODO(supabase): onRemoveActionTeamMember({ name })
-    setRemovedNames((prev) => new Set(prev).add(name));
+  async function removeMember(memberId: string) {
+    const supabase = createClient();
+    await supabase.from("action_team_members").update({ status: "removed" }).eq("id", memberId);
+    router.refresh();
   }
 
-  function toggleHideMember(name: string) {
-    // TODO(supabase): onToggleActionTeamMemberVisibility({ name })
-    setHiddenNames((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+  async function toggleHideMember(memberId: string, hidden: boolean) {
+    const supabase = createClient();
+    await supabase.from("action_team_members").update({ status: hidden ? "active" : "hidden" }).eq("id", memberId);
+    router.refresh();
   }
 
   return (
@@ -118,7 +145,7 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
         >
           Join!
         </button>
-        {isAdmin && pendingRequests.length > 0 && (
+        {canEdit && pendingRequests.length > 0 && (
           <button
             type="button"
             onClick={() => {
@@ -139,23 +166,28 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
         </a>
       </div>
 
-      {members.length === 0 ? (
+      {visibleMembers.length === 0 && !lead ? (
         <p className="text-sm text-muted-foreground">No one has joined the action team yet.</p>
       ) : (
         <div className="flex items-center gap-2">
           <div className="flex -space-x-2">
-            {members.slice(0, 5).map((name) => (
-              <Avatar key={name} className="border-2 border-background">
-                <AvatarFallback>{initials(name)}</AvatarFallback>
+            {lead && (
+              <Avatar className="border-2 border-background">
+                <AvatarFallback>{initials(lead)}</AvatarFallback>
+              </Avatar>
+            )}
+            {visibleMembers.slice(0, lead ? 4 : 5).map((m) => (
+              <Avatar key={m.id} className="border-2 border-background">
+                <AvatarFallback>{initials(m.name)}</AvatarFallback>
               </Avatar>
             ))}
           </div>
           <button
             type="button"
-            onClick={() => (isAdmin ? setManageOpen(true) : setDetailsOpen(true))}
+            onClick={() => (canEdit ? setManageOpen(true) : setDetailsOpen(true))}
             className="text-sm font-medium text-primary hover:underline"
           >
-            {isAdmin ? "Manage" : "Details"}
+            {canEdit ? "Manage" : "Details"}
           </button>
         </div>
       )}
@@ -166,16 +198,25 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
             <DialogTitle>Action team</DialogTitle>
           </DialogHeader>
           <ul className="flex flex-col gap-3">
-            {members.map((name, i) => (
-              <li key={name} className="flex items-center gap-3">
+            {lead && (
+              <li className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarFallback>{initials(name)}</AvatarFallback>
+                  <AvatarFallback>{initials(lead)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col leading-tight">
-                  <span className="text-sm font-medium text-foreground">{name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {i === 0 ? "Project lead" : "Volunteer"}
-                  </span>
+                  <span className="text-sm font-medium text-foreground">{lead}</span>
+                  <span className="text-xs text-muted-foreground">Project lead</span>
+                </div>
+              </li>
+            )}
+            {visibleMembers.map((m) => (
+              <li key={m.id} className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarFallback>{initials(m.name)}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col leading-tight">
+                  <span className="text-sm font-medium text-foreground">{m.name}</span>
+                  <span className="text-xs text-muted-foreground">Volunteer</span>
                 </div>
               </li>
             ))}
@@ -192,7 +233,7 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
           <Tabs value={manageTab} onValueChange={(v) => setManageTab(v as "pending" | "active")}>
             <TabsList className="w-full">
               <TabsTrigger value="pending">Pending ({pendingRequests.length})</TabsTrigger>
-              <TabsTrigger value="active">Active ({members.length})</TabsTrigger>
+              <TabsTrigger value="active">Active ({visibleMembers.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="pending" className="flex flex-col gap-2 pt-3">
               {pendingRequests.length === 0 ? (
@@ -200,7 +241,7 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
               ) : (
                 pendingRequests.map((request) => (
                   <div
-                    key={request.email}
+                    key={request.id}
                     className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
                   >
                     <div className="flex flex-col overflow-hidden">
@@ -226,35 +267,33 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
               )}
             </TabsContent>
             <TabsContent value="active" className="flex flex-col gap-2 pt-3">
-              {members.length === 0 ? (
+              {visibleMembers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No active members yet.</p>
               ) : (
-                members.map((name, i) => (
+                visibleMembers.map((m) => (
                   <div
-                    key={name}
+                    key={m.id}
                     className={
                       "flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2" +
-                      (hiddenNames.has(name) ? " opacity-50" : "")
+                      (m.hidden ? " opacity-50" : "")
                     }
                   >
                     <div className="flex flex-col overflow-hidden">
-                      <span className="truncate text-sm font-medium text-foreground">{name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {i === 0 ? "Project lead" : "Volunteer"}
-                      </span>
+                      <span className="truncate text-sm font-medium text-foreground">{m.name}</span>
+                      <span className="text-xs text-muted-foreground">Volunteer</span>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => toggleHideMember(name)}
+                        onClick={() => toggleHideMember(m.id, m.hidden)}
                         className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        aria-label={hiddenNames.has(name) ? "Unhide" : "Hide"}
+                        aria-label={m.hidden ? "Unhide" : "Hide"}
                       >
-                        <Icon icon={hiddenNames.has(name) ? IconEye : IconEyeOff} size={16} />
+                        <Icon icon={m.hidden ? IconEye : IconEyeOff} size={16} />
                       </button>
                       <button
                         type="button"
-                        onClick={() => removeMember(name)}
+                        onClick={() => removeMember(m.id)}
                         className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                         aria-label="Remove"
                       >
@@ -276,8 +315,7 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
               <DialogHeader>
                 <DialogTitle>Thanks for offering to help!</DialogTitle>
                 <DialogDescription>
-                  This is a static prototype, so nothing was actually sent — but this is the
-                  confirmation you'd see once it's live.
+                  An admin will follow up once they review your request.
                 </DialogDescription>
               </DialogHeader>
               <Button onClick={() => resetJoin(false)}>Close</Button>
@@ -314,6 +352,7 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
               )}
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
                 <Input
                   placeholder="Email"
                   type="email"
@@ -327,10 +366,14 @@ export function ActionTeamPanel({ actionPlan }: { actionPlan?: ActionPlan }) {
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
-              <Textarea placeholder="Anything else you'd like the organizers to know? (optional)" />
+              <Textarea
+                placeholder="Anything else you'd like the organizers to know? (optional)"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
 
               <DialogFooter>
-                <Button onClick={onSubmitJoin} disabled={!email.trim()}>
+                <Button onClick={onSubmitJoin} disabled={!name.trim() || !email.trim()}>
                   Submit
                 </Button>
               </DialogFooter>

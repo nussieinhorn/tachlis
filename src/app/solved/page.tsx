@@ -1,9 +1,10 @@
 import { SiteHeader } from "@/components/site-header";
 import { IssueCard } from "@/components/issue-card";
-import { ISSUES } from "@/lib/mock-data";
+import { getIssues } from "@/lib/supabase/queries";
 
-export default function SolvedArchive() {
-  const resolvedIssues = ISSUES.filter((issue) => issue.status === "resolved");
+export default async function SolvedArchive() {
+  const issues = await getIssues();
+  const resolvedIssues = issues.filter((issue) => issue.status === "resolved");
 
   return (
     <>

@@ -1,37 +1,45 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { IconSearch } from "@tabler/icons-react";
 
-import { ISSUES } from "@/lib/mock-data";
-import { COMMUNITIES } from "@/lib/communities-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 
+type IssueResult = { id: string; title: string };
+type CommunityResult = { id: string; name: string };
+
 export function SearchCombobox() {
-  const { isAdmin } = useAdminMode();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [issueResults, setIssueResults] = useState<IssueResult[]>([]);
+  const [communityResults, setCommunityResults] = useState<CommunityResult[]>([]);
+  const supabase = useMemo(() => createClient(), []);
 
-  const issueResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return ISSUES.filter(
-      (issue) =>
-        issue.title.toLowerCase().includes(q) ||
-        issue.description.toLowerCase().includes(q),
-    ).slice(0, 4);
-  }, [query]);
-
-  const communityResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return COMMUNITIES.filter(
-      (c) => (c.privacy === "public" || isAdmin) && c.name.toLowerCase().includes(q),
-    ).slice(0, 3);
-  }, [query, isAdmin]);
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setIssueResults([]);
+      setCommunityResults([]);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      const [{ data: issues }, { data: communities }] = await Promise.all([
+        supabase
+          .from("issues")
+          .select("id, title")
+          .eq("show_in_search", true)
+          .ilike("title", `%${q}%`)
+          .limit(4),
+        supabase.from("communities").select("id, name").ilike("name", `%${q}%`).limit(3),
+      ]);
+      setIssueResults(issues ?? []);
+      setCommunityResults(communities ?? []);
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, [query, supabase]);
 
   const hasResults = issueResults.length > 0 || communityResults.length > 0;
 

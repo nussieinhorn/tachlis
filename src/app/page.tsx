@@ -2,10 +2,11 @@ import { SiteHeader } from "@/components/site-header";
 import { IssueBrowser } from "@/components/issue-browser";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
 import { Button } from "@/components/ui/button";
-import { ISSUES } from "@/lib/mock-data";
+import { getIssues } from "@/lib/supabase/queries";
 
-export default function Home() {
-  const activeIssues = ISSUES.filter((issue) => issue.status !== "resolved");
+export default async function Home() {
+  const issues = await getIssues();
+  const activeIssues = issues.filter((issue) => issue.status !== "resolved" && issue.showOnHomepage);
 
   return (
     <>

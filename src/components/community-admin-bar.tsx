@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { IconDots, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 
 import type { Community } from "@/lib/communities-data";
-import { useAdminMode } from "@/lib/admin-mode";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
+import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,11 +16,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function CommunityAdminBar({ community }: { community: Community }) {
-  const { isAdmin } = useAdminMode();
+export function CommunityAdminBar({ community, canEdit }: { community: Community; canEdit: boolean }) {
   const router = useRouter();
 
-  if (!isAdmin) return null;
+  if (!canEdit) return null;
+
+  async function deleteCommunity() {
+    const supabase = createClient();
+    const { error } = await supabase.from("communities").delete().eq("id", community.id);
+    if (!error) router.push("/communities");
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -49,7 +54,7 @@ export function CommunityAdminBar({ community }: { community: Community }) {
               </DropdownMenuItem>
             }
           />
-          <DropdownMenuItem variant="destructive" onClick={() => router.push("/communities")}>
+          <DropdownMenuItem variant="destructive" onClick={deleteCommunity}>
             <Icon icon={IconTrash} size={16} />
             Delete
           </DropdownMenuItem>

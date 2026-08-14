@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { IconSpeakerphone } from "@tabler/icons-react";
 
 import type { Update } from "@/lib/mock-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import { useAuth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Icon } from "@/components/ui/icon";
@@ -12,26 +14,41 @@ import { AlertsSignup } from "@/components/issue/alerts-signup";
 
 const PAGE_SIZE = 10;
 
-export function AdminUpdates({ initialUpdates }: { initialUpdates: Update[] }) {
-  const { isAdmin } = useAdminMode();
+export function AdminUpdates({
+  issueId,
+  initialUpdates,
+  canEdit,
+}: {
+  issueId: string;
+  initialUpdates: Update[];
+  canEdit: boolean;
+}) {
+  const { user } = useAuth();
+  const router = useRouter();
   const [updates, setUpdates] = useState(initialUpdates);
   const [draft, setDraft] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [submitting, setSubmitting] = useState(false);
 
-  function post() {
-    if (!draft.trim()) return;
-    // TODO(supabase): onPostUpdate({ issueId, body: draft })
-    setUpdates((prev) => [{ date: "Just now", body: draft.trim() }, ...prev]);
+  async function post() {
+    if (!draft.trim() || !user || submitting) return;
+    setSubmitting(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("issue_updates").insert({ issue_id: issueId, author_id: user.id, body: draft.trim() });
+    setSubmitting(false);
+    if (error) return;
+    setUpdates((prev) => [{ date: "Today", body: draft.trim() }, ...prev]);
     setDraft("");
+    router.refresh();
   }
 
   const visible = updates.slice(0, visibleCount);
 
   return (
     <div className="flex flex-col gap-4">
-      <AlertsSignup />
+      <AlertsSignup issueId={issueId} />
 
-      {isAdmin && (
+      {canEdit && (
         <div className="flex flex-col gap-2 rounded-lg border border-dashed border-primary/40 bg-accent/40 p-3">
           <Textarea
             placeholder="Post an update as the admin..."
@@ -39,8 +56,8 @@ export function AdminUpdates({ initialUpdates }: { initialUpdates: Update[] }) {
             onChange={(e) => setDraft(e.target.value)}
             className="min-h-16 bg-background"
           />
-          <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim()}>
-            Post update
+          <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim() || submitting}>
+            {submitting ? "Posting..." : "Post update"}
           </Button>
         </div>
       )}

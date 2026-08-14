@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   IconUsersGroup,
   IconMapPin,
@@ -13,12 +14,12 @@ import {
   IconLock,
 } from "@tabler/icons-react";
 
-import { COMMUNITY_TONE_CLASSES, getCommunityIssueCount, type Community } from "@/lib/communities-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import { COMMUNITY_TONE_CLASSES, type Community } from "@/lib/communities-data";
 import { pluralize } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
+import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,25 +27,38 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function CommunityCard({ community }: { community: Community }) {
-  const { isAdmin } = useAdminMode();
+export function CommunityCard({
+  community,
+  issueCount,
+  canEdit,
+}: {
+  community: Community;
+  issueCount: number;
+  canEdit: boolean;
+}) {
   const [deleted, setDeleted] = useState(false);
-  const issueCount = getCommunityIssueCount(community.id);
+  const router = useRouter();
+
+  async function deleteCommunity() {
+    const supabase = createClient();
+    const { error } = await supabase.from("communities").delete().eq("id", community.id);
+    if (!error) {
+      setDeleted(true);
+      router.refresh();
+    }
+  }
 
   if (deleted) {
     return (
       <div className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
         <span>&quot;{community.name}&quot; was deleted.</span>
-        <button type="button" className="font-medium text-primary hover:underline" onClick={() => setDeleted(false)}>
-          Undo
-        </button>
       </div>
     );
   }
 
   return (
     <div className="relative flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
-      {isAdmin && (
+      {canEdit && (
         <div className="absolute top-3 right-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -66,7 +80,7 @@ export function CommunityCard({ community }: { community: Community }) {
                   </DropdownMenuItem>
                 }
               />
-              <DropdownMenuItem variant="destructive" onClick={() => setDeleted(true)}>
+              <DropdownMenuItem variant="destructive" onClick={deleteCommunity}>
                 <Icon icon={IconTrash} size={16} />
                 Delete
               </DropdownMenuItem>

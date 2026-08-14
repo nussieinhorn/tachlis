@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { IconCheck, IconPlus, IconSparkles, IconX } from "@tabler/icons-react";
 
-import type { Solution, SolutionStatus } from "@/lib/mock-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import type { SolutionStatus } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
+import { AuthGate } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,19 +37,20 @@ const STATUS_OPTIONS: { value: SolutionStatus; label: string }[] = [
   { value: "proposed", label: "Proposed" },
   { value: "considering", label: "Considering" },
   { value: "trending", label: "Trending" },
-  { value: "chosen", label: "Chosen" },
   { value: "rejected", label: "Rejected" },
 ];
 
 export function SuggestSolution({
+  issueId,
   size = "default",
-  onAdminAdd,
+  canEdit,
 }: {
+  issueId: string;
   size?: "default" | "lg";
-  /** Only called in admin mode — the new solution is added live, not submitted for review. */
-  onAdminAdd?: (solution: Solution) => void;
+  canEdit: boolean;
 }) {
-  const { isAdmin } = useAdminMode();
+  const { isSignedIn, user } = useAuth();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [title, setTitle] = useState("");
@@ -55,11 +59,9 @@ export function SuggestSolution({
   const [cons, setCons] = useState<ProConItem[]>([]);
   const [newPro, setNewPro] = useState("");
   const [newCon, setNewCon] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [joinTeam, setJoinTeam] = useState(false);
   const [status, setStatus] = useState<SolutionStatus>("proposed");
+  const [submitting, setSubmitting] = useState(false);
 
   const hasProsCons = pros.length > 0 || cons.length > 0;
 
@@ -103,40 +105,56 @@ export function SuggestSolution({
       setCons([]);
       setNewPro("");
       setNewCon("");
-      setName("");
-      setEmail("");
       setPhone("");
-      setJoinTeam(false);
       setStatus("proposed");
+      router.refresh();
     }
   }
 
-  function submit() {
-    // TODO(supabase): onSuggestSolution({ issueId, title, description, pros, cons, name, email, phone, joinTeam })
-    // goes to an admin review queue before appearing publicly.
+  async function submit() {
+    if (!user || submitting) return;
+    setSubmitting(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("solutions").insert({
+      issue_id: issueId,
+      title: title.trim(),
+      description: description.trim(),
+      pros: pros.map((p) => p.text),
+      cons: cons.map((c) => c.text),
+      status: "proposed",
+      review_status: "pending",
+      submitted_by: user.id,
+      submitter_phone: phone.trim() || null,
+    });
+    setSubmitting(false);
+    if (error) return;
     setSubmitted(true);
   }
 
-  function submitAdmin() {
-    // TODO(supabase): onAddSolution({ issueId, title, description, pros, cons, status })
-    onAdminAdd?.({
-      id: `local-solution-${Date.now()}`,
-      title,
-      description,
+  async function submitAdmin() {
+    if (!user || submitting) return;
+    setSubmitting(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("solutions").insert({
+      issue_id: issueId,
+      title: title.trim(),
+      description: description.trim(),
       pros: pros.map((p) => p.text),
       cons: cons.map((c) => c.text),
-      votes: 0,
       status,
-      comments: [],
+      review_status: "approved",
+      submitted_by: user.id,
     });
+    setSubmitting(false);
+    if (error) return;
     reset(false);
   }
 
-  const triggerLabel = size === "lg" ? "Suggest solution" : "Suggest solution";
+  const triggerLabel = "Suggest solution";
 
   return (
     <>
-      {isAdmin ? (
+      {canEdit ? (
         <Button
           variant="outline"
           size={size === "lg" ? "lg" : "icon"}
@@ -159,13 +177,23 @@ export function SuggestSolution({
 
       <Dialog open={open} onOpenChange={reset}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
-          {submitted ? (
+          {!isSignedIn && !canEdit ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="sr-only">Sign in</DialogTitle>
+              </DialogHeader>
+              <AuthGate
+                title="Sign in to suggest a solution"
+                description="You'll need an account so admins know who submitted it."
+              />
+            </>
+          ) : submitted ? (
             <>
               <DialogHeader>
                 <DialogTitle>Your solution was submitted</DialogTitle>
                 <DialogDescription>
-                  Admins will review it — if approved, it'll be posted on the main screen as a
-                  proposed solution. (This is a static prototype, so nothing was actually saved.)
+                  Admins will review it — if approved, it&apos;ll be posted on the main screen as a
+                  proposed solution.
                 </DialogDescription>
               </DialogHeader>
               <Button onClick={() => reset(false)}>Close</Button>
@@ -173,9 +201,9 @@ export function SuggestSolution({
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>{isAdmin ? "Add a solution" : "Suggest a solution"}</DialogTitle>
+                <DialogTitle>{canEdit ? "Add a solution" : "Suggest a solution"}</DialogTitle>
                 <DialogDescription>
-                  {isAdmin
+                  {canEdit
                     ? "You're adding this directly — it'll appear in the list right away."
                     : "Propose an approach — admins review submissions before they go live."}
                 </DialogDescription>
@@ -202,7 +230,7 @@ export function SuggestSolution({
                   />
                 </div>
 
-                {isAdmin && (
+                {canEdit && (
                   <div className="flex flex-col gap-1.5">
                     <Label>Status</Label>
                     <div className="flex flex-wrap gap-2">
@@ -221,6 +249,9 @@ export function SuggestSolution({
                         </button>
                       ))}
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      To mark a solution Chosen, use the status dropdown on its card after adding it.
+                    </p>
                   </div>
                 )}
 
@@ -301,50 +332,29 @@ export function SuggestSolution({
                   </div>
                 </div>
 
-                {!isAdmin && (
-                  <>
-                    <div className="grid grid-cols-1 gap-2 border-t border-border pt-3 sm:grid-cols-3">
-                      <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
-                      <Input
-                        placeholder="Email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                      <Input
-                        placeholder="Phone (optional)"
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
+                {!canEdit && (
+                  <div className="border-t border-border pt-3">
+                    <Input
+                      placeholder="Phone (optional)"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                    <p className="mt-1.5 text-xs text-muted-foreground">
                       Only visible to admins — never shown publicly.
                     </p>
-                    <label className="flex items-center gap-2 text-sm text-foreground">
-                      <input
-                        type="checkbox"
-                        checked={joinTeam}
-                        onChange={(e) => setJoinTeam(e.target.checked)}
-                        className="size-4 rounded border-border"
-                      />
-                      I'd like to join the action team if this is chosen
-                    </label>
-                  </>
+                  </div>
                 )}
               </div>
 
               <DialogFooter>
-                {isAdmin ? (
-                  <Button onClick={submitAdmin} disabled={!title.trim() || !description.trim()}>
-                    Add solution
+                {canEdit ? (
+                  <Button onClick={submitAdmin} disabled={!title.trim() || !description.trim() || submitting}>
+                    {submitting ? "Adding..." : "Add solution"}
                   </Button>
                 ) : (
-                  <Button
-                    onClick={submit}
-                    disabled={!title.trim() || !description.trim() || !name.trim() || !email.trim()}
-                  >
-                    Submit for review
+                  <Button onClick={submit} disabled={!title.trim() || !description.trim() || submitting}>
+                    {submitting ? "Submitting..." : "Submit for review"}
                   </Button>
                 )}
               </DialogFooter>

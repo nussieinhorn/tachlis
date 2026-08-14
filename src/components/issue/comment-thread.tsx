@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import type { Comment } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -76,43 +80,84 @@ function CommentRow({
 }
 
 export function CommentThread({
+  issueId,
+  solutionId,
   initialComments,
   postPlaceholder = "Add to the discussion...",
   emptyText = "No discussion yet — be the first to say something.",
 }: {
+  issueId?: string;
+  solutionId?: string;
   initialComments: Comment[];
   postPlaceholder?: string;
   emptyText?: string;
 }) {
+  const { isSignedIn, profile } = useAuth();
+  const router = useRouter();
   const [comments, setComments] = useState(initialComments);
   const [draft, setDraft] = useState("");
+  const [guestName, setGuestName] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [error, setError] = useState<string | null>(null);
 
-  function post() {
-    if (!draft.trim()) return;
-    // TODO(supabase): onPostComment({ body: draft })
+  const authorName = isSignedIn ? (profile?.name ?? "") : guestName.trim();
+
+  async function post() {
+    if (!draft.trim() || !authorName) return;
+    setError(null);
+    const supabase = createClient();
+    const { data, error: insertError } = await supabase
+      .from("comments")
+      .insert({
+        issue_id: issueId ?? null,
+        solution_id: solutionId ?? null,
+        author_name: authorName,
+        body: draft.trim(),
+      })
+      .select()
+      .single();
+    if (insertError || !data) {
+      setError(insertError?.message ?? "Couldn't post that comment.");
+      return;
+    }
     setComments((prev) => [
-      { id: `local-${Date.now()}`, author: "You", body: draft.trim(), createdAt: "just now" },
+      { id: data.id, author: data.author_name, body: data.body, createdAt: "Today" },
       ...prev,
     ]);
     setDraft("");
+    router.refresh();
   }
 
-  function reply(parentId: string, body: string) {
-    // TODO(supabase): onReplyToComment({ commentId: parentId, body })
+  async function reply(parentId: string, body: string) {
+    if (!authorName) return;
+    setError(null);
+    const supabase = createClient();
+    const { data, error: insertError } = await supabase
+      .from("comments")
+      .insert({
+        issue_id: issueId ?? null,
+        solution_id: solutionId ?? null,
+        parent_comment_id: parentId,
+        author_name: authorName,
+        body,
+      })
+      .select()
+      .single();
+    if (insertError || !data) {
+      setError(insertError?.message ?? "Couldn't post that reply.");
+      return;
+    }
     setComments((prev) =>
       prev.map((c) =>
         c.id === parentId
           ? {
               ...c,
-              replies: [
-                ...(c.replies ?? []),
-                { id: `local-reply-${Date.now()}`, author: "You", body, createdAt: "just now" },
-              ],
+              replies: [...(c.replies ?? []), { id: data.id, author: data.author_name, body: data.body, createdAt: "Today" }],
             }
           : c,
       ),
     );
+    router.refresh();
   }
 
   const visible = comments.slice(0, visibleCount);
@@ -120,8 +165,12 @@ export function CommentThread({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
+        {!isSignedIn && (
+          <Input placeholder="Your name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+        )}
         <Textarea placeholder={postPlaceholder} value={draft} onChange={(e) => setDraft(e.target.value)} />
-        <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim()}>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim() || !authorName}>
           Post
         </Button>
       </div>

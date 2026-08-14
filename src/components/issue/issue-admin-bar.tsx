@@ -5,7 +5,7 @@ import { useState } from "react";
 import { IconAdjustments, IconCopy, IconDots, IconEye, IconEyeOff, IconPencil, IconTrash } from "@tabler/icons-react";
 
 import type { Issue } from "@/lib/mock-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
@@ -17,12 +17,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function IssueAdminBar({ issue }: { issue: Issue }) {
-  const { isAdmin } = useAdminMode();
+export function IssueAdminBar({ issue, canEdit }: { issue: Issue; canEdit: boolean }) {
   const router = useRouter();
   const [hidden, setHidden] = useState(false);
 
-  if (!isAdmin) return null;
+  if (!canEdit) return null;
+
+  async function deleteIssue() {
+    const supabase = createClient();
+    const { error } = await supabase.from("issues").delete().eq("id", issue.id);
+    if (!error) router.push("/");
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -70,7 +75,7 @@ export function IssueAdminBar({ issue }: { issue: Issue }) {
               <Icon icon={hidden ? IconEye : IconEyeOff} size={16} />
               {hidden ? "Unhide" : "Hide"}
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onClick={() => router.push("/")}>
+            <DropdownMenuItem variant="destructive" onClick={deleteIssue}>
               <Icon icon={IconTrash} size={16} />
               Delete
             </DropdownMenuItem>

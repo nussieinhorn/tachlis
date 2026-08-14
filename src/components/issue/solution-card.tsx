@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { IconArrowUp, IconCheck, IconX, IconMessageCircle, IconDots, IconEyeOff, IconEye, IconTrash, IconPencil } from "@tabler/icons-react";
 
 import type { Solution, SolutionStatus } from "@/lib/mock-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import { useAuth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge, type badgeVariants } from "@/components/ui/badge";
@@ -25,6 +27,7 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { CommentThread } from "@/components/issue/comment-thread";
 import { SolutionEditDialog } from "@/components/issue/solution-edit-dialog";
+import { ChosenSolutionDialog } from "@/components/issue/chosen-solution-dialog";
 import type { VariantProps } from "class-variance-authority";
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
@@ -39,43 +42,71 @@ export const SOLUTION_STATUS_CONFIG: Record<SolutionStatus, { label: string; var
 
 export function SolutionCard({
   solution,
+  issueId,
   index,
   headline = false,
-  onUpdate,
-  onHide,
-  onDelete,
+  canEdit,
+  isFirstChosen,
 }: {
   solution: Solution;
+  issueId: string;
   index?: number;
   headline?: boolean;
-  onUpdate: (patch: Partial<Solution>) => void;
-  onHide: () => void;
-  onDelete: () => void;
+  canEdit: boolean;
+  /** Whether marking this issue's solution "Chosen" would be the first time ever on this issue. */
+  isFirstChosen: boolean;
 }) {
-  const { isAdmin } = useAdminMode();
+  const { user } = useAuth();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [chosenDialogOpen, setChosenDialogOpen] = useState(false);
   const [votes, setVotes] = useState(solution.votes);
   const [voted, setVoted] = useState(false);
 
   const statusConfig = SOLUTION_STATUS_CONFIG[solution.status];
   const hidden = Boolean(solution.hidden);
 
-  function changeStatus(next: SolutionStatus, e?: React.MouseEvent) {
+  async function changeStatus(next: SolutionStatus, e?: React.MouseEvent) {
     e?.stopPropagation();
-    onUpdate({ status: next });
+    if (next === "chosen" && isFirstChosen) {
+      setChosenDialogOpen(true);
+      return;
+    }
+    const supabase = createClient();
+    await supabase
+      .from("solutions")
+      .update({ status: next, is_chosen: next === "chosen" })
+      .eq("id", solution.id);
+    router.refresh();
   }
 
-  if (hidden && !isAdmin) return null;
+  if (hidden && !canEdit) return null;
 
-  function castVote(e?: React.MouseEvent) {
+  async function castVote(e?: React.MouseEvent) {
     e?.stopPropagation();
-    // TODO(supabase): onVoteSolution({ solutionId: solution.id })
     if (voted) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("solution_votes").insert({ solution_id: solution.id, user_id: user?.id ?? null });
+    if (error) return;
     setVoted(true);
     setVotes((v) => v + 1);
   }
 
-  const adminMenu = isAdmin && (
+  async function toggleHide(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    const supabase = createClient();
+    await supabase.from("solutions").update({ hidden: !hidden }).eq("id", solution.id);
+    router.refresh();
+  }
+
+  async function deleteSolution(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    const supabase = createClient();
+    await supabase.from("solutions").update({ deleted: true }).eq("id", solution.id);
+    router.refresh();
+  }
+
+  const adminMenu = canEdit && (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
@@ -90,7 +121,6 @@ export function SolutionCard({
       <DropdownMenuContent align="end">
         <SolutionEditDialog
           solution={solution}
-          onSave={onUpdate}
           trigger={
             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
               <Icon icon={IconPencil} size={16} />
@@ -98,22 +128,11 @@ export function SolutionCard({
             </DropdownMenuItem>
           }
         />
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            onHide();
-          }}
-        >
+        <DropdownMenuItem onClick={toggleHide}>
           <Icon icon={hidden ? IconEye : IconEyeOff} size={16} />
           {hidden ? "Unhide" : "Hide"}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          variant="destructive"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
+        <DropdownMenuItem variant="destructive" onClick={deleteSolution}>
           <Icon icon={IconTrash} size={16} />
           Delete
         </DropdownMenuItem>
@@ -127,7 +146,7 @@ export function SolutionCard({
         className={cn(
           "cursor-pointer transition-shadow hover:shadow-sm",
           headline && "border-primary shadow-sm",
-          hidden && isAdmin && "opacity-50",
+          hidden && canEdit && "opacity-50",
         )}
         onClick={() => setOpen(true)}
       >
@@ -142,7 +161,7 @@ export function SolutionCard({
               <CardTitle className={headline ? "text-2xl" : "text-xl"}>{solution.title}</CardTitle>
             </div>
             <div className="flex shrink-0 items-start gap-1">
-              {isAdmin ? (
+              {canEdit ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button type="button" onClick={(e) => e.stopPropagation()}>
@@ -210,7 +229,7 @@ export function SolutionCard({
           </SheetHeader>
 
           <div className="flex flex-col gap-6 px-6">
-            {isAdmin && solution.submitter && (
+            {canEdit && solution.submitter && (
               <div className="flex flex-col gap-1 rounded-lg border border-dashed border-border bg-muted/40 p-3">
                 <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                   Submitted by (admin only)
@@ -271,6 +290,7 @@ export function SolutionCard({
                 Discussion ({solution.comments.length})
               </h4>
               <CommentThread
+                solutionId={solution.id}
                 initialComments={solution.comments}
                 postPlaceholder="Add a comment on this solution..."
                 emptyText="No comments yet."
@@ -279,6 +299,13 @@ export function SolutionCard({
           </div>
         </SheetContent>
       </Sheet>
+
+      <ChosenSolutionDialog
+        open={chosenDialogOpen}
+        onOpenChange={setChosenDialogOpen}
+        issueId={issueId}
+        solutionId={solution.id}
+      />
     </>
   );
 }

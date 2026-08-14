@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { IconChevronRight, IconLock, IconUsersGroup } from "@tabler/icons-react";
 
-import { COMMUNITY_TONE_CLASSES, getCommunityIssueCount, type Community } from "@/lib/communities-data";
+import { COMMUNITY_TONE_CLASSES, type Community } from "@/lib/communities-data";
 import { pluralize } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
 
-export function MyCommunityRow({ community }: { community: Community }) {
-  const issueCount = getCommunityIssueCount(community.id);
-
+export function MyCommunityRow({ community, issueCount }: { community: Community; issueCount: number }) {
   return (
     <Link
       href={`/communities/${community.id}`}

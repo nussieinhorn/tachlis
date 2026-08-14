@@ -10,16 +10,16 @@ import { Icon } from "@/components/ui/icon";
 
 export function OtherProposals({
   solutions,
+  issueId,
+  canEdit,
+  isFirstChosen,
   label = "archived proposals",
-  onUpdate,
-  onHide,
-  onDelete,
 }: {
   solutions: Solution[];
+  issueId: string;
+  canEdit: boolean;
+  isFirstChosen: boolean;
   label?: string;
-  onUpdate: (id: string, patch: Partial<Solution>) => void;
-  onHide: (id: string) => void;
-  onDelete: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -37,9 +37,9 @@ export function OtherProposals({
             <SolutionCard
               key={solution.id}
               solution={solution}
-              onUpdate={(patch) => onUpdate(solution.id, patch)}
-              onHide={() => onHide(solution.id)}
-              onDelete={() => onDelete(solution.id)}
+              issueId={issueId}
+              canEdit={canEdit}
+              isFirstChosen={isFirstChosen}
             />
           ))}
         </div>

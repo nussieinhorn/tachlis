@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function IssueSidebar({
+  issueId,
+  canEdit,
   supporterCount,
   shareCount,
   visitCount,
@@ -16,6 +18,8 @@ export function IssueSidebar({
   discussion,
   links,
 }: {
+  issueId: string;
+  canEdit: boolean;
   supporterCount: number;
   shareCount: number;
   visitCount: number;
@@ -30,6 +34,7 @@ export function IssueSidebar({
       <Card>
         <CardContent className="pt-6 pb-6">
           <JoinPanel
+            issueId={issueId}
             initialSupporterCount={supporterCount}
             shareCount={shareCount}
             visitCount={visitCount}
@@ -47,16 +52,16 @@ export function IssueSidebar({
               <TabsTrigger value="comments">Comments</TabsTrigger>
             </TabsList>
             <TabsContent value="updates" className="pt-4">
-              <AdminUpdates initialUpdates={updates} />
+              <AdminUpdates issueId={issueId} initialUpdates={updates} canEdit={canEdit} />
             </TabsContent>
             <TabsContent value="comments" className="pt-4">
-              <CommentThread initialComments={discussion} />
+              <CommentThread issueId={issueId} initialComments={discussion} />
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
 
-      <IssueLinksSection initialLinks={links} />
+      <IssueLinksSection issueId={issueId} initialLinks={links} canEdit={canEdit} />
     </aside>
   );
 }

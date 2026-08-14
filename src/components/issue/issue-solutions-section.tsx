@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { IconListDetails } from "@tabler/icons-react";
 
-import type { Issue, Solution } from "@/lib/mock-data";
-import { useAdminMode } from "@/lib/admin-mode";
+import type { Issue } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { SolutionCard } from "@/components/issue/solution-card";
@@ -12,30 +10,15 @@ import { OtherProposals } from "@/components/issue/other-proposals";
 import { SuggestSolution } from "@/components/issue/suggest-solution";
 import { ManageSolutionsDialog } from "@/components/issue/manage-solutions-dialog";
 
-export function IssueSolutionsSection({ issue }: { issue: Issue }) {
-  const { isAdmin } = useAdminMode();
-  const [solutions, setSolutions] = useState<Solution[]>(issue.solutions);
-  const [showArchivedToUsers, setShowArchivedToUsers] = useState(
-    issue.showHiddenSolutionsAfterChosen ?? true,
-  );
-
-  function addSolution(solution: Solution) {
-    setSolutions((prev) => [solution, ...prev]);
-  }
-
-  function updateSolution(id: string, patch: Partial<Solution>) {
-    setSolutions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  }
+export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdit: boolean }) {
+  const solutions = issue.solutions;
+  const isFirstChosen = !issue.firstChosenPromptedAt;
 
   const manageDialog = (
     <ManageSolutionsDialog
+      issueId={issue.id}
       solutions={solutions}
-      showArchivedToUsers={showArchivedToUsers}
-      onToggleShowArchived={setShowArchivedToUsers}
-      onHide={(id) => updateSolution(id, { hidden: true })}
-      onUnhide={(id) => updateSolution(id, { hidden: false })}
-      onDelete={(id) => updateSolution(id, { deleted: true })}
-      onRestore={(id) => updateSolution(id, { deleted: false })}
+      showArchivedToUsers={issue.showHiddenSolutionsAfterChosen ?? true}
       trigger={
         <Button variant="outline" size="sm">
           <Icon icon={IconListDetails} size={16} />
@@ -52,7 +35,7 @@ export function IssueSolutionsSection({ issue }: { issue: Issue }) {
   if (isDecided) {
     const chosen = visible.filter((s) => chosenIds.includes(s.id));
     const other = visible.filter((s) => !chosenIds.includes(s.id));
-    const showOther = isAdmin || showArchivedToUsers;
+    const showOther = canEdit || (issue.showHiddenSolutionsAfterChosen ?? true);
 
     return (
       <section className="flex flex-col gap-4">
@@ -60,27 +43,20 @@ export function IssueSolutionsSection({ issue }: { issue: Issue }) {
           <h2 className="font-heading text-lg font-semibold text-foreground">
             Solution{chosen.length > 1 ? "s" : ""} chosen
           </h2>
-          {isAdmin && manageDialog}
+          {canEdit && manageDialog}
         </div>
         {chosen.map((solution) => (
           <SolutionCard
             key={solution.id}
             solution={solution}
+            issueId={issue.id}
             headline
-            onUpdate={(patch) => updateSolution(solution.id, patch)}
-            onHide={() => updateSolution(solution.id, { hidden: !solution.hidden })}
-            onDelete={() => updateSolution(solution.id, { deleted: true })}
+            canEdit={canEdit}
+            isFirstChosen={isFirstChosen}
           />
         ))}
         {showOther && (
-          <OtherProposals
-            solutions={other}
-            onUpdate={updateSolution}
-            onHide={(id) =>
-              updateSolution(id, { hidden: !solutions.find((s) => s.id === id)?.hidden })
-            }
-            onDelete={(id) => updateSolution(id, { deleted: true })}
-          />
+          <OtherProposals solutions={other} issueId={issue.id} canEdit={canEdit} isFirstChosen={isFirstChosen} />
         )}
       </section>
     );
@@ -93,8 +69,8 @@ export function IssueSolutionsSection({ issue }: { issue: Issue }) {
           Solutions {visible.length > 0 && `(${visible.length})`}
         </h2>
         <div className="flex items-center gap-2">
-          {isAdmin && manageDialog}
-          <SuggestSolution onAdminAdd={addSolution} />
+          {canEdit && manageDialog}
+          <SuggestSolution issueId={issue.id} canEdit={canEdit} />
         </div>
       </div>
 
@@ -108,10 +84,10 @@ export function IssueSolutionsSection({ issue }: { issue: Issue }) {
             <SolutionCard
               key={solution.id}
               solution={solution}
+              issueId={issue.id}
               index={i}
-              onUpdate={(patch) => updateSolution(solution.id, patch)}
-              onHide={() => updateSolution(solution.id, { hidden: !solution.hidden })}
-              onDelete={() => updateSolution(solution.id, { deleted: true })}
+              canEdit={canEdit}
+              isFirstChosen={isFirstChosen}
             />
           ))}
         </div>
@@ -119,16 +95,14 @@ export function IssueSolutionsSection({ issue }: { issue: Issue }) {
       {visible.length > 5 && (
         <OtherProposals
           solutions={visible.slice(5)}
+          issueId={issue.id}
+          canEdit={canEdit}
+          isFirstChosen={isFirstChosen}
           label="more solutions"
-          onUpdate={updateSolution}
-          onHide={(id) =>
-            updateSolution(id, { hidden: !solutions.find((s) => s.id === id)?.hidden })
-          }
-          onDelete={(id) => updateSolution(id, { deleted: true })}
         />
       )}
 
-      <SuggestSolution size="lg" onAdminAdd={addSolution} />
+      <SuggestSolution issueId={issue.id} size="lg" canEdit={canEdit} />
     </section>
   );
 }

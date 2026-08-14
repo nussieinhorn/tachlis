@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
 import type { Solution, SolutionStatus } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,16 +28,16 @@ const STATUS_OPTIONS: { value: SolutionStatus; label: string }[] = [
 export function SolutionEditDialog({
   solution,
   trigger,
-  onSave,
 }: {
   solution: Solution;
   trigger: ReactNode;
-  onSave: (patch: Partial<Solution>) => void;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(solution.title);
   const [description, setDescription] = useState(solution.description);
   const [status, setStatus] = useState<SolutionStatus>(solution.status);
+  const [submitting, setSubmitting] = useState(false);
 
   function reset(nextOpen: boolean) {
     setOpen(nextOpen);
@@ -46,10 +48,22 @@ export function SolutionEditDialog({
     }
   }
 
-  function save() {
-    // TODO(supabase): onUpdateSolution({ solutionId: solution.id, title, description, status })
-    onSave({ title: title.trim(), description: description.trim(), status });
+  async function save() {
+    if (submitting) return;
+    setSubmitting(true);
+    const supabase = createClient();
+    await supabase
+      .from("solutions")
+      .update({
+        title: title.trim(),
+        description: description.trim(),
+        status,
+        is_chosen: status === "chosen",
+      })
+      .eq("id", solution.id);
+    setSubmitting(false);
     setOpen(false);
+    router.refresh();
   }
 
   return (
@@ -94,8 +108,8 @@ export function SolutionEditDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={save} disabled={!title.trim() || !description.trim()}>
-            Save changes
+          <Button onClick={save} disabled={!title.trim() || !description.trim() || submitting}>
+            {submitting ? "Saving..." : "Save changes"}
           </Button>
         </DialogFooter>
       </DialogContent>

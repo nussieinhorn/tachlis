@@ -1,13 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { IconPlus, IconUserCircle, IconShieldCog, IconUser, IconCircleCheck, IconList, IconUsersGroup } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import { IconPlus, IconUserCircle, IconLogout, IconCircleCheck, IconList, IconUsersGroup } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchCombobox } from "@/components/search-combobox";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
+import { InboxDropdown } from "@/components/inbox-dropdown";
+import { AuthGate } from "@/components/auth-gate";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,10 +21,41 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAdminMode } from "@/lib/admin-mode";
+import { useAuth } from "@/lib/auth";
+
+function SignInDialog() {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <span onClick={() => setOpen(true)}>
+        <Button variant="outline" size="sm">
+          Sign in
+        </Button>
+      </span>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="sr-only">Sign in</DialogTitle>
+        </DialogHeader>
+        <AuthGate
+          onSignedIn={() => {
+            setOpen(false);
+            router.refresh();
+          }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function SiteHeader() {
-  const { isAdmin, setIsAdmin } = useAdminMode();
+  const { isSignedIn, profile, signOut } = useAuth();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await signOut();
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
@@ -34,11 +70,6 @@ export function SiteHeader() {
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            {isAdmin && (
-              <span className="hidden rounded-full bg-status-action/15 px-2.5 py-1 text-xs font-medium text-status-action sm:inline">
-                Admin mode
-              </span>
-            )}
             <CreateIssueDialog
               trigger={
                 <Button size="sm">
@@ -48,50 +79,51 @@ export function SiteHeader() {
               }
             />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="ml-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-                  <Avatar>
-                    <AvatarFallback>
-                      <Icon icon={IconUserCircle} size={22} />
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel>Prototype account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/my-issues">
-                    <Icon icon={IconList} size={16} />
-                    My issues
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/my-communities">
-                    <Icon icon={IconUsersGroup} size={16} />
-                    My Communities
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/solved">
-                    <Icon icon={IconCircleCheck} size={16} />
-                    Solved
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsAdmin(false)}>
-                  <Icon icon={IconUser} size={16} />
-                  View as user
-                  {!isAdmin && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsAdmin(true)}>
-                  <Icon icon={IconShieldCog} size={16} />
-                  Log in as admin
-                  {isAdmin && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!isSignedIn ? (
+              <SignInDialog />
+            ) : (
+              <>
+              <InboxDropdown />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="ml-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                    <Avatar>
+                      <AvatarFallback>
+                        <Icon icon={IconUserCircle} size={22} />
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel className="truncate">{profile?.name || profile?.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/my-issues">
+                      <Icon icon={IconList} size={16} />
+                      My issues
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/my-communities">
+                      <Icon icon={IconUsersGroup} size={16} />
+                      My Communities
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/solved">
+                      <Icon icon={IconCircleCheck} size={16} />
+                      Solved
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <Icon icon={IconLogout} size={16} />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              </>
+            )}
           </div>
         </div>
       </div>

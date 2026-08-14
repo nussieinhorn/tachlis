@@ -12,9 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export function AuthGate({
   title = "Sign in to continue",
   description = "You'll need an account to continue.",
+  onSignedIn,
 }: {
   title?: string;
   description?: string;
+  onSignedIn?: () => void;
 }) {
   const { signIn, signUp } = useAuth();
   const [tab, setTab] = useState<"signin" | "signup">("signin");
@@ -38,7 +40,11 @@ export function AuthGate({
       setError(result.error);
       return;
     }
-    if (tab === "signup") setConfirmSent(true);
+    if (tab === "signup") {
+      setConfirmSent(true);
+    } else {
+      onSignedIn?.();
+    }
   }
 
   if (confirmSent) {

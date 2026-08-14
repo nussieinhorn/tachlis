@@ -1,15 +1,18 @@
 import Link from "next/link";
 
 import { SiteHeader } from "@/components/site-header";
-import { ISSUES } from "@/lib/mock-data";
+import { AuthGate } from "@/components/auth-gate";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { createClient } from "@/lib/supabase/server";
+import { getIssuesOwnedBy } from "@/lib/supabase/queries";
 
-// Demo-only: a few mock issues labeled as "yours" since nothing is actually
-// owned/persisted yet in this prototype.
-const MY_ISSUE_IDS = ["3654", "3659", "3667"];
+export default async function MyIssuesPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export default function MyIssuesPage() {
-  const myIssues = ISSUES.filter((i) => MY_ISSUE_IDS.includes(i.id));
+  const myIssues = user ? await getIssuesOwnedBy(user.id) : [];
 
   return (
     <>
@@ -22,7 +25,14 @@ export default function MyIssuesPage() {
           </p>
         </header>
 
-        {myIssues.length === 0 ? (
+        {!user ? (
+          <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-4 py-10">
+            <AuthGate
+              title="Sign in to see your issues"
+              description="You'll need an account to create and manage issues."
+            />
+          </div>
+        ) : myIssues.length === 0 ? (
           <p className="text-muted-foreground">You haven&apos;t created any issues yet.</p>
         ) : (
           <ul className="flex flex-col gap-2">

@@ -2,30 +2,30 @@
 
 import { useMemo, useState } from "react";
 
-import { COMMUNITIES } from "@/lib/communities-data";
-import { useAdminMode } from "@/lib/admin-mode";
-import { useCreatedCommunities } from "@/lib/created-communities";
+import type { Community } from "@/lib/communities-data";
 import { CommunityCard } from "@/components/community-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const PAGE_SIZE = 12;
 
-export function CommunitiesBrowser() {
-  const { isAdmin } = useAdminMode();
-  const { createdCommunities } = useCreatedCommunities();
+export function CommunitiesBrowser({
+  communities,
+  issueCounts,
+  editableIds,
+}: {
+  communities: Community[];
+  issueCounts: Record<string, number>;
+  editableIds: string[];
+}) {
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-
-  const visibleCommunities = useMemo(() => {
-    const all = [...COMMUNITIES, ...createdCommunities];
-    return isAdmin ? all : all.filter((c) => c.privacy === "public");
-  }, [isAdmin, createdCommunities]);
+  const editableIdSet = useMemo(() => new Set(editableIds), [editableIds]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return visibleCommunities.filter((c) => !q || c.name.toLowerCase().includes(q));
-  }, [query, visibleCommunities]);
+    return communities.filter((c) => !q || c.name.toLowerCase().includes(q));
+  }, [query, communities]);
 
   const visible = filtered.slice(0, visibleCount);
 
@@ -49,7 +49,12 @@ export function CommunitiesBrowser() {
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((community) => (
-              <CommunityCard key={community.id} community={community} />
+              <CommunityCard
+                key={community.id}
+                community={community}
+                issueCount={issueCounts[community.id] ?? 0}
+                canEdit={editableIdSet.has(community.id)}
+              />
             ))}
           </div>
           {visibleCount < filtered.length && (

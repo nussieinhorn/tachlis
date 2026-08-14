@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { IconUserPlus, IconTrash } from "@tabler/icons-react";
 
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
@@ -15,24 +17,45 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-type InvitedPerson = { name: string; email: string };
+type InvitedPerson = { name: string; email: string; found: boolean };
 
-export function CommunityInvitePanel({ communityName }: { communityName: string }) {
+export function CommunityInvitePanel({ communityId, communityName }: { communityId: string; communityName: string }) {
+  const router = useRouter();
   const [invited, setInvited] = useState<InvitedPerson[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  function addPerson() {
+  async function addPerson() {
     if (!name.trim() || !email.trim()) return;
-    // TODO(supabase): onInvitePerson({ communityId, name, email })
-    setInvited((prev) => [...prev, { name: name.trim(), email: email.trim() }]);
+    setError(null);
+    const supabase = createClient();
+    const { data: profile } = await supabase.from("profiles").select("id").eq("email", email.trim()).maybeSingle();
+    if (!profile) {
+      setError(`No Tachlis account found for ${email.trim()} yet — they'll need to sign up first.`);
+      return;
+    }
+    const { error: insertError } = await supabase
+      .from("community_editors")
+      .insert({ community_id: communityId, user_id: profile.id });
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+    setInvited((prev) => [...prev, { name: name.trim(), email: email.trim(), found: true }]);
     setName("");
     setEmail("");
+    router.refresh();
   }
 
-  function removePerson(email: string) {
-    // TODO(supabase): onRemoveInvitedPerson({ communityId, email })
-    setInvited((prev) => prev.filter((p) => p.email !== email));
+  async function removePerson(personEmail: string) {
+    const supabase = createClient();
+    const { data: profile } = await supabase.from("profiles").select("id").eq("email", personEmail).maybeSingle();
+    if (profile) {
+      await supabase.from("community_editors").delete().eq("community_id", communityId).eq("user_id", profile.id);
+    }
+    setInvited((prev) => prev.filter((p) => p.email !== personEmail));
+    router.refresh();
   }
 
   return (
@@ -47,7 +70,7 @@ export function CommunityInvitePanel({ communityName }: { communityName: string 
         <DialogHeader>
           <DialogTitle>Invite people to {communityName}</DialogTitle>
           <DialogDescription>
-            Only invited people can see and join this private community.
+            Grants edit access. They&apos;ll need an existing Tachlis account.
           </DialogDescription>
         </DialogHeader>
 
@@ -70,6 +93,8 @@ export function CommunityInvitePanel({ communityName }: { communityName: string 
               Add
             </Button>
           </div>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           {invited.length > 0 && (
             <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">

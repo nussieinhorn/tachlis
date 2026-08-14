@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
 import { IconMapPin, IconCalendar, IconUserCircle } from "@tabler/icons-react";
 
-import { getIssue, getCategory, ISSUES } from "@/lib/mock-data";
-import { getCommunity } from "@/lib/communities-data";
 import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
@@ -17,10 +15,8 @@ import { IssueSolutionsSection } from "@/components/issue/issue-solutions-sectio
 import { IssueCommunitySection } from "@/components/issue/issue-community-section";
 import { PrivateIssueGate } from "@/components/issue/private-issue-gate";
 import { AccessRequestsWidget } from "@/components/issue/access-requests-widget";
-
-export function generateStaticParams() {
-  return ISSUES.map((issue) => ({ id: issue.id }));
-}
+import { getCategory } from "@/lib/mock-data";
+import { getCommunity, getIssue, getIssueEditAccess, getIssueStub } from "@/lib/supabase/queries";
 
 export default async function IssueDetailPage({
   params,
@@ -28,22 +24,35 @@ export default async function IssueDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const issue = getIssue(id);
-  if (!issue) notFound();
+  const issue = await getIssue(id);
+
+  if (!issue) {
+    const stub = await getIssueStub(id);
+    if (!stub || stub.visibility !== "private") notFound();
+    return (
+      <>
+        <SiteHeader />
+        <PrivateIssueGate issueId={stub.id} issueTitle={stub.title} />
+      </>
+    );
+  }
+
+  const [community, canEdit] = await Promise.all([
+    issue.communityId ? getCommunity(issue.communityId) : Promise.resolve(undefined),
+    getIssueEditAccess(issue.id),
+  ]);
 
   const category = getCategory(issue.categorySlug);
-  const community = issue.communityId ? getCommunity(issue.communityId) : undefined;
 
   return (
     <>
       <SiteHeader />
-      <PrivateIssueGate issueId={issue.id} issueTitle={issue.title} isPrivate={issue.visibility === "private"}>
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumbs id={issue.id} />
           <div className="flex items-center gap-2">
-            {issue.visibility === "private" && <AccessRequestsWidget issueId={issue.id} />}
-            <IssueAdminBar issue={issue} />
+            {issue.visibility === "private" && canEdit && <AccessRequestsWidget issueId={issue.id} />}
+            <IssueAdminBar issue={issue} canEdit={canEdit} />
           </div>
         </div>
 
@@ -69,12 +78,16 @@ export default async function IssueDetailPage({
                 <span className="flex items-center gap-1.5">
                   <Icon icon={IconCalendar} size={16} />
                   Created {issue.createdAt}
-                  <Icon icon={IconUserCircle} size={16} className="ml-1" />
-                  By {issue.createdBy}
+                  {issue.createdBy && (
+                    <>
+                      <Icon icon={IconUserCircle} size={16} className="ml-1" />
+                      By {issue.createdBy}
+                    </>
+                  )}
                 </span>
                 <span className="flex items-center gap-2">
                   Status
-                  <IssueAdminStatus initialStatus={issue.status} />
+                  <IssueAdminStatus issueId={issue.id} initialStatus={issue.status} canEdit={canEdit} />
                 </span>
               </div>
 
@@ -84,16 +97,23 @@ export default async function IssueDetailPage({
               />
             </div>
 
-            <IssueSolutionsSection issue={issue} />
+            <IssueSolutionsSection issue={issue} canEdit={canEdit} />
 
-            {issue.actionPlan && <ActionPlanPanel plan={issue.actionPlan} />}
-
-            <ActionTeamPanel actionPlan={issue.actionPlan} />
+            {issue.firstChosenPromptedAt && (
+              <>
+                {issue.actionPlan && (
+                  <ActionPlanPanel actionPlanId={issue.actionPlan.id} plan={issue.actionPlan} canEdit={canEdit} />
+                )}
+                <ActionTeamPanel issueId={issue.id} actionPlan={issue.actionPlan} canEdit={canEdit} />
+              </>
+            )}
 
             {community && <IssueCommunitySection community={community} />}
           </div>
 
           <IssueSidebar
+            issueId={issue.id}
+            canEdit={canEdit}
             supporterCount={issue.supporterCount}
             shareCount={issue.shareCount}
             visitCount={issue.visitCount}
@@ -105,7 +125,6 @@ export default async function IssueDetailPage({
           />
         </div>
       </main>
-      </PrivateIssueGate>
     </>
   );
 }
