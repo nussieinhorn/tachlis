@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { IconBrandGoogleFilled } from "@tabler/icons-react";
+import { IconMailCheck } from "@tabler/icons-react";
 
-import { useFakeSession } from "@/lib/fake-session";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
@@ -11,28 +11,49 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function AuthGate({
   title = "Sign in to continue",
-  description = "This is a simulated account for the prototype — nothing is sent anywhere.",
+  description = "You'll need an account to continue.",
 }: {
   title?: string;
   description?: string;
 }) {
-  const { signIn } = useFakeSession();
+  const { signIn, signUp } = useAuth();
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmSent, setConfirmSent] = useState(false);
 
   const canSubmit = email.trim() && password.trim() && (tab === "signin" || name.trim());
 
-  function submit() {
-    if (!canSubmit) return;
-    // TODO(supabase): real auth — this just simulates a session client-side
-    signIn(name.trim() || email.split("@")[0], email.trim());
+  async function submit() {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const result =
+      tab === "signin" ? await signIn(email.trim(), password) : await signUp(name.trim(), email.trim(), password);
+    setSubmitting(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    if (tab === "signup") setConfirmSent(true);
   }
 
-  function continueWithGoogle() {
-    // TODO(supabase): real Google OAuth
-    signIn("Google User", "google.user@example.com");
+  if (confirmSent) {
+    return (
+      <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-3 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-status-resolved/15 text-status-resolved">
+          <Icon icon={IconMailCheck} size={22} />
+        </div>
+        <h2 className="font-heading text-lg font-semibold text-foreground">Check your email</h2>
+        <p className="text-sm text-muted-foreground">
+          We sent a confirmation link to <strong className="text-foreground">{email}</strong>. Click it to
+          activate your account, then come back and sign in.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -42,18 +63,13 @@ export function AuthGate({
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
 
-      <Button variant="outline" type="button" onClick={continueWithGoogle} className="gap-2">
-        <Icon icon={IconBrandGoogleFilled} size={16} />
-        Continue with Google
-      </Button>
-
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        <div className="h-px flex-1 bg-border" />
-        or
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "signin" | "signup")}>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => {
+          setTab(v as "signin" | "signup");
+          setError(null);
+        }}
+      >
         <TabsList className="w-full">
           <TabsTrigger value="signin">Sign in</TabsTrigger>
           <TabsTrigger value="signup">Sign up</TabsTrigger>
@@ -72,8 +88,9 @@ export function AuthGate({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button type="button" disabled={!canSubmit} onClick={submit}>
-            Sign in
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="button" disabled={!canSubmit || submitting} onClick={submit}>
+            {submitting ? "Signing in..." : "Sign in"}
           </Button>
         </TabsContent>
 
@@ -91,8 +108,9 @@ export function AuthGate({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button type="button" disabled={!canSubmit} onClick={submit}>
-            Create account
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="button" disabled={!canSubmit || submitting} onClick={submit}>
+            {submitting ? "Creating account..." : "Create account"}
           </Button>
         </TabsContent>
       </Tabs>

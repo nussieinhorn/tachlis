@@ -18,7 +18,8 @@ import {
 import { CATEGORIES, type Issue } from "@/lib/mock-data";
 import { COMMUNITIES, getCommunity, getCommunitiesOwnedBy, type Community } from "@/lib/communities-data";
 import { useAdminMode } from "@/lib/admin-mode";
-import { useFakeSession } from "@/lib/fake-session";
+import { useAuth } from "@/lib/auth";
+import { useCreatedCommunities } from "@/lib/created-communities";
 import { AuthGate } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,7 +72,8 @@ export function CreateIssueDialog({
   lockedCommunityId?: string;
 }) {
   const { isAdmin } = useAdminMode();
-  const { isSignedIn, user, createdCommunities } = useFakeSession();
+  const { isSignedIn, user } = useAuth();
+  const { createdCommunities } = useCreatedCommunities();
   const router = useRouter();
   const isEditing = Boolean(editIssue);
   const source = editIssue ?? duplicateFrom;
@@ -440,7 +442,7 @@ export function CreateIssueDialog({
             <div className="py-4">
               <AuthGate
                 title="Sign in to create an issue"
-                description="You'll need an account to post — this is a simulated sign-in for the prototype."
+                description="You'll need an account to post."
               />
             </div>
           </>

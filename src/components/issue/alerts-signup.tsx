@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconBellRinging } from "@tabler/icons-react";
 
-import { useFakeSession } from "@/lib/fake-session";
+import { useAuth } from "@/lib/auth";
 import { AuthGate } from "@/components/auth-gate";
 import { Icon } from "@/components/ui/icon";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 
 export function AlertsSignup() {
-  const { isSignedIn, user } = useFakeSession();
+  const { isSignedIn, user } = useAuth();
   const [open, setOpen] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const wasSignedIn = useRef(isSignedIn);

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { IconArrowLeft, IconLock } from "@tabler/icons-react";
 
 import { useAdminMode } from "@/lib/admin-mode";
-import { useFakeSession } from "@/lib/fake-session";
+import { useAuth } from "@/lib/auth";
 import { usePrivateAccess } from "@/lib/private-access";
 import { AuthGate } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ export function PrivateIssueGate({
   children: ReactNode;
 }) {
   const { isAdmin } = useAdminMode();
-  const { user } = useFakeSession();
+  const { user } = useAuth();
   const { hasAccess } = usePrivateAccess();
 
   const granted = !isPrivate || isAdmin || hasAccess(issueId, user?.email);
@@ -34,7 +34,7 @@ export function PrivateIssueGate({
 }
 
 function PrivateIssueGateScreen({ issueId, issueTitle }: { issueId: string; issueTitle: string }) {
-  const { isSignedIn, user } = useFakeSession();
+  const { isSignedIn, user, profile } = useAuth();
   const { hasPendingRequest, requestAccess } = usePrivateAccess();
   const [email, setEmail] = useState(user?.email ?? "");
   const [submitted, setSubmitted] = useState(false);
@@ -47,7 +47,7 @@ function PrivateIssueGateScreen({ issueId, issueTitle }: { issueId: string; issu
 
   function submitRequest() {
     if (!user || !email.trim()) return;
-    requestAccess(issueId, user.name, email.trim());
+    requestAccess(issueId, profile?.name ?? user.email ?? "", email.trim());
     setSubmitted(true);
   }
 

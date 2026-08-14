@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { COMMUNITIES } from "@/lib/communities-data";
 import { useAdminMode } from "@/lib/admin-mode";
-import { useFakeSession } from "@/lib/fake-session";
+import { useCreatedCommunities } from "@/lib/created-communities";
 import { CommunityCard } from "@/components/community-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ const PAGE_SIZE = 12;
 
 export function CommunitiesBrowser() {
   const { isAdmin } = useAdminMode();
-  const { createdCommunities } = useFakeSession();
+  const { createdCommunities } = useCreatedCommunities();
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 

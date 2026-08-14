@@ -1,16 +1,18 @@
 "use client";
 
 import { getCommunitiesOwnedBy } from "@/lib/communities-data";
-import { useFakeSession } from "@/lib/fake-session";
+import { useAuth } from "@/lib/auth";
+import { useCreatedCommunities } from "@/lib/created-communities";
 import { MyCommunityRow } from "@/components/my-community-row";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { AuthGate } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
 
 export function MyCommunitiesList() {
-  const { user, createdCommunities } = useFakeSession();
+  const { user, isSignedIn } = useAuth();
+  const { createdCommunities } = useCreatedCommunities();
 
-  if (!user) {
+  if (!isSignedIn || !user) {
     return (
       <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-4 py-10">
         <AuthGate
@@ -22,7 +24,7 @@ export function MyCommunitiesList() {
   }
 
   const owned = [
-    ...getCommunitiesOwnedBy(user.email),
+    ...getCommunitiesOwnedBy(user.email ?? ""),
     ...createdCommunities.filter((c) => c.ownerId === user.email),
   ];
 

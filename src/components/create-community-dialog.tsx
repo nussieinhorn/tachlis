@@ -8,7 +8,8 @@ import {
   type Community,
   type CommunityTone,
 } from "@/lib/communities-data";
-import { useFakeSession } from "@/lib/fake-session";
+import { useAuth } from "@/lib/auth";
+import { useCreatedCommunities } from "@/lib/created-communities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +42,8 @@ export function CreateCommunityDialog({
   onCreated?: (community: Community) => void;
 }) {
   const isEditing = Boolean(editCommunity);
-  const { user, addCommunity } = useFakeSession();
+  const { user } = useAuth();
+  const { addCommunity } = useCreatedCommunities();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);

@@ -1,0 +1,530 @@
+<title>Tachlis — Business Logic Spec</title>
+<style>
+  :root {
+    --bg: #fbf8f3;
+    --surface: #ffffff;
+    --surface-2: #f6f0e7;
+    --text: #241f19;
+    --text-muted: #756b5d;
+    --border: #e6ddcf;
+    --accent: #d9502f;
+    --accent-soft: #f6e4dc;
+    --accent-ink: #a83c22;
+    --tag-new-bg: #eaf2e5;
+    --tag-new-ink: #3d6b2b;
+    --tag-carry-bg: #eef0f6;
+    --tag-carry-ink: #454f7a;
+    --tag-open-bg: #faf0dc;
+    --tag-open-ink: #8a5a12;
+    --shadow: 0 1px 2px rgba(36, 31, 25, 0.04), 0 8px 24px -12px rgba(36, 31, 25, 0.12);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17140f;
+      --surface: #1e1a14;
+      --surface-2: #24201a;
+      --text: #f1eade;
+      --text-muted: #a89c88;
+      --border: #383126;
+      --accent: #ef7b52;
+      --accent-soft: #3a271e;
+      --accent-ink: #f5a487;
+      --tag-new-bg: #223020;
+      --tag-new-ink: #90c47d;
+      --tag-carry-bg: #21273a;
+      --tag-carry-ink: #a9b3de;
+      --tag-open-bg: #362a12;
+      --tag-open-ink: #e0b262;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #17140f;
+    --surface: #1e1a14;
+    --surface-2: #24201a;
+    --text: #f1eade;
+    --text-muted: #a89c88;
+    --border: #383126;
+    --accent: #ef7b52;
+    --accent-soft: #3a271e;
+    --accent-ink: #f5a487;
+    --tag-new-bg: #223020;
+    --tag-new-ink: #90c47d;
+    --tag-carry-bg: #21273a;
+    --tag-carry-ink: #a9b3de;
+    --tag-open-bg: #362a12;
+    --tag-open-ink: #e0b262;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: Iowan Old Style, Palatino Linotype, Palatino, Georgia, ui-serif, serif;
+    text-wrap: balance;
+    color: var(--text);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 56px 24px 120px;
+    display: grid;
+    grid-template-columns: 240px minmax(0, 700px);
+    gap: 64px;
+    justify-content: center;
+  }
+
+  header.masthead {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 700px;
+    margin: 0 auto 8px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    padding: 5px 10px 5px 8px;
+    border-radius: 999px;
+  }
+  .eyebrow .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  h1.title {
+    font-size: 34px;
+    margin: 0;
+  }
+
+  .dek {
+    color: var(--text-muted);
+    font-size: 16.5px;
+    max-width: 62ch;
+    margin: 0;
+  }
+  .dek strong { color: var(--text); font-weight: 600; }
+
+  nav.toc {
+    align-self: start;
+    position: sticky;
+    top: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  nav.toc .toc-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  nav.toc a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+    padding: 6px 0 6px 14px;
+    border-left: 2px solid var(--border);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  nav.toc a:hover {
+    color: var(--text);
+    border-left-color: var(--accent);
+  }
+
+  main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 52px;
+  }
+
+  section { scroll-margin-top: 32px; }
+
+  section .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 6px;
+  }
+
+  h2 {
+    font-size: 24px;
+    margin: 0;
+  }
+
+  section > .section-intro {
+    color: var(--text-muted);
+    font-size: 15px;
+    margin: 6px 0 20px;
+    max-width: 66ch;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .card + .card { margin-top: 14px; }
+
+  .card h3 {
+    font-size: 16.5px;
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tag {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2.5px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .tag.new { background: var(--tag-new-bg); color: var(--tag-new-ink); }
+  .tag.carry { background: var(--tag-carry-bg); color: var(--tag-carry-ink); }
+  .tag.open { background: var(--tag-open-bg); color: var(--tag-open-ink); }
+
+  ul.rules {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  ul.rules li { padding-left: 2px; }
+  ul.rules li::marker { color: var(--accent); }
+  ul.rules ul { margin-top: 8px; }
+
+  p { margin: 0 0 12px; }
+  p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.89em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 1.5px 5px;
+    border-radius: 4px;
+  }
+
+  strong { color: var(--text); }
+
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .flow-step {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .flow-step .num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .flow-step .body { padding-top: 2px; font-size: 14.5px; }
+  .flow-step .body strong { display: block; font-size: 15px; margin-bottom: 2px; }
+
+  .divider-note {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--surface-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 14px;
+  }
+  .divider-note strong { color: var(--text); }
+
+  table.open-items {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+  }
+  table.open-items td {
+    padding: 12px 4px;
+    border-top: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.open-items tr:first-child td { border-top: none; }
+  table.open-items td.q { color: var(--text); padding-right: 18px; width: 40%; }
+  table.open-items td.d { color: var(--text-muted); }
+
+  footer {
+    grid-column: 1 / -1;
+    max-width: 700px;
+    margin: 40px auto 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 880px) {
+    .shell { grid-template-columns: 1fr; }
+    nav.toc {
+      position: static;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    nav.toc a { border-left: none; border-bottom: 2px solid var(--border); padding: 4px 0; }
+  }
+
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="shell">
+  <header class="masthead">
+    <span class="eyebrow"><span class="dot"></span>Draft — checkpoint document</span>
+    <h1 class="title">Tachlis: Business Logic Spec</h1>
+    <p class="dek">
+      The real rules behind the Supabase migration — written down <strong>before</strong> any schema,
+      auth, or RLS work starts, so they can be reviewed and corrected first. Several things that were
+      simple placeholders in the prototype (a global admin toggle, a "submitted for review" message
+      that saved nothing, an action plan that existed only because mock data said so) needed real,
+      decided logic. This is that logic.
+    </p>
+  </header>
+
+  <nav class="toc">
+    <span class="toc-label">On this page</span>
+    <a href="#auth">Auth &amp; accounts</a>
+    <a href="#ownership">Ownership &amp; permissions</a>
+    <a href="#visibility">Issue visibility &amp; security</a>
+    <a href="#solutions">Solution review queue</a>
+    <a href="#action-plan">Action Plan triggers</a>
+    <a href="#requests">Requests inbox</a>
+    <a href="#notifications">Notifications</a>
+    <a href="#principles">Migration principles</a>
+    <a href="#open">Open items</a>
+  </nav>
+
+  <main>
+    <section id="auth">
+      <div class="section-head"><h2>Auth &amp; accounts</h2></div>
+      <div class="card">
+        <ul class="rules">
+          <li>Real Supabase Auth. <strong>Email + password only</strong> for v1 — no magic link, no OAuth.</li>
+          <li><strong>Email confirmation required</strong> before an account can create, edit, or comment.</li>
+          <li><strong>Creating an issue always requires a confirmed account.</strong> No anonymous issue creation, no exceptions.</li>
+          <li>Whether supporting, voting, or commenting need an account is a <em>per-issue owner choice</em> — see Visibility &amp; security below, not a global rule.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="ownership">
+      <div class="section-head"><h2>Ownership &amp; permissions</h2></div>
+      <p class="section-intro">Replaces the prototype's global "admin mode" toggle entirely — that switch, and the site-wide view-as-admin/user it powered, are being removed.</p>
+
+      <div class="card">
+        <h3>Owner + granted editors <span class="tag new">New model</span></h3>
+        <ul class="rules">
+          <li>Every issue and community has an <strong>owner</strong> — the account that created it.</li>
+          <li>Owners can grant other real accounts <strong>persistent, revocable edit access</strong>. This is the real backing for the Team step's "Can update this issue" checkbox — instead of being collected and thrown away, it becomes a row in an <code>issue_editors</code>-style table the owner can see and revoke later.</li>
+          <li><strong>Communities use the identical model</strong> — owner + optional granted editors. One consistent shape for both resource types.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Super admin</h3>
+        <p>The site owner's own email is the super admin — full edit access to every issue and community, site-wide, no per-resource grant needed.</p>
+      </div>
+
+      <div class="card">
+        <h3>View as Admin / View as User <span class="tag new">New</span></h3>
+        <p>A per-issue toggle in the ⋮ menu. Anyone with edit rights on that issue can preview its public-facing view, with a banner marking preview mode. Direct replacement for the old global toggle — but scoped to one issue, and only usable by someone who actually has rights to it.</p>
+      </div>
+    </section>
+
+    <section id="visibility">
+      <div class="section-head"><h2>Issue visibility &amp; security settings</h2></div>
+      <p class="section-intro">Mostly already modeled in the wizard's Settings step. This confirms what carries forward and adds one new toggle.</p>
+
+      <div class="card">
+        <h3>Public / Private <span class="tag carry">Carries forward</span></h3>
+        <ul class="rules">
+          <li>Private issues: visitor must be logged in → submits a request → owner/admin approves before they can view it.</li>
+          <li>Private communities stay <strong>fully hidden</strong> from non-owners/non-admins — absent from directories, search, and issue-page links, not just gated behind a screen.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Support / Vote / Comment login requirements</h3>
+        <ul class="rules">
+          <li><span class="tag carry">Carries forward</span> "Support requires login" and "Vote requires login" — already exist, confirmed as real server-enforced settings.</li>
+          <li><span class="tag new">New</span> "Comments require login" — new toggle alongside the existing "Allow comments" on/off. Same shape as support/vote: one switch turns commenting on at all, the other decides if anonymous visitors can post.</li>
+        </ul>
+      </div>
+
+      <div class="divider-note">
+        <div><strong>Rendering shift:</strong> private data must actually be withheld via Row Level Security, so issue/community pages move from build-time static generation to per-request rendering, checked against whoever's asking.</div>
+      </div>
+    </section>
+
+    <section id="solutions">
+      <div class="section-head"><h2>Solution review queue</h2></div>
+      <p class="section-intro">Today, a non-admin's "suggest a solution" shows a fake confirmation and saves nothing. This becomes real.</p>
+
+      <div class="card">
+        <ul class="rules">
+          <li>Suggestions go into a <strong>real pending queue</strong>, invisible to the public until reviewed.</li>
+          <li>The queue lives <strong>inside the issue's own Solutions section</strong> — not the general Requests inbox, since a suggestion is a different kind of thing from an access/join request. Shows a count of what's new since the admin last checked.</li>
+          <li>Review is a one-step decision:
+            <ul>
+              <li><strong>Accept</strong> → goes live immediately, publicly visible, status <strong>"Considering."</strong> No separate staging area — accepting <em>is</em> publishing.</li>
+              <li><strong>Reject</strong> → discarded.</li>
+            </ul>
+          </li>
+          <li><span class="tag carry">Carries forward</span> AI-assisted pros/cons generation ("Regenerate" once populated) plus manual pros/cons entry, unchanged.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="action-plan">
+      <div class="section-head"><h2>Action Plan / Action Team triggers</h2></div>
+      <p class="section-intro">Today these sections exist only because mock data happens to include an action plan. Real trigger, below.</p>
+
+      <div class="card">
+        <h3>The first-Chosen moment</h3>
+        <div class="flow">
+          <div class="flow-step">
+            <span class="num">1</span>
+            <div class="body"><strong>A solution is marked Chosen for the first time ever on this issue.</strong>A one-time pop-up appears.</div>
+          </div>
+          <div class="flow-step">
+            <span class="num">2</span>
+            <div class="body"><strong>Admin picks the issue's new status.</strong> Required step in the same pop-up.</div>
+          </div>
+          <div class="flow-step">
+            <span class="num">3</span>
+            <div class="body"><strong>Admin optionally starts the Action Plan task list</strong> right there, or skips and adds tasks later via the normal inline editing.</div>
+          </div>
+        </div>
+        <p style="margin-top:14px;">This is a <strong>one-time moment per issue</strong> — it does not re-fire if the chosen solution changes later. Once triggered (or skipped), Action Plan and Action Team become active and public.</p>
+      </div>
+    </section>
+
+    <section id="requests">
+      <div class="section-head"><h2>Requests inbox</h2></div>
+      <p class="section-intro">Covers private-issue access requests and action-team join requests — the "someone is asking, an admin approves or rejects" flows.</p>
+      <div class="card">
+        <ul class="rules">
+          <li>Surfaced in a new <strong>header notification dropdown</strong>, under a "Requests" tab.</li>
+          <li>Only visible to users who own or have edit access to at least one issue/community — plain supporters never see it.</li>
+          <li>Approve individually, or <strong>"approve all" per issue</strong> — bulk approval doesn't span multiple issues in one click.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="notifications">
+      <div class="section-head"><h2>Notifications</h2></div>
+      <p class="section-intro">The dropdown's other tab — visible to every logged-in user, not just admins.</p>
+      <div class="card">
+        <h3>Triggers</h3>
+        <ul class="rules">
+          <li>Admin/owner posts an update</li>
+          <li>A solution is marked Chosen</li>
+          <li>The issue's status changes</li>
+          <li>A new solution is suggested, by anyone</li>
+        </ul>
+        <p style="margin-top:12px;">Notifies everyone currently supporting that issue. Each entry shows the event type and which issue it's about, with a title preview — one person may support many issues.</p>
+      </div>
+    </section>
+
+    <section id="principles">
+      <div class="section-head"><h2>Migration &amp; cleanup principles</h2></div>
+      <div class="card">
+        <ul class="rules">
+          <li>Every <code>// TODO(supabase)</code> marker in the codebase is a real write that must land in the database — issues, communities, edits, comments, solutions, everything. Nothing stays session-local after migration.</li>
+          <li>Status-change side effects must be <strong>explicit, documented rules</strong> — not implicit behavior that only happens to work because of what the mock data contains.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="open">
+      <div class="section-head">
+        <h2>Open items</h2>
+        <span class="tag open">Still deciding</span>
+      </div>
+      <p class="section-intro">Unresolved — more question rounds are still coming before an implementation plan gets written.</p>
+      <table class="open-items">
+        <tbody>
+          <tr><td class="q">Schema &amp; table shape</td><td class="d">Exact Supabase table/column naming, not yet drafted.</td></tr>
+          <tr><td class="q">Environments</td><td class="d">Single Supabase project, or separate dev + production?</td></tr>
+          <tr><td class="q">Real-time vs. refetch</td><td class="d">Do votes/comments/notifications need to appear live, or is a refresh fine?</td></tr>
+          <tr><td class="q">Phone numbers</td><td class="d">Currently collected in a few flows — keep them, and if so, used for what?</td></tr>
+          <tr><td class="q">Images / avatars</td><td class="d">App has zero images today by earlier design choice — confirm that holds for v1.</td></tr>
+          <tr><td class="q">Status auto-advance</td><td class="d">Beyond the Chosen → prompt trigger, does status ever change on its own, or always a manual action?</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    Source of truth: <code>docs/business-logic.md</code> in the Tachlis repo. This page is a rendering of that file — update the markdown first, then re-publish.
+  </footer>
+</div>

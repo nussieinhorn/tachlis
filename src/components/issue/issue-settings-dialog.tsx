@@ -6,7 +6,8 @@ import { IconCheck, IconPlus } from "@tabler/icons-react";
 import type { Issue } from "@/lib/mock-data";
 import { COMMUNITIES, getCommunity, getCommunitiesOwnedBy, type Community } from "@/lib/communities-data";
 import { useAdminMode } from "@/lib/admin-mode";
-import { useFakeSession } from "@/lib/fake-session";
+import { useAuth } from "@/lib/auth";
+import { useCreatedCommunities } from "@/lib/created-communities";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { SettingRow } from "@/components/issue/setting-row";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,8 @@ import {
 
 export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger: ReactNode }) {
   const { isAdmin } = useAdminMode();
-  const { user, createdCommunities } = useFakeSession();
+  const { user } = useAuth();
+  const { createdCommunities } = useCreatedCommunities();
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
 
