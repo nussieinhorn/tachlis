@@ -11,12 +11,12 @@ import { IssueDescription } from "@/components/issue/issue-description";
 import { IssueSidebar } from "@/components/issue/issue-sidebar";
 import { ActionPlanPanel } from "@/components/issue/action-plan-panel";
 import { ActionTeamPanel } from "@/components/issue/action-team-panel";
+import { ActionPlanVisibilityToggle } from "@/components/issue/action-plan-visibility-toggle";
 import { IssueSolutionsSection } from "@/components/issue/issue-solutions-section";
 import { IssueCommunitySection } from "@/components/issue/issue-community-section";
 import { PrivateIssueGate } from "@/components/issue/private-issue-gate";
-import { AccessRequestsWidget } from "@/components/issue/access-requests-widget";
 import { getCategory } from "@/lib/mock-data";
-import { getCommunity, getIssue, getIssueEditAccess, getIssueStub } from "@/lib/supabase/queries";
+import { getCommunityByInternalId, getIssue, getIssueEditAccess, getIssueStub } from "@/lib/supabase/queries";
 
 export default async function IssueDetailPage({
   params,
@@ -32,13 +32,13 @@ export default async function IssueDetailPage({
     return (
       <>
         <SiteHeader />
-        <PrivateIssueGate issueId={stub.id} issueTitle={stub.title} />
+        <PrivateIssueGate issueId={stub.id} issueTitle={stub.title} ownerName={stub.ownerName ?? undefined} />
       </>
     );
   }
 
   const [community, canEdit] = await Promise.all([
-    issue.communityId ? getCommunity(issue.communityId) : Promise.resolve(undefined),
+    issue.communityId ? getCommunityByInternalId(issue.communityId) : Promise.resolve(undefined),
     getIssueEditAccess(issue.id),
   ]);
 
@@ -49,9 +49,8 @@ export default async function IssueDetailPage({
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Breadcrumbs id={issue.id} />
+          <Breadcrumbs displayCode={issue.displayCode} />
           <div className="flex items-center gap-2">
-            {issue.visibility === "private" && canEdit && <AccessRequestsWidget issueId={issue.id} />}
             <IssueAdminBar issue={issue} canEdit={canEdit} />
           </div>
         </div>
@@ -99,13 +98,14 @@ export default async function IssueDetailPage({
 
             <IssueSolutionsSection issue={issue} canEdit={canEdit} />
 
-            {issue.firstChosenPromptedAt && (
-              <>
+            {issue.firstChosenPromptedAt && (canEdit || issue.actionPlanVisible) && (
+              <div className="flex flex-col gap-3">
+                {canEdit && <ActionPlanVisibilityToggle issueId={issue.id} visible={issue.actionPlanVisible} />}
                 {issue.actionPlan && (
                   <ActionPlanPanel actionPlanId={issue.actionPlan.id} plan={issue.actionPlan} canEdit={canEdit} />
                 )}
                 <ActionTeamPanel issueId={issue.id} actionPlan={issue.actionPlan} canEdit={canEdit} />
-              </>
+              </div>
             )}
 
             {community && <IssueCommunitySection community={community} />}
@@ -113,6 +113,9 @@ export default async function IssueDetailPage({
 
           <IssueSidebar
             issueId={issue.id}
+            issueTitle={issue.title}
+            isPrivate={issue.visibility === "private"}
+            ownerName={issue.createdBy || undefined}
             canEdit={canEdit}
             supporterCount={issue.supporterCount}
             shareCount={issue.shareCount}
@@ -122,6 +125,8 @@ export default async function IssueDetailPage({
             updates={issue.updates}
             discussion={issue.discussion}
             links={issue.links}
+            commentsEnabled={issue.commentsEnabled}
+            commentsRequireLogin={issue.commentsRequireLogin}
           />
         </div>
       </main>

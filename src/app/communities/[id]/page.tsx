@@ -8,7 +8,7 @@ import { IssueCard } from "@/components/issue-card";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { CommunityAdminBar } from "@/components/community-admin-bar";
-import { CommunityInvitePanel } from "@/components/community-invite-panel";
+import { ShareAccessPanel } from "@/components/share-access-panel";
 import { getCommunity, getCommunityEditAccess, getIssuesByCommunity } from "@/lib/supabase/queries";
 
 export default async function CommunityDetailPage({
@@ -52,10 +52,22 @@ export default async function CommunityDetailPage({
                   {issues.length} {pluralize(issues.length, "issue")}
                 </span>
               </div>
+              {isPrivate && (
+                <p className="text-xs text-muted-foreground">
+                  Owned by {community.ownerName ?? "the owner"} — only invited people can see this.
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isPrivate && canEdit && <CommunityInvitePanel communityId={community.id} communityName={community.name} />}
+            <ShareAccessPanel
+              resourceType="community"
+              resourceId={community.id}
+              resourceTitle={community.name}
+              isPrivate={isPrivate}
+              canEdit={canEdit}
+              ownerName={community.ownerName}
+            />
             <CommunityAdminBar community={community} canEdit={canEdit} />
           </div>
         </div>

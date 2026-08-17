@@ -1,6 +1,6 @@
 import { SiteHeader } from "@/components/site-header";
 import { MyCommunitiesList } from "@/components/my-communities-list";
-import { AuthGate } from "@/components/auth-gate";
+import { AuthGateRefresh } from "@/components/auth-gate-refresh";
 import { createClient } from "@/lib/supabase/server";
 import { getCommunitiesOwnedBy, getCommunityIssueCount } from "@/lib/supabase/queries";
 
@@ -29,7 +29,7 @@ export default async function MyCommunitiesPage() {
 
         {!user ? (
           <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-4 py-10">
-            <AuthGate
+            <AuthGateRefresh
               title="Sign in to see your communities"
               description="You'll need an account to create and manage communities."
             />

@@ -97,6 +97,7 @@ export type SolutionStatus = "proposed" | "considering" | "trending" | "chosen" 
 
 export type Solution = {
   id: string;
+  displayCode: string;
   title: string;
   description: string;
   pros: string[];
@@ -147,6 +148,7 @@ export type Update = {
 
 export type Issue = {
   id: string;
+  displayCode: string;
   communityId?: string;
   title: string;
   description: string;
@@ -173,6 +175,8 @@ export type Issue = {
   voteRequiresLogin: boolean;
   allowSuggestSolutions: boolean;
   commentsEnabled: boolean;
+  commentsRequireLogin: boolean;
+  actionPlanVisible: boolean;
   goLiveDate?: string;
   votingCloseDate?: string;
   hiddenDate?: string;

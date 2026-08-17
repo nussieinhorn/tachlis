@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { IconAdjustments, IconCopy, IconDots, IconEye, IconEyeOff, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconAdjustments, IconCopy, IconDots, IconPencil, IconTrash } from "@tabler/icons-react";
 
 import type { Issue } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
 import { IssueSettingsDialog } from "@/components/issue/issue-settings-dialog";
 import {
@@ -19,7 +19,6 @@ import {
 
 export function IssueAdminBar({ issue, canEdit }: { issue: Issue; canEdit: boolean }) {
   const router = useRouter();
-  const [hidden, setHidden] = useState(false);
 
   if (!canEdit) return null;
 
@@ -31,11 +30,6 @@ export function IssueAdminBar({ issue, canEdit }: { issue: Issue; canEdit: boole
 
   return (
     <div className="flex flex-col gap-2">
-      {hidden && (
-        <div className="rounded-lg border border-dashed border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          This issue is hidden from the public feed (admin preview only).
-        </div>
-      )}
       <div className="flex items-center gap-2 self-end">
         <CreateIssueDialog
           editIssue={issue}
@@ -71,14 +65,20 @@ export function IssueAdminBar({ issue, canEdit }: { issue: Issue; canEdit: boole
                 </DropdownMenuItem>
               }
             />
-            <DropdownMenuItem onClick={() => setHidden((h) => !h)}>
-              <Icon icon={hidden ? IconEye : IconEyeOff} size={16} />
-              {hidden ? "Unhide" : "Hide"}
-            </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onClick={deleteIssue}>
-              <Icon icon={IconTrash} size={16} />
-              Delete
-            </DropdownMenuItem>
+            <ConfirmDialog
+              title="Delete this issue?"
+              description={`"${issue.title}" and everything on it — solutions, comments, updates — will be permanently deleted. This can't be undone.`}
+              onConfirm={deleteIssue}
+              trigger={
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <Icon icon={IconTrash} size={16} />
+                  Delete
+                </DropdownMenuItem>
+              }
+            />
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -250,6 +250,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          display_code: string
           id: string
           location: string | null
           name: string
@@ -261,6 +262,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          display_code?: string
           id?: string
           location?: string | null
           name: string
@@ -272,6 +274,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          display_code?: string
           id?: string
           location?: string | null
           name?: string
@@ -284,6 +287,48 @@ export type Database = {
           {
             foreignKeyName: "communities_owner_id_fkey"
             columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_access_requests: {
+        Row: {
+          community_id: string
+          created_at: string
+          id: string
+          message: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_access_requests_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_access_requests_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -510,6 +555,7 @@ export type Database = {
       }
       issues: {
         Row: {
+          action_plan_visible: boolean
           allow_suggest_solutions: boolean
           category_slug: string
           comments_enabled: boolean
@@ -518,6 +564,7 @@ export type Database = {
           created_at: string
           description: string
           description_more: string | null
+          display_code: string
           first_chosen_prompted_at: string | null
           go_live_date: string | null
           hidden_date: string | null
@@ -539,6 +586,7 @@ export type Database = {
           voting_close_date: string | null
         }
         Insert: {
+          action_plan_visible?: boolean
           allow_suggest_solutions?: boolean
           category_slug: string
           comments_enabled?: boolean
@@ -547,6 +595,7 @@ export type Database = {
           created_at?: string
           description: string
           description_more?: string | null
+          display_code?: string
           first_chosen_prompted_at?: string | null
           go_live_date?: string | null
           hidden_date?: string | null
@@ -568,6 +617,7 @@ export type Database = {
           voting_close_date?: string | null
         }
         Update: {
+          action_plan_visible?: boolean
           allow_suggest_solutions?: boolean
           category_slug?: string
           comments_enabled?: boolean
@@ -576,6 +626,7 @@ export type Database = {
           created_at?: string
           description?: string
           description_more?: string | null
+          display_code?: string
           first_chosen_prompted_at?: string | null
           go_live_date?: string | null
           hidden_date?: string | null
@@ -667,6 +718,7 @@ export type Database = {
           created_at: string
           id: string
           issue_id: string
+          message: string | null
           status: string
           user_id: string
         }
@@ -674,6 +726,7 @@ export type Database = {
           created_at?: string
           id?: string
           issue_id: string
+          message?: string | null
           status?: string
           user_id: string
         }
@@ -681,6 +734,7 @@ export type Database = {
           created_at?: string
           id?: string
           issue_id?: string
+          message?: string | null
           status?: string
           user_id?: string
         }
@@ -767,6 +821,7 @@ export type Database = {
           created_at: string
           deleted: boolean
           description: string
+          display_code: string
           hidden: boolean
           id: string
           is_chosen: boolean
@@ -784,6 +839,7 @@ export type Database = {
           created_at?: string
           deleted?: boolean
           description: string
+          display_code?: string
           hidden?: boolean
           id?: string
           is_chosen?: boolean
@@ -801,6 +857,7 @@ export type Database = {
           created_at?: string
           deleted?: boolean
           description?: string
+          display_code?: string
           hidden?: boolean
           id?: string
           is_chosen?: boolean
@@ -838,6 +895,7 @@ export type Database = {
       comment_target_issue: {
         Args: { p_issue_id: string; p_solution_id: string }
         Returns: {
+          action_plan_visible: boolean
           allow_suggest_solutions: boolean
           category_slug: string
           comments_enabled: boolean
@@ -846,6 +904,7 @@ export type Database = {
           created_at: string
           description: string
           description_more: string | null
+          display_code: string
           first_chosen_prompted_at: string | null
           go_live_date: string | null
           hidden_date: string | null
@@ -874,9 +933,11 @@ export type Database = {
         }
       }
       get_issue_stub: {
-        Args: { p_issue_id: string }
+        Args: { p_display_code: string }
         Returns: {
+          display_code: string
           id: string
+          owner_name: string
           title: string
           visibility: string
         }[]
@@ -1021,3 +1082,9 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

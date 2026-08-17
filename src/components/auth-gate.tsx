@@ -18,14 +18,17 @@ export function AuthGate({
   description?: string;
   onSignedIn?: () => void;
 }) {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"form" | "forgot">("form");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmSent, setConfirmSent] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const canSubmit = email.trim() && password.trim() && (tab === "signin" || name.trim());
 
@@ -34,7 +37,9 @@ export function AuthGate({
     setSubmitting(true);
     setError(null);
     const result =
-      tab === "signin" ? await signIn(email.trim(), password) : await signUp(name.trim(), email.trim(), password);
+      tab === "signin"
+        ? await signIn(email.trim(), password, rememberMe)
+        : await signUp(name.trim(), email.trim(), password);
     setSubmitting(false);
     if (result.error) {
       setError(result.error);
@@ -45,6 +50,19 @@ export function AuthGate({
     } else {
       onSignedIn?.();
     }
+  }
+
+  async function submitForgotPassword() {
+    if (!email.trim() || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const result = await resetPassword(email.trim());
+    setSubmitting(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setResetSent(true);
   }
 
   if (confirmSent) {
@@ -58,6 +76,41 @@ export function AuthGate({
           We sent a confirmation link to <strong className="text-foreground">{email}</strong>. Click it to
           activate your account, then come back and sign in.
         </p>
+      </div>
+    );
+  }
+
+  if (mode === "forgot") {
+    return (
+      <div className="mx-auto flex w-full max-w-sm flex-col gap-5">
+        <div className="flex flex-col gap-1 text-center">
+          <h2 className="font-heading text-lg font-semibold text-foreground">Reset your password</h2>
+          <p className="text-sm text-muted-foreground">We'll email you a link to set a new one.</p>
+        </div>
+        {resetSent ? (
+          <p className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-center text-sm text-muted-foreground">
+            Check <strong className="text-foreground">{email}</strong> for a reset link.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="button" disabled={!email.trim() || submitting} onClick={submitForgotPassword}>
+              {submitting ? "Sending..." : "Send reset link"}
+            </Button>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setMode("form");
+            setResetSent(false);
+            setError(null);
+          }}
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Back to sign in
+        </button>
       </div>
     );
   }
@@ -94,6 +147,27 @@ export function AuthGate({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="size-4 rounded border-input accent-primary"
+              />
+              Remember me
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("forgot");
+                setError(null);
+              }}
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Forgot password?
+            </button>
+          </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="button" disabled={!canSubmit || submitting} onClick={submit}>
             {submitting ? "Signing in..." : "Sign in"}

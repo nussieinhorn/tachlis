@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   IconCheck,
-  IconShare,
   IconHandLoveYou,
   IconHeart,
   IconHandStop,
@@ -25,7 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/ui/icon";
-import { SharePanel } from "@/components/issue/share-panel";
+import { ShareAccessPanel } from "@/components/share-access-panel";
 
 const LEVELS: {
   value: IntentTag;
@@ -61,6 +60,10 @@ type DialogState = "options" | "contact" | "thanks";
 
 export function JoinPanel({
   issueId,
+  issueTitle,
+  isPrivate,
+  canEdit,
+  ownerName,
   initialSupporterCount,
   shareCount,
   visitCount,
@@ -68,6 +71,10 @@ export function JoinPanel({
   supporterBreakdown,
 }: {
   issueId: string;
+  issueTitle: string;
+  isPrivate: boolean;
+  canEdit: boolean;
+  ownerName?: string;
   initialSupporterCount: number;
   shareCount: number;
   visitCount: number;
@@ -76,7 +83,6 @@ export function JoinPanel({
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [supported, setSupported] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>("options");
@@ -88,7 +94,10 @@ export function JoinPanel({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setSupported(false);
+      return;
+    }
     const supabase = createClient();
     supabase
       .from("issue_supports")
@@ -97,7 +106,7 @@ export function JoinPanel({
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) setSupported(true);
+        setSupported(Boolean(data));
       });
   }, [user, issueId]);
 
@@ -215,10 +224,17 @@ export function JoinPanel({
           <Icon icon={IconCheck} className={cn(!supported && "hidden")} />
           {supported ? "Supporting" : "Support"}
         </Button>
-        <Button size="lg" variant="outline" className="h-11 flex-1 text-base" onClick={() => setShareOpen(true)}>
-          <Icon icon={IconShare} />
-          Share
-        </Button>
+        <div className="flex-1">
+          <ShareAccessPanel
+            resourceType="issue"
+            resourceId={issueId}
+            resourceTitle={issueTitle}
+            isPrivate={isPrivate}
+            canEdit={canEdit}
+            ownerName={ownerName}
+            triggerClassName="h-11 text-base"
+          />
+        </div>
       </div>
 
       <Dialog open={open} onOpenChange={resetDialog}>
@@ -306,8 +322,6 @@ export function JoinPanel({
           )}
         </DialogContent>
       </Dialog>
-
-      <SharePanel open={shareOpen} onOpenChange={setShareOpen} />
     </div>
   );
 }

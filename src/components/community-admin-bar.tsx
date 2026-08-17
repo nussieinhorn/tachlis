@@ -6,6 +6,7 @@ import { IconDots, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 import type { Community } from "@/lib/communities-data";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
 import { createClient } from "@/lib/supabase/client";
@@ -54,10 +55,17 @@ export function CommunityAdminBar({ community, canEdit }: { community: Community
               </DropdownMenuItem>
             }
           />
-          <DropdownMenuItem variant="destructive" onClick={deleteCommunity}>
-            <Icon icon={IconTrash} size={16} />
-            Delete
-          </DropdownMenuItem>
+          <ConfirmDialog
+            title="Delete this community?"
+            description={`"${community.name}" will be permanently deleted. Issues linked to it won't be deleted, but they'll lose their community link. This can't be undone.`}
+            onConfirm={deleteCommunity}
+            trigger={
+              <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
+                <Icon icon={IconTrash} size={16} />
+                Delete
+              </DropdownMenuItem>
+            }
+          />
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

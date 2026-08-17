@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/icon";
 export function MyCommunityRow({ community, issueCount }: { community: Community; issueCount: number }) {
   return (
     <Link
-      href={`/communities/${community.id}`}
+      href={`/communities/${community.displayCode}`}
       className="flex w-full items-center gap-4 rounded-xl border border-border bg-card p-5 hover:bg-accent"
     >
       <div

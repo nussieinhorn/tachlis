@@ -36,12 +36,14 @@ export function CreateCommunityDialog({
   editCommunity,
   quickMode,
   onCreated,
+  defaultPrivacy,
 }: {
   trigger: ReactNode;
   editCommunity?: Community;
   /** Skips the Invite step and confirmation screen — used from inside the Create Issue wizard. */
   quickMode?: boolean;
   onCreated?: (community: Community) => void;
+  defaultPrivacy?: "public" | "private";
 }) {
   const isEditing = Boolean(editCommunity);
   const { user } = useAuth();
@@ -58,7 +60,7 @@ export function CreateCommunityDialog({
   const [description, setDescription] = useState(editCommunity?.description ?? "");
   const [location, setLocation] = useState(editCommunity?.location ?? "");
   const [tone, setTone] = useState<CommunityTone>(editCommunity?.tone ?? "coral");
-  const [privacy, setPrivacy] = useState<"public" | "private">(editCommunity?.privacy ?? "public");
+  const [privacy, setPrivacy] = useState<"public" | "private">(editCommunity?.privacy ?? defaultPrivacy ?? "public");
   const [invites, setInvites] = useState<Invite[]>([]);
 
   function reset(nextOpen: boolean) {
@@ -138,6 +140,7 @@ export function CreateCommunityDialog({
     if (quickMode) {
       const created: Community = {
         id: data.id,
+        displayCode: data.display_code,
         name: data.name,
         description: data.description ?? "",
         location: data.location ?? "",

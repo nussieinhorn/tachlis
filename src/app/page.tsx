@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/site-header";
 import { IssueBrowser } from "@/components/issue-browser";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
+import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { Button } from "@/components/ui/button";
 import { getIssues } from "@/lib/supabase/queries";
 
@@ -26,6 +27,15 @@ export default async function Home() {
               <Button size="lg" className="mt-2 h-12 px-8 text-base">
                 Create Issue
               </Button>
+            }
+          />
+          <CreateCommunityDialog
+            defaultPrivacy="private"
+            trigger={
+              <button type="button" className="text-sm text-muted-foreground hover:text-foreground">
+                Want a private space for your issues?{" "}
+                <span className="font-medium text-primary hover:underline">Create community.</span>
+              </button>
             }
           />
         </section>

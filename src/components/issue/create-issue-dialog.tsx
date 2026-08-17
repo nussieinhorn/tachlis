@@ -86,6 +86,7 @@ export function CreateIssueDialog({
 
   const [title, setTitle] = useState(source?.title ?? "");
   const [description, setDescription] = useState(source?.description ?? "");
+  const [descriptionMore, setDescriptionMore] = useState(source?.descriptionMore ?? "");
   const [categorySlug, setCategorySlug] = useState<string | undefined>(source?.categorySlug);
   const [location, setLocation] = useState(source?.location ?? "");
 
@@ -100,6 +101,7 @@ export function CreateIssueDialog({
   const [voteRequiresLogin, setVoteRequiresLogin] = useState(source?.voteRequiresLogin ?? false);
   const [allowSuggestSolutions, setAllowSuggestSolutions] = useState(source?.allowSuggestSolutions ?? true);
   const [commentsEnabled, setCommentsEnabled] = useState(source?.commentsEnabled ?? true);
+  const [commentsRequireLogin, setCommentsRequireLogin] = useState(source?.commentsRequireLogin ?? false);
   const [goLiveDate, setGoLiveDate] = useState(source?.goLiveDate ?? "");
   const [votingCloseDate, setVotingCloseDate] = useState(source?.votingCloseDate ?? "");
   const [hiddenDate, setHiddenDate] = useState(source?.hiddenDate ?? "");
@@ -120,6 +122,7 @@ export function CreateIssueDialog({
         setOwnedCommunities(
           (data ?? []).map((c) => ({
             id: c.id,
+            displayCode: c.display_code,
             name: c.name,
             description: c.description ?? "",
             location: c.location ?? "",
@@ -144,6 +147,7 @@ export function CreateIssueDialog({
         if (!c) return;
         setLockedCommunity({
           id: c.id,
+          displayCode: c.display_code,
           name: c.name,
           description: c.description ?? "",
           location: c.location ?? "",
@@ -169,6 +173,7 @@ export function CreateIssueDialog({
       setPublished(false);
       setTitle(source?.title ?? "");
       setDescription(source?.description ?? "");
+      setDescriptionMore(source?.descriptionMore ?? "");
       setCategorySlug(source?.categorySlug);
       setLocation(source?.location ?? "");
       setCommunityId(lockedCommunityId ?? source?.communityId);
@@ -179,6 +184,7 @@ export function CreateIssueDialog({
       setVoteRequiresLogin(source?.voteRequiresLogin ?? false);
       setAllowSuggestSolutions(source?.allowSuggestSolutions ?? true);
       setCommentsEnabled(source?.commentsEnabled ?? true);
+      setCommentsRequireLogin(source?.commentsRequireLogin ?? false);
       setGoLiveDate(source?.goLiveDate ?? "");
       setVotingCloseDate(source?.votingCloseDate ?? "");
       setHiddenDate(source?.hiddenDate ?? "");
@@ -213,6 +219,7 @@ export function CreateIssueDialog({
     const payload = {
       title: title.trim(),
       description,
+      description_more: descriptionMore.trim() || null,
       category_slug: categorySlug,
       location: location || null,
       community_id: communityId ?? null,
@@ -223,6 +230,7 @@ export function CreateIssueDialog({
       vote_requires_login: voteRequiresLogin,
       allow_suggest_solutions: allowSuggestSolutions,
       comments_enabled: commentsEnabled,
+      comments_require_login: commentsRequireLogin,
       go_live_date: goLiveDate || null,
       voting_close_date: votingCloseDate || null,
       hidden_date: hiddenDate || null,
@@ -261,12 +269,12 @@ export function CreateIssueDialog({
     }
 
     setSubmitting(false);
-    setCreatedId(data.id);
+    setCreatedId(data.display_code);
     setPublished(true);
   }
 
   function copyLink() {
-    navigator.clipboard?.writeText(`${publishedUrl}/issues/${editIssue?.id ?? createdId}`);
+    navigator.clipboard?.writeText(`${publishedUrl}/issues/${editIssue?.displayCode ?? createdId}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -307,6 +315,16 @@ export function CreateIssueDialog({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe the issue — what's going on, who it affects, why it matters..."
           className="min-h-32"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="description-more">More background (optional)</Label>
+        <Textarea
+          id="description-more"
+          value={descriptionMore}
+          onChange={(e) => setDescriptionMore(e.target.value)}
+          placeholder="Extra context shown behind a &quot;Read more&quot; link — history, prior attempts, sources..."
+          className="min-h-24"
         />
       </div>
       <div className="flex flex-col gap-1.5">
@@ -401,6 +419,12 @@ export function CreateIssueDialog({
           onChange={setAllowSuggestSolutions}
         />
         <SettingRow label="Allow comments" checked={commentsEnabled} onChange={setCommentsEnabled} />
+        <SettingRow
+          label="Comments require login"
+          checked={commentsRequireLogin}
+          onChange={setCommentsRequireLogin}
+          disabled={!commentsEnabled}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

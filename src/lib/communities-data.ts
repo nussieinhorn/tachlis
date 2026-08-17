@@ -11,6 +11,7 @@ export const COMMUNITY_TONE_CLASSES: Record<CommunityTone, string> = {
 
 export type Community = {
   id: string;
+  displayCode: string;
   name: string;
   description: string;
   location: string;
@@ -18,4 +19,5 @@ export type Community = {
   memberCount: number;
   tone: CommunityTone;
   ownerId?: string;
+  ownerName?: string;
 };

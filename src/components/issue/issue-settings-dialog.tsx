@@ -12,6 +12,7 @@ import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { SettingRow } from "@/components/issue/setting-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,9 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
   const [error, setError] = useState<string | null>(null);
   const [ownedCommunities, setOwnedCommunities] = useState<Community[]>([]);
 
+  const [title, setTitle] = useState(issue.title);
+  const [description, setDescription] = useState(issue.description);
+  const [descriptionMore, setDescriptionMore] = useState(issue.descriptionMore ?? "");
   const [communityId, setCommunityId] = useState<string | undefined>(issue.communityId);
   const [visibility, setVisibility] = useState<"public" | "private">(issue.visibility);
   const [showOnHomepage, setShowOnHomepage] = useState(issue.showOnHomepage);
@@ -45,6 +49,7 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
   const [voteRequiresLogin, setVoteRequiresLogin] = useState(issue.voteRequiresLogin);
   const [allowSuggestSolutions, setAllowSuggestSolutions] = useState(issue.allowSuggestSolutions);
   const [commentsEnabled, setCommentsEnabled] = useState(issue.commentsEnabled);
+  const [commentsRequireLogin, setCommentsRequireLogin] = useState(issue.commentsRequireLogin);
   const [goLiveDate, setGoLiveDate] = useState(issue.goLiveDate ?? "");
   const [votingCloseDate, setVotingCloseDate] = useState(issue.votingCloseDate ?? "");
   const [hiddenDate, setHiddenDate] = useState(issue.hiddenDate ?? "");
@@ -60,6 +65,7 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
         setOwnedCommunities(
           (data ?? []).map((c) => ({
             id: c.id,
+            displayCode: c.display_code,
             name: c.name,
             description: c.description ?? "",
             location: c.location ?? "",
@@ -80,6 +86,9 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
     if (!nextOpen) {
       setSaved(false);
       setError(null);
+      setTitle(issue.title);
+      setDescription(issue.description);
+      setDescriptionMore(issue.descriptionMore ?? "");
       setCommunityId(issue.communityId);
       setVisibility(issue.visibility);
       setShowOnHomepage(issue.showOnHomepage);
@@ -88,6 +97,7 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
       setVoteRequiresLogin(issue.voteRequiresLogin);
       setAllowSuggestSolutions(issue.allowSuggestSolutions);
       setCommentsEnabled(issue.commentsEnabled);
+      setCommentsRequireLogin(issue.commentsRequireLogin);
       setGoLiveDate(issue.goLiveDate ?? "");
       setVotingCloseDate(issue.votingCloseDate ?? "");
       setHiddenDate(issue.hiddenDate ?? "");
@@ -103,6 +113,9 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
     const { error: updateError } = await supabase
       .from("issues")
       .update({
+        title: title.trim(),
+        description,
+        description_more: descriptionMore.trim() || null,
         community_id: communityId ?? null,
         visibility,
         show_on_homepage: showOnHomepage,
@@ -111,6 +124,7 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
         vote_requires_login: voteRequiresLogin,
         allow_suggest_solutions: allowSuggestSolutions,
         comments_enabled: commentsEnabled,
+        comments_require_login: commentsRequireLogin,
         go_live_date: goLiveDate || null,
         voting_close_date: votingCloseDate || null,
         hidden_date: hiddenDate || null,
@@ -144,6 +158,29 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
           <>
             <div className="flex-1 overflow-y-auto px-1">
               <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="settings-title">Title</Label>
+                  <Input id="settings-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="settings-description">Description</Label>
+                  <Textarea
+                    id="settings-description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-24"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="settings-description-more">More background (optional)</Label>
+                  <Textarea
+                    id="settings-description-more"
+                    value={descriptionMore}
+                    onChange={(e) => setDescriptionMore(e.target.value)}
+                    placeholder="Extra context shown behind a &quot;Read more&quot; link"
+                    className="min-h-20"
+                  />
+                </div>
                 <div className="flex flex-col gap-1.5">
                   <Label>Issue visibility</Label>
                   <div className="flex gap-2">
@@ -204,6 +241,12 @@ export function IssueSettingsDialog({ issue, trigger }: { issue: Issue; trigger:
                     onChange={setAllowSuggestSolutions}
                   />
                   <SettingRow label="Allow comments" checked={commentsEnabled} onChange={setCommentsEnabled} />
+                  <SettingRow
+                    label="Comments require login"
+                    checked={commentsRequireLogin}
+                    onChange={setCommentsRequireLogin}
+                    disabled={!commentsEnabled}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

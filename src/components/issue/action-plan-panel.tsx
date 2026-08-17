@@ -86,7 +86,7 @@ export function ActionPlanPanel({
   }
 
   async function saveEdit() {
-    if (!editingId) return;
+    if (!editingId || !editText.trim()) return;
     const supabase = createClient();
     await supabase.from("action_tasks").update({ title: editText.trim() }).eq("id", editingId);
     setEditingId(null);
@@ -180,8 +180,9 @@ export function ActionPlanPanel({
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button type="button">
-                          <Badge variant={config.variant} className="cursor-pointer">
+                          <Badge variant={config.variant} className="cursor-pointer gap-1">
                             {config.label}
+                            <Icon icon={IconChevronDown} size={12} />
                           </Badge>
                         </button>
                       </DropdownMenuTrigger>

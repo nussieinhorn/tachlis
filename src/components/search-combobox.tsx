@@ -8,8 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 
-type IssueResult = { id: string; title: string };
-type CommunityResult = { id: string; name: string };
+type IssueResult = { id: string; displayCode: string; title: string };
+type CommunityResult = { id: string; displayCode: string; name: string };
 
 export function SearchCombobox() {
   const [query, setQuery] = useState("");
@@ -29,14 +29,14 @@ export function SearchCombobox() {
       const [{ data: issues }, { data: communities }] = await Promise.all([
         supabase
           .from("issues")
-          .select("id, title")
+          .select("id, display_code, title")
           .eq("show_in_search", true)
           .ilike("title", `%${q}%`)
           .limit(4),
-        supabase.from("communities").select("id, name").ilike("name", `%${q}%`).limit(3),
+        supabase.from("communities").select("id, display_code, name").ilike("name", `%${q}%`).limit(3),
       ]);
-      setIssueResults(issues ?? []);
-      setCommunityResults(communities ?? []);
+      setIssueResults((issues ?? []).map((i) => ({ id: i.id, displayCode: i.display_code, title: i.title })));
+      setCommunityResults((communities ?? []).map((c) => ({ id: c.id, displayCode: c.display_code, name: c.name })));
     }, 200);
     return () => clearTimeout(timeout);
   }, [query, supabase]);
@@ -76,7 +76,7 @@ export function SearchCombobox() {
                     {issueResults.map((issue) => (
                       <li key={issue.id}>
                         <Link
-                          href={`/issues/${issue.id}`}
+                          href={`/issues/${issue.displayCode}`}
                           className="block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
                         >
                           <span className="font-medium text-foreground">{issue.title}</span>
@@ -95,7 +95,7 @@ export function SearchCombobox() {
                     {communityResults.map((community) => (
                       <li key={community.id}>
                         <Link
-                          href={`/communities/${community.id}`}
+                          href={`/communities/${community.displayCode}`}
                           className="block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
                         >
                           <span className="font-medium text-foreground">{community.name}</span>

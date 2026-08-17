@@ -27,7 +27,7 @@ export function IssueCommunitySection({ community }: { community: Community }) {
           </div>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link href={`/communities/${community.id}`}>View community</Link>
+          <Link href={`/communities/${community.displayCode}`}>View community</Link>
         </Button>
       </div>
     </section>

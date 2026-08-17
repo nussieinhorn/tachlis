@@ -30,7 +30,15 @@ const SHARE_TARGETS = [
   { label: "Email", icon: IconMail, urlPrefix: "mailto:?body=" },
 ];
 
-export function SharePanel({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function SharePanel({
+  open,
+  onOpenChange,
+  title = "Share this issue",
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const url = typeof window !== "undefined" ? window.location.href : "";
 
@@ -44,7 +52,7 @@ export function SharePanel({ open, onOpenChange }: { open: boolean; onOpenChange
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Share this issue</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>Copy the link, or share it directly.</DialogDescription>
         </DialogHeader>
 

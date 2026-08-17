@@ -12,7 +12,7 @@ export function IssueCard({ issue }: { issue: Issue }) {
 
   return (
     <Link
-      href={`/issues/${issue.id}`}
+      href={`/issues/${issue.displayCode}`}
       className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-6 transition-shadow hover:shadow-md sm:p-8"
     >
       <div className="flex flex-wrap items-center gap-2">

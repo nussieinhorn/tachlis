@@ -45,6 +45,7 @@ function threadComments(rows: CommentRow[]): Comment[] {
 function mapSolution(row: SolutionRow): Solution {
   return {
     id: row.id,
+    displayCode: row.display_code,
     title: row.title,
     description: row.description,
     pros: row.pros,
@@ -61,9 +62,10 @@ function mapSolution(row: SolutionRow): Solution {
   };
 }
 
-export function mapCommunity(row: CommunityRow, memberCount: number): Community {
+export function mapCommunity(row: CommunityRow, memberCount: number, ownerName?: string): Community {
   return {
     id: row.id,
+    displayCode: row.display_code,
     name: row.name,
     description: row.description ?? "",
     location: row.location ?? "",
@@ -71,6 +73,7 @@ export function mapCommunity(row: CommunityRow, memberCount: number): Community 
     memberCount,
     tone: row.tone as Community["tone"],
     ownerId: row.owner_id ?? undefined,
+    ownerName,
   };
 }
 
@@ -98,28 +101,59 @@ async function getMemberCounts(communityIds: string[]): Promise<Map<string, numb
   return counts;
 }
 
+type CommunityRowWithOwner = CommunityRow & { owner: { name: string } | null };
+
 export async function getCommunities(): Promise<Community[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("communities").select("*").order("created_at");
+  const { data, error } = await supabase
+    .from("communities")
+    .select("*, owner:profiles!communities_owner_id_fkey(name)")
+    .order("created_at");
   if (error || !data) return [];
-  const memberCounts = await getMemberCounts(data.map((c) => c.id));
-  return data.map((row) => mapCommunity(row, memberCounts.get(row.id) ?? 0));
+  const rows = data as unknown as CommunityRowWithOwner[];
+  const memberCounts = await getMemberCounts(rows.map((c) => c.id));
+  return rows.map((row) => mapCommunity(row, memberCounts.get(row.id) ?? 0, row.owner?.name));
 }
 
-export async function getCommunity(id: string): Promise<Community | undefined> {
+/** `code` is the 4-digit display code shown in URLs, not the internal uuid. */
+export async function getCommunity(code: string): Promise<Community | undefined> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("communities").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("communities")
+    .select("*, owner:profiles!communities_owner_id_fkey(name)")
+    .eq("display_code", code)
+    .maybeSingle();
   if (error || !data) return undefined;
-  const memberCounts = await getMemberCounts([id]);
-  return mapCommunity(data, memberCounts.get(id) ?? 0);
+  const row = data as unknown as CommunityRowWithOwner;
+  const memberCounts = await getMemberCounts([row.id]);
+  return mapCommunity(row, memberCounts.get(row.id) ?? 0, row.owner?.name);
+}
+
+/** Looks up a community by its real internal id (uuid) — for following a foreign key (e.g. issue.communityId), not for resolving a URL. */
+export async function getCommunityByInternalId(id: string): Promise<Community | undefined> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("communities")
+    .select("*, owner:profiles!communities_owner_id_fkey(name)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return undefined;
+  const row = data as unknown as CommunityRowWithOwner;
+  const memberCounts = await getMemberCounts([row.id]);
+  return mapCommunity(row, memberCounts.get(row.id) ?? 0, row.owner?.name);
 }
 
 export async function getCommunitiesOwnedBy(userId: string): Promise<Community[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("communities").select("*").eq("owner_id", userId).order("created_at");
+  const { data, error } = await supabase
+    .from("communities")
+    .select("*, owner:profiles!communities_owner_id_fkey(name)")
+    .eq("owner_id", userId)
+    .order("created_at");
   if (error || !data) return [];
-  const memberCounts = await getMemberCounts(data.map((c) => c.id));
-  return data.map((row) => mapCommunity(row, memberCounts.get(row.id) ?? 0));
+  const rows = data as unknown as CommunityRowWithOwner[];
+  const memberCounts = await getMemberCounts(rows.map((c) => c.id));
+  return rows.map((row) => mapCommunity(row, memberCounts.get(row.id) ?? 0, row.owner?.name));
 }
 
 export async function getCommunityIssueCount(id: string): Promise<number> {
@@ -165,16 +199,21 @@ export async function getIssueEditAccess(issueId: string): Promise<boolean> {
   return data ?? false;
 }
 
-/** Minimal id/title/visibility for an issue, bypassing RLS — used only to render the private-issue "request access" screen. */
-export async function getIssueStub(issueId: string): Promise<{ id: string; title: string; visibility: string } | undefined> {
+/** Minimal id/title/visibility/owner for an issue, bypassing RLS — used only to render the private-issue "request access" screen. `code` is the 4-digit display code. */
+export async function getIssueStub(
+  code: string,
+): Promise<{ id: string; displayCode: string; title: string; visibility: string; ownerName: string | null } | undefined> {
   const supabase = await createClient();
-  const { data } = await supabase.rpc("get_issue_stub", { p_issue_id: issueId });
-  return data?.[0];
+  const { data } = await supabase.rpc("get_issue_stub", { p_display_code: code });
+  const row = data?.[0];
+  if (!row) return undefined;
+  return { id: row.id, displayCode: row.display_code, title: row.title, visibility: row.visibility, ownerName: row.owner_name };
 }
 
 function mapIssueRow(row: IssueRow, supporterCount: number, ownerName?: string): Issue {
   return {
     id: row.id,
+    displayCode: row.display_code,
     communityId: row.community_id ?? undefined,
     title: row.title,
     description: row.description,
@@ -199,6 +238,8 @@ function mapIssueRow(row: IssueRow, supporterCount: number, ownerName?: string):
     voteRequiresLogin: row.vote_requires_login,
     allowSuggestSolutions: row.allow_suggest_solutions,
     commentsEnabled: row.comments_enabled,
+    commentsRequireLogin: row.comments_require_login,
+    actionPlanVisible: row.action_plan_visible,
     goLiveDate: row.go_live_date ?? undefined,
     votingCloseDate: row.voting_close_date ?? undefined,
     hiddenDate: row.hidden_date ?? undefined,
@@ -245,7 +286,8 @@ export async function getIssuesByCommunity(communityId: string): Promise<Issue[]
   });
 }
 
-export async function getIssue(id: string): Promise<Issue | undefined> {
+/** `code` is the 4-digit display code shown in URLs, not the internal uuid. */
+export async function getIssue(code: string): Promise<Issue | undefined> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("issues")
@@ -260,7 +302,7 @@ export async function getIssue(id: string): Promise<Issue | undefined> {
       action_team_members(*),
       owner:profiles!issues_owner_id_fkey(name)`,
     )
-    .eq("id", id)
+    .eq("display_code", code)
     .is("comments.solution_id", null)
     .eq("solutions.deleted", false)
     .eq("solutions.review_status", "approved")

@@ -19,6 +19,7 @@ import { pluralize } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
@@ -80,16 +81,23 @@ export function CommunityCard({
                   </DropdownMenuItem>
                 }
               />
-              <DropdownMenuItem variant="destructive" onClick={deleteCommunity}>
-                <Icon icon={IconTrash} size={16} />
-                Delete
-              </DropdownMenuItem>
+              <ConfirmDialog
+                title="Delete this community?"
+                description={`"${community.name}" will be permanently deleted. This can't be undone.`}
+                onConfirm={deleteCommunity}
+                trigger={
+                  <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
+                    <Icon icon={IconTrash} size={16} />
+                    Delete
+                  </DropdownMenuItem>
+                }
+              />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       )}
 
-      <Link href={`/communities/${community.id}`} className="flex flex-col gap-3">
+      <Link href={`/communities/${community.displayCode}`} className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
           <div
             className={`flex size-11 shrink-0 items-center justify-center rounded-full text-white ${COMMUNITY_TONE_CLASSES[community.tone]}`}

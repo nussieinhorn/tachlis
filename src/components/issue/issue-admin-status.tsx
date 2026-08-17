@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { IconChevronDown } from "@tabler/icons-react";
 
 import { ISSUE_STATUSES, StatusBadge, type IssueStatus } from "@/components/ui/status-badge";
+import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
@@ -42,8 +44,9 @@ export function IssueAdminStatus({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="cursor-pointer">
+        <button type="button" className="flex cursor-pointer items-center gap-1">
           <StatusBadge status={status} size="lg" />
+          <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

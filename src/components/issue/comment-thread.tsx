@@ -85,12 +85,16 @@ export function CommentThread({
   initialComments,
   postPlaceholder = "Add to the discussion...",
   emptyText = "No discussion yet — be the first to say something.",
+  commentsEnabled = true,
+  commentsRequireLogin = false,
 }: {
   issueId?: string;
   solutionId?: string;
   initialComments: Comment[];
   postPlaceholder?: string;
   emptyText?: string;
+  commentsEnabled?: boolean;
+  commentsRequireLogin?: boolean;
 }) {
   const { isSignedIn, profile } = useAuth();
   const router = useRouter();
@@ -164,16 +168,22 @@ export function CommentThread({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        {!isSignedIn && (
-          <Input placeholder="Your name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
-        )}
-        <Textarea placeholder={postPlaceholder} value={draft} onChange={(e) => setDraft(e.target.value)} />
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim() || !authorName}>
-          Post
-        </Button>
-      </div>
+      {commentsEnabled ? (
+        commentsRequireLogin && !isSignedIn ? (
+          <p className="text-sm text-muted-foreground">Sign in to join the discussion.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {!isSignedIn && (
+              <Input placeholder="Your name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+            )}
+            <Textarea placeholder={postPlaceholder} value={draft} onChange={(e) => setDraft(e.target.value)} />
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim() || !authorName}>
+              Post
+            </Button>
+          </div>
+        )
+      ) : null}
 
       {comments.length === 0 ? (
         <p className="text-sm text-muted-foreground">{emptyText}</p>

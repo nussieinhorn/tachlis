@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconArrowUp, IconCheck, IconX, IconMessageCircle, IconDots, IconEyeOff, IconEye, IconTrash, IconPencil } from "@tabler/icons-react";
+import { IconArrowUp, IconCheck, IconX, IconMessageCircle, IconDots, IconEyeOff, IconEye, IconTrash, IconPencil, IconChevronDown } from "@tabler/icons-react";
 
 import type { Solution, SolutionStatus } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
@@ -165,8 +165,9 @@ export function SolutionCard({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button type="button" onClick={(e) => e.stopPropagation()}>
-                      <Badge variant={statusConfig.variant} className="cursor-pointer">
+                      <Badge variant={statusConfig.variant} className="cursor-pointer gap-1">
                         {statusConfig.label}
+                        <Icon icon={IconChevronDown} size={12} />
                       </Badge>
                     </button>
                   </DropdownMenuTrigger>
@@ -187,6 +188,12 @@ export function SolutionCard({
           <CardDescription className="line-clamp-2 text-base">
             {solution.description}
           </CardDescription>
+          {hidden && canEdit && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Icon icon={IconEyeOff} size={12} />
+              Hidden — not visible to the public
+            </p>
+          )}
         </CardHeader>
         <CardContent className="flex items-center gap-3 pb-6">
           <Button
@@ -210,7 +217,7 @@ export function SolutionCard({
           <SheetHeader className="gap-3">
             <div className="flex items-center gap-2 pr-8">
               <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                {typeof index === "number" ? `Solution ${index + 1}` : "Solution"} · #{solution.id}
+                {typeof index === "number" ? `Solution ${index + 1}` : "Solution"} · #{solution.displayCode}
               </span>
               <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
               <div className="ml-auto">{adminMenu}</div>
