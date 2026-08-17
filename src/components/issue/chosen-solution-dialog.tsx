@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/ui/icon";
+import { SettingRow } from "@/components/issue/setting-row";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ export function ChosenSolutionDialog({
   const [status, setStatus] = useState<IssueStatus>("solution-chosen");
   const [tasks, setTasks] = useState<string[]>([]);
   const [newTask, setNewTask] = useState("");
+  const [showToSupporters, setShowToSupporters] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   function addTask() {
@@ -54,7 +56,7 @@ export function ChosenSolutionDialog({
     await supabase.from("solutions").update({ status: "chosen", is_chosen: true }).eq("id", solutionId);
     await supabase
       .from("issues")
-      .update({ status, first_chosen_prompted_at: new Date().toISOString() })
+      .update({ status, first_chosen_prompted_at: new Date().toISOString(), action_plan_visible: showToSupporters })
       .eq("id", issueId);
 
     const { data: plan } = await supabase
@@ -71,6 +73,7 @@ export function ChosenSolutionDialog({
     setSubmitting(false);
     setStatus("solution-chosen");
     setTasks([]);
+    setShowToSupporters(false);
     onOpenChange(false);
     router.refresh();
   }
@@ -132,6 +135,13 @@ export function ChosenSolutionDialog({
               </button>
             </div>
           </div>
+
+          <SettingRow
+            label="Show the Action Plan to supporters now"
+            description="You can always prepare tasks privately first and turn this on later from the Action Plan card."
+            checked={showToSupporters}
+            onChange={setShowToSupporters}
+          />
         </div>
 
         <DialogFooter>

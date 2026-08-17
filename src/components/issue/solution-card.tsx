@@ -389,7 +389,15 @@ export function SolutionCard({
         </SheetContent>
       </Sheet>
 
-      {canEdit && <SolutionEditDialog solution={solution} open={editOpen} onOpenChange={setEditOpen} />}
+      {canEdit && (
+        <SolutionEditDialog
+          solution={solution}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          isFirstChosen={isFirstChosen}
+          onRequestChosenFlow={() => setChosenDialogOpen(true)}
+        />
+      )}
 
       <ChosenSolutionDialog
         open={chosenDialogOpen}

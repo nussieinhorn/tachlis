@@ -38,11 +38,17 @@ export function SolutionEditDialog({
   trigger,
   open: controlledOpen,
   onOpenChange: setControlledOpen,
+  isFirstChosen,
+  onRequestChosenFlow,
 }: {
   solution: Solution;
   trigger?: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Whether marking this issue's solution "Chosen" would be the first time ever on this issue. */
+  isFirstChosen?: boolean;
+  /** Called instead of a plain save when the status changes to "chosen" for the first time — the caller should open ChosenSolutionDialog. */
+  onRequestChosenFlow?: () => void;
 }) {
   const router = useRouter();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
@@ -73,6 +79,10 @@ export function SolutionEditDialog({
 
   async function save() {
     if (submitting) return;
+    // Marking "chosen" for the first time ever on this issue needs the same popup as the card's
+    // own status dropdown (sets issues.first_chosen_prompted_at, creates the Action Plan) — a plain
+    // status update here would silently skip that activation entirely.
+    const becomingFirstChosen = status === "chosen" && solution.status !== "chosen" && Boolean(isFirstChosen);
     setSubmitting(true);
     const supabase = createClient();
     await supabase
@@ -80,15 +90,18 @@ export function SolutionEditDialog({
       .update({
         title: title.trim(),
         description: description.trim(),
-        status,
-        is_chosen: status === "chosen",
         pros,
         cons,
+        ...(becomingFirstChosen ? {} : { status, is_chosen: status === "chosen" }),
       })
       .eq("id", solution.id);
     setSubmitting(false);
     setOpen(false);
-    router.refresh();
+    if (becomingFirstChosen) {
+      onRequestChosenFlow?.();
+    } else {
+      router.refresh();
+    }
   }
 
   const statusLabel = STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
