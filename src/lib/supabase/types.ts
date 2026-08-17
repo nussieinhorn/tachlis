@@ -830,24 +830,30 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          email_notify_types: string[]
           id: string
           name: string
+          notify_types: string[]
           phone: string | null
           theme_preference: string
         }
         Insert: {
           created_at?: string
           email: string
+          email_notify_types?: string[]
           id: string
           name?: string
+          notify_types?: string[]
           phone?: string | null
           theme_preference?: string
         }
         Update: {
           created_at?: string
           email?: string
+          email_notify_types?: string[]
           id?: string
           name?: string
+          notify_types?: string[]
           phone?: string | null
           theme_preference?: string
         }

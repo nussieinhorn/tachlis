@@ -5,7 +5,23 @@ import type { User } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
 
-type Profile = { id: string; name: string; email: string; phone: string | null; themePreference: string };
+type Profile = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  themePreference: string;
+  notifyTypes: string[];
+  emailNotifyTypes: string[];
+};
+
+type ProfilePatch = {
+  name?: string;
+  phone?: string;
+  themePreference?: string;
+  notifyTypes?: string[];
+  emailNotifyTypes?: string[];
+};
 
 type AuthContextValue = {
   isSignedIn: boolean;
@@ -16,7 +32,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
-  updateProfile: (patch: { name?: string; phone?: string; themePreference?: string }) => Promise<{ error: string | null }>;
+  updateProfile: (patch: ProfilePatch) => Promise<{ error: string | null }>;
   updateEmail: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
   deleteAccount: () => Promise<{ error: string | null }>;
@@ -49,10 +65,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function loadProfile(userId: string) {
       const { data } = await supabase
         .from("profiles")
-        .select("id, name, email, phone, theme_preference")
+        .select("id, name, email, phone, theme_preference, notify_types, email_notify_types")
         .eq("id", userId)
         .single();
-      setProfile(data ? { id: data.id, name: data.name, email: data.email, phone: data.phone, themePreference: data.theme_preference } : null);
+      setProfile(
+        data
+          ? {
+              id: data.id,
+              name: data.name,
+              email: data.email,
+              phone: data.phone,
+              themePreference: data.theme_preference,
+              notifyTypes: data.notify_types,
+              emailNotifyTypes: data.email_notify_types,
+            }
+          : null,
+      );
     }
 
     supabase.auth.getUser().then(({ data }) => {
@@ -105,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
-  async function updateProfile(patch: { name?: string; phone?: string; themePreference?: string }) {
+  async function updateProfile(patch: ProfilePatch) {
     if (!user) return { error: "Not signed in" };
     const supabase = createClient();
     const { error } = await supabase
@@ -114,6 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...(patch.name !== undefined && { name: patch.name }),
         ...(patch.phone !== undefined && { phone: patch.phone }),
         ...(patch.themePreference !== undefined && { theme_preference: patch.themePreference }),
+        ...(patch.notifyTypes !== undefined && { notify_types: patch.notifyTypes }),
+        ...(patch.emailNotifyTypes !== undefined && { email_notify_types: patch.emailNotifyTypes }),
       })
       .eq("id", user.id);
     if (!error) setProfile((prev) => (prev ? { ...prev, ...patch } : prev));

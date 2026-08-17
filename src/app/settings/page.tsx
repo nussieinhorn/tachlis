@@ -2,18 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconCheck, IconMoon, IconSun, IconDeviceDesktop } from "@tabler/icons-react";
+import { IconCheck } from "@tabler/icons-react";
 
 import { useAuth } from "@/lib/auth";
-import { useTheme, type ThemePreference } from "@/lib/theme";
 import { createClient } from "@/lib/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { AuthGateRefresh } from "@/components/auth-gate-refresh";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/ui/icon";
-import { cn } from "@/lib/utils";
 
 type StatusConfigRow = { key: string; label: string; color_token: string; sort_order: number };
 
@@ -70,48 +67,6 @@ function StatusConfigEditor({ table, title }: { table: "issue_status_config" | "
   );
 }
 
-function ThemeSection() {
-  const { theme, setTheme } = useTheme();
-  const options: { value: ThemePreference; label: string; icon: typeof IconSun }[] = [
-    { value: "light", label: "Light", icon: IconSun },
-    { value: "dark", label: "Dark", icon: IconMoon },
-    { value: "system", label: "System", icon: IconDeviceDesktop },
-  ];
-  return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border p-5">
-      <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Appearance</h2>
-      <div className="flex gap-2">
-        {options.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => setTheme(opt.value)}
-            className={cn(
-              "flex flex-1 flex-col items-center gap-1.5 rounded-lg border px-3 py-3 text-sm",
-              theme === opt.value ? "border-primary bg-accent text-accent-foreground" : "border-border text-muted-foreground",
-            )}
-          >
-            <Icon icon={opt.icon} size={18} />
-            {opt.label}
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function EmailPreferencesSection() {
-  return (
-    <section className="flex flex-col gap-2 rounded-xl border border-border p-5">
-      <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Email preferences</h2>
-      <p className="text-sm text-muted-foreground">
-        More email controls are coming here — for now, alerts follow each issue&apos;s &quot;Sign up for
-        alerts&quot; subscription.
-      </p>
-    </section>
-  );
-}
-
 export default function SettingsPage() {
   const { isSignedIn } = useAuth();
   const router = useRouter();
@@ -153,10 +108,15 @@ export default function SettingsPage() {
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-lg flex-col gap-8 px-6 py-10">
         <h1 className="font-heading text-2xl font-bold text-foreground">Settings</h1>
-        <ThemeSection />
+        <p className="-mt-4 text-sm text-muted-foreground">
+          Site-wide options. For your own theme and notification preferences, see your{" "}
+          <a href="/profile" className="text-primary hover:underline">
+            profile
+          </a>
+          .
+        </p>
         <StatusConfigEditor table="issue_status_config" title="Issue statuses" />
         <StatusConfigEditor table="solution_status_config" title="Solution statuses" />
-        <EmailPreferencesSection />
       </main>
     </>
   );
