@@ -13,15 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Icon } from "@/components/ui/icon";
 
-export function PrivateIssueGate({
-  issueId,
-  issueTitle,
-  ownerName,
-}: {
-  issueId: string;
-  issueTitle: string;
-  ownerName?: string;
-}) {
+export function PrivateIssueGate({ issueId }: { issueId: string }) {
   const { isSignedIn, user } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState(user?.email ?? "");
@@ -66,6 +58,19 @@ export function PrivateIssueGate({
       setError(writeError.message);
       return;
     }
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
+    try {
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          type: "access_requested",
+          resourceId: issueId,
+          resourceType: "issue",
+          data: { requesterName: user.email ?? "Someone", link: `${origin}/` },
+        },
+      });
+    } catch {
+      // Non-fatal — the request was already recorded, email delivery is best-effort.
+    }
     setSubmitted(true);
   }
 
@@ -77,10 +82,10 @@ export function PrivateIssueGate({
         <div className="flex size-12 items-center justify-center rounded-full bg-muted">
           <Icon icon={IconLock} size={22} className="text-muted-foreground" />
         </div>
-        <h1 className="font-heading text-xl font-semibold text-foreground">This issue is private</h1>
+        <h1 className="font-heading text-xl font-semibold text-foreground">This is private</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          &quot;{issueTitle}&quot; is only visible to people {ownerName ? `${ownerName} has` : "the owner has"}{" "}
-          invited. Request access below, or head back home.
+          You need to request access to view it. Check your email — if someone approves your request,
+          you&apos;ll receive an email with a link back here.
         </p>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { IconCheck, IconPlus, IconUsersGroup, IconX } from "@tabler/icons-react";
+import { IconCheck, IconLock, IconPlus, IconUsersGroup, IconWorld, IconX } from "@tabler/icons-react";
 
 import {
   COMMUNITY_TONE_CLASSES,
@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Icon } from "@/components/ui/icon";
+import { LocationSearch } from "@/components/location-search";
+import { isValidEmail } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -27,7 +29,7 @@ import {
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
 
 const TONES: CommunityTone[] = ["coral", "amber", "blue", "violet", "green", "slate"];
-const STEPS = ["Basics", "Invite"];
+const STEPS = ["Privacy", "Basics", "Invite"];
 
 type Invite = { id: string; name: string; email: string };
 
@@ -122,15 +124,23 @@ export function CreateCommunityDialog({
       return;
     }
 
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
     for (const invite of invites) {
-      if (!invite.email.trim()) continue;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", invite.email.trim())
-        .maybeSingle();
-      if (profile) {
-        await supabase.from("community_editors").insert({ community_id: data.id, user_id: profile.id });
+      const email = invite.email.trim().toLowerCase();
+      if (!email || !isValidEmail(email)) continue;
+      const { data: pendingInvite } = await supabase
+        .from("pending_invites")
+        .insert({ email, resource_type: "community", resource_id: data.id, role: "editor", invited_by: user.id })
+        .select("token")
+        .single();
+      if (pendingInvite) {
+        supabase.functions.invoke("send-transactional-email", {
+          body: {
+            type: "invite",
+            to: email,
+            data: { resourceTitle: name.trim(), resourceType: "community", role: "editor", link: `${origin}/invite/accept?token=${pendingInvite.token}` },
+          },
+        }).catch(() => {});
       }
     }
 
@@ -157,7 +167,7 @@ export function CreateCommunityDialog({
   }
 
   const singlePage = isEditing || quickMode;
-  const canAdvance = step === 0 ? name.trim().length > 0 : true;
+  const canAdvance = step === 1 ? name.trim().length > 0 : true;
 
   return (
     <Dialog open={open} onOpenChange={reset}>
@@ -222,7 +232,75 @@ export function CreateCommunityDialog({
             </DialogHeader>
 
             <div className="flex-1 overflow-y-auto px-1">
-              {(step === 0 || singlePage) && (
+              {step === 0 && !singlePage && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {(
+                    [
+                      {
+                        value: "public" as const,
+                        icon: IconWorld,
+                        title: "Public",
+                        points: [
+                          { ok: true, text: "Searchable on Tachlis" },
+                          { ok: true, text: "Can be customized and appear on the homepage" },
+                          { ok: true, text: "Anyone with the link can view and support it" },
+                        ],
+                      },
+                      {
+                        value: "private" as const,
+                        icon: IconLock,
+                        title: "Private",
+                        points: [
+                          { ok: false, text: "Not searchable, not on the homepage" },
+                          { ok: false, text: "No one can view or join uninvited" },
+                          { ok: true, text: "Only people you invite or approve can join" },
+                        ],
+                      },
+                    ]
+                  ).map((opt) => (
+                    <div
+                      key={opt.value}
+                      className={cn(
+                        "flex flex-col gap-3 rounded-xl border-2 p-5 transition-colors",
+                        privacy === opt.value ? "border-primary bg-accent/40" : "border-border",
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon icon={opt.icon} size={22} className="text-foreground" />
+                        <span className="font-heading text-lg font-semibold text-foreground">{opt.title}</span>
+                      </div>
+                      <ul className="flex flex-col gap-1.5">
+                        {opt.points.map((p) => (
+                          <li key={p.text} className="flex items-start gap-2 text-sm text-muted-foreground">
+                            <Icon
+                              icon={p.ok ? IconCheck : IconX}
+                              size={15}
+                              className={cn("mt-0.5 shrink-0", p.ok ? "text-status-resolved" : "text-destructive")}
+                            />
+                            {p.text}
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        type="button"
+                        variant={privacy === opt.value ? "default" : "outline"}
+                        className="mt-auto"
+                        onClick={() => {
+                          setPrivacy(opt.value);
+                          setStep(1);
+                        }}
+                      >
+                        Continue
+                      </Button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                    You can change this later.
+                  </p>
+                </div>
+              )}
+
+              {(step === 1 || singlePage) && (
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="community-name">Community name</Label>
@@ -246,12 +324,7 @@ export function CreateCommunityDialog({
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="community-location">Location</Label>
-                    <Input
-                      id="community-location"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="e.g. Lakewood, NJ"
-                    />
+                    <LocationSearch value={location} onChange={setLocation} />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Logo</Label>
@@ -300,7 +373,7 @@ export function CreateCommunityDialog({
                 </div>
               )}
 
-              {step === 1 && !singlePage && (
+              {step === 2 && !singlePage && (
                 <div className="flex flex-col gap-4">
                   <p className="text-sm text-muted-foreground">
                     Invite people to join {name || "this community"}.

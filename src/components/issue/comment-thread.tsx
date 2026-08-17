@@ -125,7 +125,7 @@ export function CommentThread({
       return;
     }
     setComments((prev) => [
-      { id: data.id, author: data.author_name, body: data.body, createdAt: "Today" },
+      { id: data.id, author: data.author_name, body: data.body, createdAt: "just now" },
       ...prev,
     ]);
     setDraft("");
@@ -156,7 +156,7 @@ export function CommentThread({
         c.id === parentId
           ? {
               ...c,
-              replies: [...(c.replies ?? []), { id: data.id, author: data.author_name, body: data.body, createdAt: "Today" }],
+              replies: [...(c.replies ?? []), { id: data.id, author: data.author_name, body: data.body, createdAt: "just now" }],
             }
           : c,
       ),
@@ -166,24 +166,26 @@ export function CommentThread({
 
   const visible = comments.slice(0, visibleCount);
 
+  if (!commentsEnabled) {
+    return <p className="text-sm text-muted-foreground">Comments are turned off for this issue.</p>;
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {commentsEnabled ? (
-        commentsRequireLogin && !isSignedIn ? (
-          <p className="text-sm text-muted-foreground">Sign in to join the discussion.</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {!isSignedIn && (
-              <Input placeholder="Your name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
-            )}
-            <Textarea placeholder={postPlaceholder} value={draft} onChange={(e) => setDraft(e.target.value)} />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim() || !authorName}>
-              Post
-            </Button>
-          </div>
-        )
-      ) : null}
+      {commentsRequireLogin && !isSignedIn ? (
+        <p className="text-sm text-muted-foreground">Sign in to join the discussion.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {!isSignedIn && (
+            <Input placeholder="Your name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+          )}
+          <Textarea placeholder={postPlaceholder} value={draft} onChange={(e) => setDraft(e.target.value)} />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim() || !authorName}>
+            Post
+          </Button>
+        </div>
+      )}
 
       {comments.length === 0 ? (
         <p className="text-sm text-muted-foreground">{emptyText}</p>

@@ -14,12 +14,16 @@ export function OtherProposals({
   canEdit,
   isFirstChosen,
   label = "archived proposals",
+  commentsEnabled,
+  commentsRequireLogin,
 }: {
   solutions: Solution[];
   issueId: string;
   canEdit: boolean;
   isFirstChosen: boolean;
   label?: string;
+  commentsEnabled?: boolean;
+  commentsRequireLogin?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -40,6 +44,8 @@ export function OtherProposals({
               issueId={issueId}
               canEdit={canEdit}
               isFirstChosen={isFirstChosen}
+              commentsEnabled={commentsEnabled}
+              commentsRequireLogin={commentsRequireLogin}
             />
           ))}
         </div>

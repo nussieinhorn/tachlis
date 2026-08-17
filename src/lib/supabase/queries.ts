@@ -1,7 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
-import { LOCATIONS, type Issue, type Solution, type Comment, type Update, type ActionPlan } from "@/lib/mock-data";
+import { LOCATIONS, type Issue, type Solution, type Comment, type Update, type ActionPlan, type CategoryOption } from "@/lib/mock-data";
 import type { Community } from "@/lib/communities-data";
 import type { Database } from "@/lib/supabase/types";
+import { formatRelativeTime as formatRelativeDate } from "@/lib/format";
+
+/**
+ * All categories (seeded + admin-added). Returns plain data (no icon component reference) since
+ * this crosses the Server -> Client Component boundary — React can't serialize function props,
+ * so the icon is resolved client-side from `iconSlug` via `getCategoryIcon()` instead.
+ */
+export async function getCategories(): Promise<CategoryOption[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("categories").select("slug, label, icon_slug").order("sort_order");
+  return (data ?? []).map((c) => ({ slug: c.slug, label: c.label, iconSlug: c.icon_slug }));
+}
 
 type IssueRow = Database["public"]["Tables"]["issues"]["Row"];
 type CommunityRow = Database["public"]["Tables"]["communities"]["Row"];
@@ -11,17 +23,6 @@ type SolutionRow = Database["public"]["Tables"]["solutions"]["Row"] & {
   solution_votes: { count: number }[];
   submitter: { name: string; email: string } | null;
 };
-
-function formatRelativeDate(iso: string): string {
-  const date = new Date(iso);
-  const days = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
-  if (days <= 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  if (days < 14) return "1 week ago";
-  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
 
 function deriveLocationArea(location: string | null): Issue["locationArea"] {
   const match = LOCATIONS.find((loc) => loc !== "Worldwide" && location?.includes(loc));
@@ -57,8 +58,15 @@ function mapSolution(row: SolutionRow): Solution {
     deleted: row.deleted,
     reviewStatus: row.review_status as Solution["reviewStatus"],
     submitter: row.submitter
-      ? { name: row.submitter.name, email: row.submitter.email, phone: row.submitter_phone ?? undefined }
+      ? {
+          name: row.submitter.name,
+          email: row.submitter.email,
+          phone: row.submitter_phone ?? undefined,
+          location: row.submitter_location,
+        }
       : undefined,
+    createdAt: row.created_at,
+    sortOrder: row.sort_order,
   };
 }
 
@@ -199,15 +207,15 @@ export async function getIssueEditAccess(issueId: string): Promise<boolean> {
   return data ?? false;
 }
 
-/** Minimal id/title/visibility/owner for an issue, bypassing RLS — used only to render the private-issue "request access" screen. `code` is the 4-digit display code. */
+/** Minimal id/visibility for an issue, bypassing RLS — used only to render the private-issue "request access" screen. No title/owner: private issues shouldn't leak identifying details pre-access. `code` is the 4-digit display code. */
 export async function getIssueStub(
   code: string,
-): Promise<{ id: string; displayCode: string; title: string; visibility: string; ownerName: string | null } | undefined> {
+): Promise<{ id: string; displayCode: string; visibility: string } | undefined> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("get_issue_stub", { p_display_code: code });
   const row = data?.[0];
   if (!row) return undefined;
-  return { id: row.id, displayCode: row.display_code, title: row.title, visibility: row.visibility, ownerName: row.owner_name };
+  return { id: row.id, displayCode: row.display_code, visibility: row.visibility };
 }
 
 function mapIssueRow(row: IssueRow, supporterCount: number, ownerName?: string): Issue {
@@ -318,8 +326,10 @@ export async function getIssue(code: string): Promise<Issue | undefined> {
     willingToHelp: supports.filter((s) => s.level === "willing-to-help").length,
   };
 
-  const solutions = (data.solutions as unknown as SolutionRow[]).map(mapSolution);
-  const chosenSolutionIds = solutions.filter((_, i) => (data.solutions as unknown as SolutionRow[])[i].is_chosen).map((s) => s.id);
+  const solutions = (data.solutions as unknown as SolutionRow[])
+    .map(mapSolution)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const chosenSolutionIds = solutions.filter((s) => s.status === "chosen").map((s) => s.id);
 
   const updates: Update[] = (data.issue_updates as Database["public"]["Tables"]["issue_updates"]["Row"][])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

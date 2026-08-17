@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { IconPlus, IconUserCircle, IconLogout, IconCircleCheck, IconList, IconUsersGroup } from "@tabler/icons-react";
+import { IconPlus, IconUserCircle, IconLogout, IconCircleCheck, IconList, IconUsersGroup, IconSettings, IconUserCog } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
 
 function SignInDialog() {
   const [open, setOpen] = useState(false);
@@ -51,6 +52,13 @@ function SignInDialog() {
 export function SiteHeader() {
   const { isSignedIn, profile, signOut } = useAuth();
   const router = useRouter();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const supabase = createClient();
+    supabase.rpc("is_super_admin").then(({ data }) => setIsSuperAdmin(Boolean(data)));
+  }, [isSignedIn]);
 
   async function handleSignOut() {
     await signOut();
@@ -115,6 +123,21 @@ export function SiteHeader() {
                       Solved
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <Icon icon={IconUserCog} size={16} />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  {isSuperAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings">
+                        <Icon icon={IconSettings} size={16} />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <Icon icon={IconLogout} size={16} />

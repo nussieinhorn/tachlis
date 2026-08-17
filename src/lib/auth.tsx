@@ -5,7 +5,7 @@ import type { User } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
 
-type Profile = { id: string; name: string; email: string; phone: string | null };
+type Profile = { id: string; name: string; email: string; phone: string | null; themePreference: string };
 
 type AuthContextValue = {
   isSignedIn: boolean;
@@ -16,6 +16,10 @@ type AuthContextValue = {
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
+  updateProfile: (patch: { name?: string; phone?: string; themePreference?: string }) => Promise<{ error: string | null }>;
+  updateEmail: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
+  deleteAccount: () => Promise<{ error: string | null }>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -43,8 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = createClient();
 
     async function loadProfile(userId: string) {
-      const { data } = await supabase.from("profiles").select("id, name, email, phone").eq("id", userId).single();
-      setProfile(data ?? null);
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, name, email, phone, theme_preference")
+        .eq("id", userId)
+        .single();
+      setProfile(data ? { id: data.id, name: data.name, email: data.email, phone: data.phone, themePreference: data.theme_preference } : null);
     }
 
     supabase.auth.getUser().then(({ data }) => {
@@ -97,9 +105,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
+  async function updateProfile(patch: { name?: string; phone?: string; themePreference?: string }) {
+    if (!user) return { error: "Not signed in" };
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        ...(patch.name !== undefined && { name: patch.name }),
+        ...(patch.phone !== undefined && { phone: patch.phone }),
+        ...(patch.themePreference !== undefined && { theme_preference: patch.themePreference }),
+      })
+      .eq("id", user.id);
+    if (!error) setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
+    return { error: error?.message ?? null };
+  }
+
+  async function updateEmail(email: string) {
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ email });
+    return { error: error?.message ?? null };
+  }
+
+  async function updatePassword(password: string) {
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error: error?.message ?? null };
+  }
+
+  async function deleteAccount() {
+    const supabase = createClient();
+    const { error } = await supabase.rpc("delete_own_account");
+    if (!error) await supabase.auth.signOut();
+    return { error: error?.message ?? null };
+  }
+
   return (
     <AuthContext.Provider
-      value={{ isSignedIn: Boolean(user), loading, user, profile, signUp, signIn, signOut, resetPassword }}
+      value={{
+        isSignedIn: Boolean(user),
+        loading,
+        user,
+        profile,
+        signUp,
+        signIn,
+        signOut,
+        resetPassword,
+        updateProfile,
+        updateEmail,
+        updatePassword,
+        deleteAccount,
+      }}
     >
       {children}
     </AuthContext.Provider>

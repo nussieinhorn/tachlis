@@ -3,10 +3,10 @@ import { IssueBrowser } from "@/components/issue-browser";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { Button } from "@/components/ui/button";
-import { getIssues } from "@/lib/supabase/queries";
+import { getCategories, getIssues } from "@/lib/supabase/queries";
 
 export default async function Home() {
-  const issues = await getIssues();
+  const [issues, categories] = await Promise.all([getIssues(), getCategories()]);
   const activeIssues = issues.filter((issue) => issue.status !== "resolved" && issue.showOnHomepage);
 
   return (
@@ -40,7 +40,7 @@ export default async function Home() {
           />
         </section>
 
-        <IssueBrowser issues={activeIssues} />
+        <IssueBrowser issues={activeIssues} categories={categories} />
       </main>
     </>
   );

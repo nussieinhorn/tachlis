@@ -1,6 +1,6 @@
 "use client";
 
-import { IconListDetails } from "@tabler/icons-react";
+import { IconSettings } from "@tabler/icons-react";
 
 import type { Issue } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,8 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
       solutions={solutions}
       showArchivedToUsers={issue.showHiddenSolutionsAfterChosen ?? true}
       trigger={
-        <Button variant="outline" size="sm">
-          <Icon icon={IconListDetails} size={16} />
-          Manage solutions
+        <Button variant="outline" size="icon" aria-label="Manage solutions">
+          <Icon icon={IconSettings} size={16} />
         </Button>
       }
     />
@@ -43,7 +42,10 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
           <h2 className="font-heading text-lg font-semibold text-foreground">
             Solution{chosen.length > 1 ? "s" : ""} chosen
           </h2>
-          {canEdit && manageDialog}
+          <div className="flex items-center gap-2">
+            {canEdit && manageDialog}
+            {canEdit && <SuggestSolution issueId={issue.id} canEdit={canEdit} />}
+          </div>
         </div>
         {chosen.map((solution) => (
           <SolutionCard
@@ -53,10 +55,19 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
             headline
             canEdit={canEdit}
             isFirstChosen={isFirstChosen}
+            commentsEnabled={issue.commentsEnabled}
+            commentsRequireLogin={issue.commentsRequireLogin}
           />
         ))}
         {showOther && (
-          <OtherProposals solutions={other} issueId={issue.id} canEdit={canEdit} isFirstChosen={isFirstChosen} />
+          <OtherProposals
+            solutions={other}
+            issueId={issue.id}
+            canEdit={canEdit}
+            isFirstChosen={isFirstChosen}
+            commentsEnabled={issue.commentsEnabled}
+            commentsRequireLogin={issue.commentsRequireLogin}
+          />
         )}
       </section>
     );
@@ -70,14 +81,17 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
         </h2>
         <div className="flex items-center gap-2">
           {canEdit && manageDialog}
-          <SuggestSolution issueId={issue.id} canEdit={canEdit} />
+          {visible.length >= 1 && <SuggestSolution issueId={issue.id} canEdit={canEdit} />}
         </div>
       </div>
 
       {visible.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No solutions proposed yet — be the first to suggest one.
-        </p>
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            No solutions proposed yet — be the first to suggest one.
+          </p>
+          <SuggestSolution issueId={issue.id} size="lg" canEdit={canEdit} />
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {visible.slice(0, 5).map((solution, i) => (
@@ -88,6 +102,8 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
               index={i}
               canEdit={canEdit}
               isFirstChosen={isFirstChosen}
+              commentsEnabled={issue.commentsEnabled}
+              commentsRequireLogin={issue.commentsRequireLogin}
             />
           ))}
         </div>
@@ -99,10 +115,12 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
           canEdit={canEdit}
           isFirstChosen={isFirstChosen}
           label="more solutions"
+          commentsEnabled={issue.commentsEnabled}
+          commentsRequireLogin={issue.commentsRequireLogin}
         />
       )}
 
-      <SuggestSolution issueId={issue.id} size="lg" canEdit={canEdit} />
+      {visible.length > 1 && <SuggestSolution issueId={issue.id} size="lg" canEdit={canEdit} />}
     </section>
   );
 }

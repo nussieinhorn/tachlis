@@ -81,10 +81,12 @@ export function JoinPanel({
   viewCount: number;
   supporterBreakdown?: { justSupport: number; resonates: number; willingToHelp: number };
 }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
+  const [unsupportOpen, setUnsupportOpen] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [supported, setSupported] = useState(false);
+  const [supportRowId, setSupportRowId] = useState<string | null>(null);
   const [dialogState, setDialogState] = useState<DialogState>("options");
   const [pendingTag, setPendingTag] = useState<IntentTag | null>(null);
   const [name, setName] = useState("");
@@ -96,6 +98,7 @@ export function JoinPanel({
   useEffect(() => {
     if (!user) {
       setSupported(false);
+      setSupportRowId(null);
       return;
     }
     const supabase = createClient();
@@ -107,11 +110,12 @@ export function JoinPanel({
       .maybeSingle()
       .then(({ data }) => {
         setSupported(Boolean(data));
+        setSupportRowId(data?.id ?? null);
       });
   }, [user, issueId]);
 
   async function chooseOption(tag: IntentTag) {
-    if (tag === "willing-to-help") {
+    if (tag === "willing-to-help" && !user) {
       setPendingTag(tag);
       setDialogState("contact");
       return;
@@ -119,14 +123,25 @@ export function JoinPanel({
 
     setError(null);
     const supabase = createClient();
-    const { error: insertError } = await supabase
+    const useProfileContact = tag === "willing-to-help" && user && profile;
+    const { data, error: insertError } = await supabase
       .from("issue_supports")
-      .insert({ issue_id: issueId, user_id: user?.id ?? null, level: tag });
+      .insert({
+        issue_id: issueId,
+        user_id: user?.id ?? null,
+        level: tag,
+        contact_name: useProfileContact ? profile!.name : null,
+        contact_email: useProfileContact ? profile!.email : null,
+        contact_phone: useProfileContact ? profile!.phone : null,
+      })
+      .select("id")
+      .single();
     if (insertError) {
       setError(insertError.message);
       return;
     }
     setSupported(true);
+    setSupportRowId(data?.id ?? null);
     setSupporterCount((c) => c + 1);
     setDialogState("thanks");
     setTimeout(() => setOpen(false), 1500);
@@ -136,22 +151,40 @@ export function JoinPanel({
     if (!pendingTag) return;
     setError(null);
     const supabase = createClient();
-    const { error: insertError } = await supabase.from("issue_supports").insert({
-      issue_id: issueId,
-      user_id: user?.id ?? null,
-      level: pendingTag,
-      contact_name: name.trim(),
-      contact_email: email.trim(),
-      contact_phone: phone.trim() || null,
-    });
+    const { data, error: insertError } = await supabase
+      .from("issue_supports")
+      .insert({
+        issue_id: issueId,
+        user_id: user?.id ?? null,
+        level: pendingTag,
+        contact_name: name.trim(),
+        contact_email: email.trim(),
+        contact_phone: phone.trim() || null,
+      })
+      .select("id")
+      .single();
     if (insertError) {
       setError(insertError.message);
       return;
     }
     setSupported(true);
+    setSupportRowId(data?.id ?? null);
     setSupporterCount((c) => c + 1);
     setDialogState("thanks");
     setTimeout(() => setOpen(false), 1500);
+  }
+
+  async function removeSupport() {
+    if (!supportRowId) {
+      setUnsupportOpen(false);
+      return;
+    }
+    const supabase = createClient();
+    await supabase.from("issue_supports").delete().eq("id", supportRowId);
+    setSupported(false);
+    setSupportRowId(null);
+    setSupporterCount((c) => Math.max(0, c - 1));
+    setUnsupportOpen(false);
   }
 
   function resetDialog(nextOpen: boolean) {
@@ -219,7 +252,7 @@ export function JoinPanel({
           size="lg"
           variant={supported ? "secondary" : "default"}
           className="h-11 flex-1 text-base"
-          onClick={() => (supported ? undefined : setOpen(true))}
+          onClick={() => (supported ? setUnsupportOpen(true) : setOpen(true))}
         >
           <Icon icon={IconCheck} className={cn(!supported && "hidden")} />
           {supported ? "Supporting" : "Support"}
@@ -320,6 +353,23 @@ export function JoinPanel({
               </DialogHeader>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={unsupportOpen} onOpenChange={setUnsupportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove your support?</DialogTitle>
+            <DialogDescription>You can always support this issue again later.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setUnsupportOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={removeSupport}>
+              Remove support
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

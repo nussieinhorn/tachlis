@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { IconMapPin, IconUsers } from "@tabler/icons-react";
 
-import type { Issue } from "@/lib/mock-data";
+import type { Category, Issue } from "@/lib/mock-data";
 import { getCategory } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Icon } from "@/components/ui/icon";
 
-export function IssueCard({ issue }: { issue: Issue }) {
-  const category = getCategory(issue.categorySlug);
+export function IssueCard({ issue, categories }: { issue: Issue; categories?: Category[] }) {
+  const category = categories?.find((c) => c.slug === issue.categorySlug) ?? getCategory(issue.categorySlug);
 
   return (
     <Link

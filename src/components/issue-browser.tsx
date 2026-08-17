@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { IconChevronDown, IconMapPin, IconArrowsSort } from "@tabler/icons-react";
 
-import type { Issue } from "@/lib/mock-data";
+import type { Issue, Category, CategoryOption } from "@/lib/mock-data";
 import { CATEGORIES, LOCATIONS, type Location } from "@/lib/mock-data";
+import { getCategoryIcon } from "@/lib/category-icons";
 import { IssueCard } from "@/components/issue-card";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
@@ -19,11 +20,17 @@ import {
 const PAGE_SIZE = 5;
 
 type SortOption = "trending" | "recent" | "alphabetical";
+type HeaderMode = "public" | "trending";
 
 const SORT_LABELS: Record<SortOption, string> = {
   trending: "Trending",
   recent: "Recent",
   alphabetical: "Alphabetical",
+};
+
+const HEADER_LABELS: Record<HeaderMode, string> = {
+  public: "Public issues",
+  trending: "Trending issues",
 };
 
 function sortIssues(issues: Issue[], sort: SortOption): Issue[] {
@@ -36,11 +43,27 @@ function sortIssues(issues: Issue[], sort: SortOption): Issue[] {
   return issues;
 }
 
-export function IssueBrowser({ issues }: { issues: Issue[] }) {
+const FILTER_PILL_CLASS =
+  "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground";
+
+export function IssueBrowser({ issues, categories }: { issues: Issue[]; categories?: CategoryOption[] }) {
+  const categoryList: Category[] = useMemo(
+    () =>
+      categories
+        ? categories.map((c) => ({ slug: c.slug, label: c.label, icon: getCategoryIcon(c.iconSlug) }))
+        : CATEGORIES,
+    [categories],
+  );
+  const [headerMode, setHeaderMode] = useState<HeaderMode>("public");
   const [location, setLocation] = useState<Location>("Worldwide");
   const [categorySlugs, setCategorySlugs] = useState<string[]>([]);
-  const [sort, setSort] = useState<SortOption>("trending");
+  const [sort, setSort] = useState<SortOption>("recent");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  function selectHeaderMode(mode: HeaderMode) {
+    setHeaderMode(mode);
+    setSort(mode === "trending" ? "trending" : "recent");
+  }
 
   function toggleCategory(slug: string) {
     setCategorySlugs((prev) =>
@@ -69,18 +92,31 @@ export function IssueBrowser({ issues }: { issues: Issue[] }) {
     categorySlugs.length === 0 ? "All" : `${categorySlugs.length} selected`;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col gap-4">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className="flex w-fit items-center gap-1.5 hover:opacity-80">
+            <h2 className="font-heading text-xl font-bold text-foreground">{HEADER_LABELS[headerMode]}</h2>
+            <Icon icon={IconChevronDown} size={18} className="text-muted-foreground" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          {(Object.keys(HEADER_LABELS) as HeaderMode[]).map((mode) => (
+            <DropdownMenuItem key={mode} onClick={() => selectHeaderMode(mode)}>
+              {HEADER_LABELS[mode]}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <Icon icon={IconMapPin} size={16} />
-                Location: {location}
-                <Icon icon={IconChevronDown} size={16} className="text-muted-foreground" />
+              <button type="button" className={FILTER_PILL_CLASS}>
+                <Icon icon={IconMapPin} size={14} />
+                {location}
+                <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
@@ -95,16 +131,13 @@ export function IssueBrowser({ issues }: { issues: Issue[] }) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
-              >
+              <button type="button" className={FILTER_PILL_CLASS}>
                 Category: {categoryLabel}
-                <Icon icon={IconChevronDown} size={16} className="text-muted-foreground" />
+                <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {CATEGORIES.map((category) => (
+              {categoryList.map((category) => (
                 <DropdownMenuCheckboxItem
                   key={category.slug}
                   checked={categorySlugs.includes(category.slug)}
@@ -120,13 +153,10 @@ export function IssueBrowser({ issues }: { issues: Issue[] }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
-            >
-              <Icon icon={IconArrowsSort} size={16} />
+            <button type="button" className={FILTER_PILL_CLASS}>
+              <Icon icon={IconArrowsSort} size={14} />
               Sort: {SORT_LABELS[sort]}
-              <Icon icon={IconChevronDown} size={16} className="text-muted-foreground" />
+              <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -146,7 +176,7 @@ export function IssueBrowser({ issues }: { issues: Issue[] }) {
         <>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {visible.map((issue) => (
-              <IssueCard key={issue.id} issue={issue} />
+              <IssueCard key={issue.id} issue={issue} categories={categoryList} />
             ))}
           </div>
           {visibleCount < filtered.length && (

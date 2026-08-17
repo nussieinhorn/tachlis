@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IconArrowUp, IconCheck, IconX, IconMessageCircle, IconDots, IconEyeOff, IconEye, IconTrash, IconPencil, IconChevronDown } from "@tabler/icons-react";
 
 import type { Solution, SolutionStatus } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
+import { abbreviateLocation, abbreviateName, formatRelativeTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge, type badgeVariants } from "@/components/ui/badge";
@@ -17,6 +18,14 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +56,8 @@ export function SolutionCard({
   headline = false,
   canEdit,
   isFirstChosen,
+  commentsEnabled = true,
+  commentsRequireLogin = false,
 }: {
   solution: Solution;
   issueId: string;
@@ -55,16 +66,38 @@ export function SolutionCard({
   canEdit: boolean;
   /** Whether marking this issue's solution "Chosen" would be the first time ever on this issue. */
   isFirstChosen: boolean;
+  commentsEnabled?: boolean;
+  commentsRequireLogin?: boolean;
 }) {
   const { user } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [chosenDialogOpen, setChosenDialogOpen] = useState(false);
   const [votes, setVotes] = useState(solution.votes);
   const [voted, setVoted] = useState(false);
+  const [voteRowId, setVoteRowId] = useState<string | null>(null);
+  const [unvoteOpen, setUnvoteOpen] = useState(false);
 
   const statusConfig = SOLUTION_STATUS_CONFIG[solution.status];
   const hidden = Boolean(solution.hidden);
+
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    supabase
+      .from("solution_votes")
+      .select("id")
+      .eq("solution_id", solution.id)
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setVoted(true);
+          setVoteRowId(data.id);
+        }
+      });
+  }, [user, solution.id]);
 
   async function changeStatus(next: SolutionStatus, e?: React.MouseEvent) {
     e?.stopPropagation();
@@ -84,12 +117,34 @@ export function SolutionCard({
 
   async function castVote(e?: React.MouseEvent) {
     e?.stopPropagation();
-    if (voted) return;
+    if (voted) {
+      setUnvoteOpen(true);
+      return;
+    }
     const supabase = createClient();
-    const { error } = await supabase.from("solution_votes").insert({ solution_id: solution.id, user_id: user?.id ?? null });
+    const { data, error } = await supabase
+      .from("solution_votes")
+      .insert({ solution_id: solution.id, user_id: user?.id ?? null })
+      .select("id")
+      .single();
     if (error) return;
     setVoted(true);
+    setVoteRowId(data?.id ?? null);
     setVotes((v) => v + 1);
+  }
+
+  async function removeVote(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    if (!voteRowId) {
+      setUnvoteOpen(false);
+      return;
+    }
+    const supabase = createClient();
+    await supabase.from("solution_votes").delete().eq("id", voteRowId);
+    setVoted(false);
+    setVoteRowId(null);
+    setVotes((v) => Math.max(0, v - 1));
+    setUnvoteOpen(false);
   }
 
   async function toggleHide(e?: React.MouseEvent) {
@@ -119,15 +174,10 @@ export function SolutionCard({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <SolutionEditDialog
-          solution={solution}
-          trigger={
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-              <Icon icon={IconPencil} size={16} />
-              Edit
-            </DropdownMenuItem>
-          }
-        />
+        <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setEditOpen(true)}>
+          <Icon icon={IconPencil} size={16} />
+          Edit
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={toggleHide}>
           <Icon icon={hidden ? IconEye : IconEyeOff} size={16} />
           {hidden ? "Unhide" : "Hide"}
@@ -140,17 +190,40 @@ export function SolutionCard({
     </DropdownMenu>
   );
 
+  const editPencil = canEdit && (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditOpen(true);
+      }}
+      className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      aria-label="Edit solution"
+    >
+      <Icon icon={IconPencil} size={16} />
+    </button>
+  );
+
+  const metaLine = solution.submitter && (
+    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      {abbreviateName(solution.submitter.name)}
+      {solution.submitter.location && ` · ${abbreviateLocation(solution.submitter.location)}`}
+      {" · "}
+      {formatRelativeTime(solution.createdAt)}
+    </span>
+  );
+
   return (
     <>
       <Card
         className={cn(
-          "cursor-pointer transition-shadow hover:shadow-sm",
+          "cursor-pointer gap-3 transition-shadow hover:shadow-sm",
           headline && "border-primary shadow-sm",
           hidden && canEdit && "opacity-50",
         )}
         onClick={() => setOpen(true)}
       >
-        <CardHeader>
+        <CardHeader className="px-4 pt-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-1">
               {typeof index === "number" && (
@@ -158,7 +231,7 @@ export function SolutionCard({
                   Solution {index + 1}
                 </span>
               )}
-              <CardTitle className={headline ? "text-2xl" : "text-xl"}>{solution.title}</CardTitle>
+              <CardTitle className={headline ? "text-xl" : "text-base"}>{solution.title}</CardTitle>
             </div>
             <div className="flex shrink-0 items-start gap-1">
               {canEdit ? (
@@ -185,9 +258,10 @@ export function SolutionCard({
               {adminMenu}
             </div>
           </div>
-          <CardDescription className="line-clamp-2 text-base">
+          <CardDescription className="line-clamp-2 text-sm">
             {solution.description}
           </CardDescription>
+          {metaLine}
           {hidden && canEdit && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Icon icon={IconEyeOff} size={12} />
@@ -195,7 +269,7 @@ export function SolutionCard({
             </p>
           )}
         </CardHeader>
-        <CardContent className="flex items-center gap-3 pb-6">
+        <CardContent className="flex items-center gap-3 px-4 pb-4">
           <Button
             size="sm"
             variant={voted ? "secondary" : "outline"}
@@ -205,10 +279,12 @@ export function SolutionCard({
             <Icon icon={voted ? IconCheck : IconArrowUp} size={16} />
             {votes}
           </Button>
-          <span className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Icon icon={IconMessageCircle} size={16} />
-            {solution.comments.length}
-          </span>
+          {commentsEnabled && (
+            <span className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Icon icon={IconMessageCircle} size={16} />
+              {solution.comments.length}
+            </span>
+          )}
         </CardContent>
       </Card>
 
@@ -220,7 +296,10 @@ export function SolutionCard({
                 {typeof index === "number" ? `Solution ${index + 1}` : "Solution"} · #{solution.displayCode}
               </span>
               <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-              <div className="ml-auto">{adminMenu}</div>
+              <div className="ml-auto flex items-center gap-1">
+                {editPencil}
+                {adminMenu}
+              </div>
             </div>
             <Button
               size="lg"
@@ -233,6 +312,7 @@ export function SolutionCard({
             </Button>
             <SheetTitle className="text-2xl">{solution.title}</SheetTitle>
             <SheetDescription className="text-base">{solution.description}</SheetDescription>
+            {metaLine}
           </SheetHeader>
 
           <div className="flex flex-col gap-6 px-6">
@@ -301,11 +381,15 @@ export function SolutionCard({
                 initialComments={solution.comments}
                 postPlaceholder="Add a comment on this solution..."
                 emptyText="No comments yet."
+                commentsEnabled={commentsEnabled}
+                commentsRequireLogin={commentsRequireLogin}
               />
             </div>
           </div>
         </SheetContent>
       </Sheet>
+
+      {canEdit && <SolutionEditDialog solution={solution} open={editOpen} onOpenChange={setEditOpen} />}
 
       <ChosenSolutionDialog
         open={chosenDialogOpen}
@@ -313,6 +397,23 @@ export function SolutionCard({
         issueId={issueId}
         solutionId={solution.id}
       />
+
+      <Dialog open={unvoteOpen} onOpenChange={setUnvoteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove your vote?</DialogTitle>
+            <DialogDescription>You can always vote for this solution again later.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setUnvoteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={removeVote}>
+              Remove vote
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

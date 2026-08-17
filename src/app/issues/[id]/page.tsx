@@ -10,9 +10,8 @@ import { IssueAdminStatus } from "@/components/issue/issue-admin-status";
 import { IssueDescription } from "@/components/issue/issue-description";
 import { IssueSidebar } from "@/components/issue/issue-sidebar";
 import { ActionPlanPanel } from "@/components/issue/action-plan-panel";
-import { ActionTeamPanel } from "@/components/issue/action-team-panel";
-import { ActionPlanVisibilityToggle } from "@/components/issue/action-plan-visibility-toggle";
 import { IssueSolutionsSection } from "@/components/issue/issue-solutions-section";
+import { MobileSupportBar } from "@/components/issue/mobile-support-bar";
 import { IssueCommunitySection } from "@/components/issue/issue-community-section";
 import { PrivateIssueGate } from "@/components/issue/private-issue-gate";
 import { getCategory } from "@/lib/mock-data";
@@ -32,7 +31,7 @@ export default async function IssueDetailPage({
     return (
       <>
         <SiteHeader />
-        <PrivateIssueGate issueId={stub.id} issueTitle={stub.title} ownerName={stub.ownerName ?? undefined} />
+        <PrivateIssueGate issueId={stub.id} />
       </>
     );
   }
@@ -96,16 +95,18 @@ export default async function IssueDetailPage({
               />
             </div>
 
+            <div id="support-sentinel" />
+
             <IssueSolutionsSection issue={issue} canEdit={canEdit} />
 
-            {issue.firstChosenPromptedAt && (canEdit || issue.actionPlanVisible) && (
-              <div className="flex flex-col gap-3">
-                {canEdit && <ActionPlanVisibilityToggle issueId={issue.id} visible={issue.actionPlanVisible} />}
-                {issue.actionPlan && (
-                  <ActionPlanPanel actionPlanId={issue.actionPlan.id} plan={issue.actionPlan} canEdit={canEdit} />
-                )}
-                <ActionTeamPanel issueId={issue.id} actionPlan={issue.actionPlan} canEdit={canEdit} />
-              </div>
+            {issue.firstChosenPromptedAt && issue.actionPlan && (canEdit || issue.actionPlanVisible) && (
+              <ActionPlanPanel
+                issueId={issue.id}
+                actionPlanId={issue.actionPlan.id}
+                plan={issue.actionPlan}
+                canEdit={canEdit}
+                actionPlanVisible={issue.actionPlanVisible}
+              />
             )}
 
             {community && <IssueCommunitySection community={community} />}
@@ -130,6 +131,15 @@ export default async function IssueDetailPage({
           />
         </div>
       </main>
+
+      <MobileSupportBar
+        issueId={issue.id}
+        issueTitle={issue.title}
+        isPrivate={issue.visibility === "private"}
+        canEdit={canEdit}
+        ownerName={issue.createdBy || undefined}
+        initialSupporterCount={issue.supporterCount}
+      />
     </>
   );
 }

@@ -168,16 +168,19 @@ export type Database = {
       }
       categories: {
         Row: {
+          icon_slug: string | null
           label: string
           slug: string
           sort_order: number
         }
         Insert: {
+          icon_slug?: string | null
           label: string
           slug: string
           sort_order?: number
         }
         Update: {
+          icon_slug?: string | null
           label?: string
           slug?: string
           sort_order?: number
@@ -466,6 +469,27 @@ export type Database = {
           },
         ]
       }
+      issue_status_config: {
+        Row: {
+          color_token: string
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          color_token: string
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          color_token?: string
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       issue_supports: {
         Row: {
           contact_email: string | null
@@ -676,6 +700,7 @@ export type Database = {
           created_at: string
           id: string
           issue_id: string
+          payload: Json | null
           read_at: string | null
           type: string
           user_id: string
@@ -684,6 +709,7 @@ export type Database = {
           created_at?: string
           id?: string
           issue_id: string
+          payload?: Json | null
           read_at?: string | null
           type: string
           user_id: string
@@ -692,6 +718,7 @@ export type Database = {
           created_at?: string
           id?: string
           issue_id?: string
+          payload?: Json | null
           read_at?: string | null
           type?: string
           user_id?: string
@@ -707,6 +734,50 @@ export type Database = {
           {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_invites: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_by: string
+          resource_id: string
+          resource_type: string
+          role: string
+          status: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_by: string
+          resource_id: string
+          resource_type: string
+          role: string
+          status?: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string
+          resource_id?: string
+          resource_type?: string
+          role?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_invites_invited_by_fkey"
+            columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -762,6 +833,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          theme_preference: string
         }
         Insert: {
           created_at?: string
@@ -769,6 +841,7 @@ export type Database = {
           id: string
           name?: string
           phone?: string | null
+          theme_preference?: string
         }
         Update: {
           created_at?: string
@@ -776,6 +849,28 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          theme_preference?: string
+        }
+        Relationships: []
+      }
+      solution_status_config: {
+        Row: {
+          color_token: string
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          color_token: string
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          color_token?: string
+          key?: string
+          label?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -828,8 +923,10 @@ export type Database = {
           issue_id: string
           pros: string[]
           review_status: string
+          sort_order: number
           status: string
           submitted_by: string
+          submitter_location: string | null
           submitter_phone: string | null
           title: string
           updated_at: string
@@ -846,8 +943,10 @@ export type Database = {
           issue_id: string
           pros?: string[]
           review_status?: string
+          sort_order?: number
           status?: string
           submitted_by: string
+          submitter_location?: string | null
           submitter_phone?: string | null
           title: string
           updated_at?: string
@@ -864,8 +963,10 @@ export type Database = {
           issue_id?: string
           pros?: string[]
           review_status?: string
+          sort_order?: number
           status?: string
           submitted_by?: string
+          submitter_location?: string | null
           submitter_phone?: string | null
           title?: string
           updated_at?: string
@@ -892,6 +993,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_pending_invite: {
+        Args: { p_token: string }
+        Returns: {
+          display_code: string
+          resource_type: string
+        }[]
+      }
       comment_target_issue: {
         Args: { p_issue_id: string; p_solution_id: string }
         Returns: {
@@ -932,13 +1040,12 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_own_account: { Args: never; Returns: undefined }
       get_issue_stub: {
         Args: { p_display_code: string }
         Returns: {
           display_code: string
           id: string
-          owner_name: string
-          title: string
           visibility: string
         }[]
       }
@@ -952,10 +1059,12 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
-      notify_issue_followers: {
-        Args: { p_issue_id: string; p_type: string }
-        Returns: undefined
-      }
+      notify_issue_followers:
+        | { Args: { p_issue_id: string; p_type: string }; Returns: undefined }
+        | {
+            Args: { p_issue_id: string; p_payload?: Json; p_type: string }
+            Returns: undefined
+          }
     }
     Enums: {
       [_ in never]: never
@@ -1082,9 +1191,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const

@@ -57,17 +57,15 @@ export function ChosenSolutionDialog({
       .update({ status, first_chosen_prompted_at: new Date().toISOString() })
       .eq("id", issueId);
 
-    if (tasks.length > 0) {
-      const { data: plan } = await supabase
-        .from("action_plans")
-        .insert({ issue_id: issueId })
-        .select()
-        .single();
-      if (plan) {
-        await supabase
-          .from("action_tasks")
-          .insert(tasks.map((title, i) => ({ action_plan_id: plan.id, title, sort_order: i })));
-      }
+    const { data: plan } = await supabase
+      .from("action_plans")
+      .insert({ issue_id: issueId })
+      .select()
+      .single();
+    if (plan && tasks.length > 0) {
+      await supabase
+        .from("action_tasks")
+        .insert(tasks.map((title, i) => ({ action_plan_id: plan.id, title, sort_order: i })));
     }
 
     setSubmitting(false);

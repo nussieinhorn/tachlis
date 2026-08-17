@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { IconEye, IconEyeOff, IconMail, IconTrash, IconUserCheck, IconUserX } from "@tabler/icons-react";
 
 import type { ActionPlan } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,8 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Icon } from "@/components/ui/icon";
+import { cn } from "@/lib/utils";
+import { isValidEmail } from "@/lib/format";
 
 type PendingRequest = { id: string; name: string; email: string; phone: string | null; taskIds: string[] };
 
@@ -41,6 +44,7 @@ export function ActionTeamPanel({
   actionPlan?: ActionPlan;
   canEdit: boolean;
 }) {
+  const { user, profile } = useAuth();
   const router = useRouter();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
@@ -84,8 +88,8 @@ export function ActionTeamPanel({
     const supabase = createClient();
     const { error } = await supabase.from("action_team_requests").insert({
       issue_id: issueId,
-      name: name.trim(),
-      email: email.trim(),
+      name: user && profile ? profile.name : name.trim(),
+      email: user && profile ? profile.email : email.trim(),
       phone: phone.trim() || null,
       message: message.trim() || null,
       task_ids: selectedTasks,
@@ -352,18 +356,23 @@ export function ActionTeamPanel({
               )}
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-                <Input
-                  placeholder="Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+                {!user && (
+                  <>
+                    <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+                    <Input
+                      placeholder="Email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </>
+                )}
                 <Input
                   placeholder="Phone"
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  className={cn(user && "sm:col-span-2")}
                 />
               </div>
               <Textarea
@@ -373,7 +382,7 @@ export function ActionTeamPanel({
               />
 
               <DialogFooter>
-                <Button onClick={onSubmitJoin} disabled={!name.trim() || !email.trim()}>
+                <Button onClick={onSubmitJoin} disabled={user ? false : !name.trim() || !isValidEmail(email)}>
                   Submit
                 </Button>
               </DialogFooter>

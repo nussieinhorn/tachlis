@@ -13,12 +13,15 @@ import {
   IconBrandFacebook,
   IconBrandTiktok,
   IconBrandInstagram,
+  IconLock,
+  IconWorld,
 } from "@tabler/icons-react";
 
-import { CATEGORIES, type Issue } from "@/lib/mock-data";
+import { CATEGORIES, type Category, type Issue } from "@/lib/mock-data";
 import type { Community } from "@/lib/communities-data";
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
+import { CATEGORY_ICON_OPTIONS, getCategoryIcon } from "@/lib/category-icons";
 import { AuthGate } from "@/components/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const STEPS = ["Basic info", "Settings", "Team", "Review"];
+const STEPS = ["Privacy", "Basic info", "Settings", "Team", "Review"];
 
 const BIG_SHARE_TARGETS = [
   { label: "WhatsApp", icon: IconBrandWhatsapp, urlPrefix: "https://wa.me/?text=" },
@@ -108,8 +111,44 @@ export function CreateIssueDialog({
 
   const [team, setTeam] = useState<TeamInvite[]>([]);
 
-  const category = CATEGORIES.find((c) => c.slug === categorySlug);
+  const [categories, setCategories] = useState<Category[]>(CATEGORIES);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryIconSlug, setNewCategoryIconSlug] = useState(CATEGORY_ICON_OPTIONS[0].slug);
+
+  const category = categories.find((c) => c.slug === categorySlug);
   const publishedUrl = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
+
+  useEffect(() => {
+    if (!open) return;
+    const supabase = createClient();
+    supabase
+      .from("categories")
+      .select("slug, label, icon_slug")
+      .order("sort_order")
+      .then(({ data }) => {
+        if (data) setCategories(data.map((c) => ({ slug: c.slug, label: c.label, icon: getCategoryIcon(c.icon_slug) })));
+      });
+  }, [open]);
+
+  async function addCategory() {
+    const name = newCategoryName.trim();
+    if (!name || !user) return;
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (!slug) return;
+    const supabase = createClient();
+    const { error: insertError } = await supabase
+      .from("categories")
+      .insert({ slug, label: name, icon_slug: newCategoryIconSlug, sort_order: 999 });
+    if (insertError) return;
+    setCategories((prev) => [...prev, { slug, label: name, icon: getCategoryIcon(newCategoryIconSlug) }]);
+    setCategorySlug(slug);
+    setAddingCategory(false);
+    setNewCategoryName("");
+  }
 
   useEffect(() => {
     if (!open || !user) return;
@@ -258,14 +297,24 @@ export function CreateIssueDialog({
       return;
     }
 
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
     for (const member of team) {
-      if (!member.canEdit || !member.email.trim()) continue;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", member.email.trim())
-        .maybeSingle();
-      if (profile) await supabase.from("issue_editors").insert({ issue_id: data.id, user_id: profile.id });
+      if (!member.canEdit || !member.email.trim() || !user) continue;
+      const email = member.email.trim().toLowerCase();
+      const { data: invite } = await supabase
+        .from("pending_invites")
+        .insert({ email, resource_type: "issue", resource_id: data.id, role: "editor", invited_by: user.id })
+        .select("token")
+        .single();
+      if (invite) {
+        supabase.functions.invoke("send-transactional-email", {
+          body: {
+            type: "invite",
+            to: email,
+            data: { resourceTitle: title.trim(), resourceType: "issue", role: "editor", link: `${origin}/invite/accept?token=${invite.token}` },
+          },
+        }).catch(() => {});
+      }
     }
 
     setSubmitting(false);
@@ -290,8 +339,8 @@ export function CreateIssueDialog({
   }
 
   const canAdvance =
-    (step === 0 && title.trim().length > 0 && description.trim().length > 0 && Boolean(categorySlug)) ||
-    step === 1 ||
+    step === 0 ||
+    (step === 1 && title.trim().length > 0 && description.trim().length > 0 && Boolean(categorySlug)) ||
     step === 2 ||
     step === 3;
 
@@ -327,44 +376,84 @@ export function CreateIssueDialog({
           className="min-h-24"
         />
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label>Category</Label>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="flex h-9 items-center justify-between gap-2 rounded-md border border-input px-3 text-sm text-foreground hover:bg-accent"
-            >
-              <span className="flex items-center gap-2">
-                {category && <Icon icon={category.icon} size={16} />}
-                <span className={cn(!category && "text-muted-foreground")}>
-                  {category?.label ?? "Select a category"}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label>Category</Label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex h-9 items-center justify-between gap-2 rounded-md border border-input px-3 text-sm text-foreground hover:bg-accent"
+              >
+                <span className="flex items-center gap-2">
+                  {category && <Icon icon={category.icon} size={16} />}
+                  <span className={cn(!category && "text-muted-foreground")}>
+                    {category?.label ?? "Select a category"}
+                  </span>
                 </span>
-              </span>
-              <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
-            {CATEGORIES.map((c) => (
-              <DropdownMenuItem key={c.slug} onClick={() => setCategorySlug(c.slug)}>
-                <Icon icon={c.icon} size={16} />
-                {c.label}
+                <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
+              {categories.map((c) => (
+                <DropdownMenuItem key={c.slug} onClick={() => setCategorySlug(c.slug)}>
+                  <Icon icon={c.icon} size={16} />
+                  {c.label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setAddingCategory(true)}>
+                <Icon icon={IconPlus} size={16} />
+                Add category…
               </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label>Location (optional)</Label>
-        <LocationSearch value={location} onChange={setLocation} />
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {addingCategory && (
+            <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-3">
+              <Input
+                placeholder="New category name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                autoFocus
+              />
+              <div className="grid grid-cols-8 gap-1">
+                {CATEGORY_ICON_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.slug}
+                    type="button"
+                    onClick={() => setNewCategoryIconSlug(opt.slug)}
+                    className={cn(
+                      "flex size-8 items-center justify-center rounded-md border",
+                      newCategoryIconSlug === opt.slug ? "border-primary bg-accent" : "border-transparent hover:bg-accent",
+                    )}
+                    aria-label={opt.slug}
+                  >
+                    <Icon icon={opt.icon} size={16} />
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button type="button" size="sm" onClick={addCategory} disabled={!newCategoryName.trim()}>
+                  Create
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setAddingCategory(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Location (optional)</Label>
+          <LocationSearch value={location} onChange={setLocation} />
+        </div>
       </div>
     </div>
   );
 
   const settingsFields = (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1.5">
-        <Label>Issue visibility</Label>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Visibility</h4>
         <div className="flex gap-2">
           <button
             type="button"
@@ -389,66 +478,74 @@ export function CreateIssueDialog({
         </div>
         <p className="text-left text-xs text-muted-foreground">
           {visibility === "public"
-            ? "Anyone can find this issue on Tachlis and in search. You choose whether support or voting requires signing in below."
-            : "Hidden from search and the homepage. Only people you approve can view or engage with it."}
+            ? "Anyone can find this issue on Tachlis and in search. You choose whether support or voting requires signing in below. You can change this later."
+            : "Hidden from search and the homepage. Only people you approve can view or engage with it. You can change this later."}
         </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-        <SettingRow
-          label="Show on homepage"
-          checked={showOnHomepage}
-          onChange={setShowOnHomepage}
-          disabled={visibility === "private"}
-        />
-        <SettingRow
-          label="Show in search"
-          checked={showInSearch}
-          onChange={setShowInSearch}
-          disabled={visibility === "private"}
-        />
-        <SettingRow
-          label="Support requires login"
-          checked={supportRequiresLogin}
-          onChange={setSupportRequiresLogin}
-        />
-        <SettingRow label="Voting requires login" checked={voteRequiresLogin} onChange={setVoteRequiresLogin} />
-        <SettingRow
-          label="Allow suggested solutions"
-          checked={allowSuggestSolutions}
-          onChange={setAllowSuggestSolutions}
-        />
-        <SettingRow label="Allow comments" checked={commentsEnabled} onChange={setCommentsEnabled} />
-        <SettingRow
-          label="Comments require login"
-          checked={commentsRequireLogin}
-          onChange={setCommentsRequireLogin}
-          disabled={!commentsEnabled}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="go-live">Goes live</Label>
-          <Input id="go-live" type="date" value={goLiveDate} onChange={(e) => setGoLiveDate(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="voting-close">Voting closes</Label>
-          <Input
-            id="voting-close"
-            type="date"
-            value={votingCloseDate}
-            onChange={(e) => setVotingCloseDate(e.target.value)}
+        <div className="grid grid-cols-1 gap-2.5 pt-1 sm:grid-cols-2">
+          <SettingRow
+            label="Show on homepage"
+            checked={showOnHomepage}
+            onChange={setShowOnHomepage}
+            disabled={visibility === "private"}
+          />
+          <SettingRow
+            label="Show in search"
+            checked={showInSearch}
+            onChange={setShowInSearch}
+            disabled={visibility === "private"}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="hidden-date">Hidden after</Label>
-          <Input id="hidden-date" type="date" value={hiddenDate} onChange={(e) => setHiddenDate(e.target.value)} />
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-border pt-4">
+        <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Comments &amp; permissions</h4>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <SettingRow
+            label="Support requires login"
+            checked={supportRequiresLogin}
+            onChange={setSupportRequiresLogin}
+          />
+          <SettingRow label="Voting requires login" checked={voteRequiresLogin} onChange={setVoteRequiresLogin} />
+          <SettingRow
+            label="Allow suggested solutions"
+            checked={allowSuggestSolutions}
+            onChange={setAllowSuggestSolutions}
+          />
+          <SettingRow label="Allow comments" checked={commentsEnabled} onChange={setCommentsEnabled} />
+          <SettingRow
+            label="Comments require login"
+            checked={commentsRequireLogin}
+            onChange={setCommentsRequireLogin}
+            disabled={!commentsEnabled}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-border pt-4">
+        <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Timeline</h4>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="go-live">Goes live</Label>
+            <Input id="go-live" type="date" value={goLiveDate} onChange={(e) => setGoLiveDate(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="voting-close">Voting closes</Label>
+            <Input
+              id="voting-close"
+              type="date"
+              value={votingCloseDate}
+              onChange={(e) => setVotingCloseDate(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="hidden-date">Hidden after</Label>
+            <Input id="hidden-date" type="date" value={hiddenDate} onChange={(e) => setHiddenDate(e.target.value)} />
+          </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5 border-t border-border pt-4">
-        <Label>Community</Label>
+        <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Community</h4>
         {lockedCommunityId ? (
           <div className="flex h-9 items-center rounded-md border border-border bg-muted px-3 text-sm text-muted-foreground">
             {lockedCommunity?.name}
@@ -614,10 +711,77 @@ export function CreateIssueDialog({
             </DialogHeader>
 
             <div className="flex-1 overflow-y-auto px-1">
-              {step === 0 && basicInfoFields}
-              {step === 1 && settingsFields}
+              {step === 0 && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {(
+                    [
+                      {
+                        value: "public" as const,
+                        icon: IconWorld,
+                        title: "Public",
+                        points: [
+                          { ok: true, text: "Searchable on Tachlis" },
+                          { ok: true, text: "Can appear on the homepage" },
+                          { ok: true, text: "Anyone with the link can view and support it" },
+                        ],
+                      },
+                      {
+                        value: "private" as const,
+                        icon: IconLock,
+                        title: "Private",
+                        points: [
+                          { ok: false, text: "Not searchable, not on the homepage" },
+                          { ok: false, text: "No one can view or support it uninvited" },
+                          { ok: true, text: "Only people you invite or approve can join" },
+                        ],
+                      },
+                    ]
+                  ).map((opt) => (
+                    <div
+                      key={opt.value}
+                      className={cn(
+                        "flex flex-col gap-3 rounded-xl border-2 p-5 transition-colors",
+                        visibility === opt.value ? "border-primary bg-accent/40" : "border-border",
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon icon={opt.icon} size={22} className="text-foreground" />
+                        <span className="font-heading text-lg font-semibold text-foreground">{opt.title}</span>
+                      </div>
+                      <ul className="flex flex-col gap-1.5">
+                        {opt.points.map((p) => (
+                          <li key={p.text} className="flex items-start gap-2 text-sm text-muted-foreground">
+                            <Icon
+                              icon={p.ok ? IconCheck : IconX}
+                              size={15}
+                              className={cn("mt-0.5 shrink-0", p.ok ? "text-status-resolved" : "text-destructive")}
+                            />
+                            {p.text}
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        type="button"
+                        variant={visibility === opt.value ? "default" : "outline"}
+                        className="mt-auto"
+                        onClick={() => {
+                          setVisibility(opt.value);
+                          setStep(1);
+                        }}
+                      >
+                        Continue
+                      </Button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                    You can change this later from the Settings step.
+                  </p>
+                </div>
+              )}
+              {step === 1 && basicInfoFields}
+              {step === 2 && settingsFields}
 
-              {step === 2 && (
+              {step === 3 && (
                 <div className="flex flex-col gap-4">
                   <p className="text-sm text-muted-foreground">
                     Optional — invite people to help run this issue as part of the action team.
@@ -668,7 +832,7 @@ export function CreateIssueDialog({
                 </div>
               )}
 
-              {step === 3 && (
+              {step === 4 && (
                 <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={editIssue?.status ?? "new"} />

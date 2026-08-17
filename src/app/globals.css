@@ -51,6 +51,50 @@
   --status-resolved-foreground: #ffffff;
 }
 
+.dark {
+  --background: #1c1815;
+  --foreground: #f5efe8;
+
+  --card: #242019;
+  --card-foreground: #f5efe8;
+
+  --popover: #242019;
+  --popover-foreground: #f5efe8;
+
+  --primary: #f45d48;
+  --primary-foreground: #ffffff;
+
+  --secondary: #2e2820;
+  --secondary-foreground: #f5efe8;
+
+  --muted: #2e2820;
+  --muted-foreground: #a89b8c;
+
+  --accent: #3a2620;
+  --accent-foreground: #ff9478;
+
+  --destructive: #f87171;
+  --destructive-foreground: #241110;
+
+  --border: #3a332c;
+  --input: #3a332c;
+  --ring: #f45d48;
+
+  --status-new: #a89b8c;
+  --status-traction: #e5a13a;
+  --status-proposed: #5b9bea;
+  --status-chosen: #f45d48;
+  --status-action: #a78bfa;
+  --status-resolved: #34d399;
+
+  --status-new-foreground: #1c1815;
+  --status-traction-foreground: #1c1815;
+  --status-proposed-foreground: #1c1815;
+  --status-chosen-foreground: #ffffff;
+  --status-action-foreground: #1c1815;
+  --status-resolved-foreground: #1c1815;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

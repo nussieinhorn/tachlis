@@ -216,7 +216,7 @@ export function SuggestSolution({
                     id="solution-title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Weekly carpool for seminary girls"
+                    placeholder="e.g. Weekly carpool for commuters"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">

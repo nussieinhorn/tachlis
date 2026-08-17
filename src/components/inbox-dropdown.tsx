@@ -3,16 +3,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { IconBell } from "@tabler/icons-react";
+import { IconBell, IconCheck, IconX, IconChevronDown } from "@tabler/icons-react";
 
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
+import { formatRelativeTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -22,6 +24,7 @@ type NotificationRow = {
   issueCode: string;
   issueTitle: string;
   createdAt: string;
+  payload: Record<string, unknown> | null;
 };
 
 type RequestRow = {
@@ -30,6 +33,7 @@ type RequestRow = {
   targetId: string;
   targetCode: string;
   targetTitle: string;
+  userId: string | null;
   name: string;
   email: string;
   message: string | null;
@@ -42,17 +46,20 @@ const NOTIFICATION_LABEL: Record<string, string> = {
   solution_suggested: "got a new suggested solution",
 };
 
-function relativeTime(iso: string): string {
-  const date = new Date(iso);
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+function notificationText(n: NotificationRow): string {
+  const payload = n.payload;
+  switch (n.type) {
+    case "status_changed":
+      return payload?.label ? `Status changed to "${payload.label}"` : "changed the status";
+    case "solution_chosen":
+      return payload?.solution_title ? `Chose "${payload.solution_title}" as the solution` : "chose a solution";
+    case "solution_suggested":
+      return payload?.solution_title ? `New solution suggested: "${payload.solution_title}"` : "got a new suggested solution";
+    case "update_posted":
+      return payload?.excerpt ? `Posted an update: "${payload.excerpt}"` : "posted an update";
+    default:
+      return NOTIFICATION_LABEL[n.type] ?? "updated this issue";
+  }
 }
 
 export function InboxDropdown() {
@@ -70,7 +77,7 @@ export function InboxDropdown() {
 
     supabase
       .from("notifications")
-      .select("id, type, created_at, issue:issues(display_code, title)")
+      .select("id, type, created_at, payload, issue:issues(display_code, title)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(30)
@@ -84,6 +91,7 @@ export function InboxDropdown() {
               issueCode: issue?.display_code ?? "",
               issueTitle: issue?.title ?? "",
               createdAt: n.created_at,
+              payload: n.payload as Record<string, unknown> | null,
             };
           }),
         );
@@ -92,11 +100,11 @@ export function InboxDropdown() {
     Promise.all([
       supabase
         .from("private_access_requests")
-        .select("id, issue:issues(id, display_code, title), requester:profiles!private_access_requests_user_id_fkey(name, email)")
+        .select("id, user_id, issue:issues(id, display_code, title), requester:profiles!private_access_requests_user_id_fkey(name, email)")
         .eq("status", "pending"),
       supabase
         .from("community_access_requests")
-        .select("id, community:communities(id, display_code, name), requester:profiles!community_access_requests_user_id_fkey(name, email)")
+        .select("id, user_id, community:communities(id, display_code, name), requester:profiles!community_access_requests_user_id_fkey(name, email)")
         .eq("status", "pending"),
       supabase
         .from("action_team_requests")
@@ -117,6 +125,7 @@ export function InboxDropdown() {
           targetId: issue?.id ?? "",
           targetCode: issue?.display_code ?? "",
           targetTitle: issue?.title ?? "",
+          userId: r.user_id,
           name: requester?.name ?? "",
           email: requester?.email ?? "",
           message: null,
@@ -131,6 +140,7 @@ export function InboxDropdown() {
           targetId: community?.id ?? "",
           targetCode: community?.display_code ?? "",
           targetTitle: community?.name ?? "",
+          userId: r.user_id,
           name: requester?.name ?? "",
           email: requester?.email ?? "",
           message: null,
@@ -144,6 +154,7 @@ export function InboxDropdown() {
           targetId: issue?.id ?? "",
           targetCode: issue?.display_code ?? "",
           targetTitle: issue?.title ?? "",
+          userId: null,
           name: r.name,
           email: r.email,
           message: r.message,
@@ -166,9 +177,17 @@ export function InboxDropdown() {
     });
   }, [open, user]);
 
+  const [roleChoice, setRoleChoice] = useState<Record<string, "viewer" | "editor">>({});
+  const roleFor = (id: string) => roleChoice[id] ?? "viewer";
+
   async function approvePrivateAccess(id: string) {
     const supabase = createClient();
+    const request = requests.find((r) => r.id === id);
+    const role = roleFor(id);
     await supabase.from("private_access_requests").update({ status: "approved" }).eq("id", id);
+    if (role === "editor" && request?.userId) {
+      await supabase.from("issue_editors").insert({ issue_id: request.targetId, user_id: request.userId });
+    }
     setRequests((prev) => prev.filter((r) => r.id !== id));
     router.refresh();
   }
@@ -182,7 +201,12 @@ export function InboxDropdown() {
 
   async function approveCommunityAccess(id: string) {
     const supabase = createClient();
+    const request = requests.find((r) => r.id === id);
+    const role = roleFor(id);
     await supabase.from("community_access_requests").update({ status: "approved" }).eq("id", id);
+    if (role === "editor" && request?.userId) {
+      await supabase.from("community_editors").insert({ community_id: request.targetId, user_id: request.userId });
+    }
     setRequests((prev) => prev.filter((r) => r.id !== id));
     router.refresh();
   }
@@ -251,8 +275,8 @@ export function InboxDropdown() {
                 >
                   <span className="truncate text-xs font-medium text-primary">{n.issueTitle}</span>
                   <span className="flex items-center justify-between gap-2 text-sm text-foreground">
-                    <span>{NOTIFICATION_LABEL[n.type] ?? "updated this issue"}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(n.createdAt)}</span>
+                    <span className="line-clamp-1">{notificationText(n)}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{formatRelativeTime(n.createdAt)}</span>
                   </span>
                 </Link>
               ))
@@ -278,25 +302,44 @@ export function InboxDropdown() {
                       </span>
                       {r.message && <span className="mt-1 text-xs text-foreground/80">&quot;{r.message}&quot;</span>}
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {r.kind === "private_access" && (
+                    <div className="flex items-center gap-1.5">
+                      {(r.kind === "private_access" || r.kind === "community_access") && (
                         <>
-                          <Button size="sm" variant="outline" onClick={() => approvePrivateAccess(r.id)}>
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => rejectPrivateAccess(r.id)}>
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                      {r.kind === "community_access" && (
-                        <>
-                          <Button size="sm" variant="outline" onClick={() => approveCommunityAccess(r.id)}>
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => rejectCommunityAccess(r.id)}>
-                            Reject
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium capitalize text-foreground hover:bg-accent"
+                              >
+                                {roleFor(r.id)}
+                                <Icon icon={IconChevronDown} size={12} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem onClick={() => setRoleChoice((prev) => ({ ...prev, [r.id]: "viewer" }))}>
+                                Viewer
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setRoleChoice((prev) => ({ ...prev, [r.id]: "editor" }))}>
+                                Editor
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <button
+                            type="button"
+                            aria-label="Approve"
+                            onClick={() => (r.kind === "private_access" ? approvePrivateAccess(r.id) : approveCommunityAccess(r.id))}
+                            className="flex size-7 items-center justify-center rounded-md border border-status-resolved/25 bg-status-resolved/12 text-status-resolved hover:bg-status-resolved/20"
+                          >
+                            <Icon icon={IconCheck} size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Reject"
+                            onClick={() => (r.kind === "private_access" ? rejectPrivateAccess(r.id) : rejectCommunityAccess(r.id))}
+                            className="flex size-7 items-center justify-center rounded-md border border-destructive/25 bg-destructive/12 text-destructive hover:bg-destructive/20"
+                          >
+                            <Icon icon={IconX} size={14} />
+                          </button>
                         </>
                       )}
                       {r.kind === "action_team" && (

@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { IconCheck, IconChevronDown, IconX } from "@tabler/icons-react";
 
 import type { Solution, SolutionStatus } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +17,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Icon } from "@/components/ui/icon";
 
 const STATUS_OPTIONS: { value: SolutionStatus; label: string }[] = [
   { value: "proposed", label: "Proposed" },
@@ -28,15 +36,26 @@ const STATUS_OPTIONS: { value: SolutionStatus; label: string }[] = [
 export function SolutionEditDialog({
   solution,
   trigger,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
 }: {
   solution: Solution;
-  trigger: ReactNode;
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = setControlledOpen ?? setUncontrolledOpen;
+
   const [title, setTitle] = useState(solution.title);
   const [description, setDescription] = useState(solution.description);
   const [status, setStatus] = useState<SolutionStatus>(solution.status);
+  const [pros, setPros] = useState<string[]>(solution.pros);
+  const [cons, setCons] = useState<string[]>(solution.cons);
+  const [newPro, setNewPro] = useState("");
+  const [newCon, setNewCon] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   function reset(nextOpen: boolean) {
@@ -45,6 +64,10 @@ export function SolutionEditDialog({
       setTitle(solution.title);
       setDescription(solution.description);
       setStatus(solution.status);
+      setPros(solution.pros);
+      setCons(solution.cons);
+      setNewPro("");
+      setNewCon("");
     }
   }
 
@@ -59,6 +82,8 @@ export function SolutionEditDialog({
         description: description.trim(),
         status,
         is_chosen: status === "chosen",
+        pros,
+        cons,
       })
       .eq("id", solution.id);
     setSubmitting(false);
@@ -66,10 +91,12 @@ export function SolutionEditDialog({
     router.refresh();
   }
 
+  const statusLabel = STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
+
   return (
     <Dialog open={open} onOpenChange={reset}>
-      <span onClick={() => setOpen(true)}>{trigger}</span>
-      <DialogContent>
+      {trigger && <span onClick={() => setOpen(true)}>{trigger}</span>}
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit solution</DialogTitle>
         </DialogHeader>
@@ -89,21 +116,114 @@ export function SolutionEditDialog({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Status</Label>
-            <div className="flex flex-wrap gap-2">
-              {STATUS_OPTIONS.map((opt) => (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
-                  key={opt.value}
                   type="button"
-                  onClick={() => setStatus(opt.value)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                    status === opt.value
-                      ? "border-primary bg-accent text-accent-foreground"
-                      : "border-border text-muted-foreground"
-                  }`}
+                  className="flex w-fit items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
                 >
-                  {opt.label}
+                  {statusLabel}
+                  <Icon icon={IconChevronDown} size={14} />
                 </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {STATUS_OPTIONS.map((opt) => (
+                  <DropdownMenuItem key={opt.value} onClick={() => setStatus(opt.value)}>
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label>Pros</Label>
+              {pros.map((pro, i) => (
+                <div
+                  key={`${pro}-${i}`}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-status-resolved/10 px-3 py-1.5 text-sm"
+                >
+                  {pro}
+                  <button
+                    type="button"
+                    onClick={() => setPros((prev) => prev.filter((_, idx) => idx !== i))}
+                    aria-label="Remove"
+                  >
+                    <Icon icon={IconX} size={14} className="text-muted-foreground" />
+                  </button>
+                </div>
               ))}
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={newPro}
+                  onChange={(e) => setNewPro(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" || !newPro.trim()) return;
+                    e.preventDefault();
+                    setPros((prev) => [...prev, newPro.trim()]);
+                    setNewPro("");
+                  }}
+                  placeholder="Add a pro..."
+                  className="h-8 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newPro.trim()) return;
+                    setPros((prev) => [...prev, newPro.trim()]);
+                    setNewPro("");
+                  }}
+                  aria-label="Add pro"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Icon icon={IconCheck} size={14} />
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Cons</Label>
+              {cons.map((con, i) => (
+                <div
+                  key={`${con}-${i}`}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-destructive/10 px-3 py-1.5 text-sm"
+                >
+                  {con}
+                  <button
+                    type="button"
+                    onClick={() => setCons((prev) => prev.filter((_, idx) => idx !== i))}
+                    aria-label="Remove"
+                  >
+                    <Icon icon={IconX} size={14} className="text-muted-foreground" />
+                  </button>
+                </div>
+              ))}
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={newCon}
+                  onChange={(e) => setNewCon(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" || !newCon.trim()) return;
+                    e.preventDefault();
+                    setCons((prev) => [...prev, newCon.trim()]);
+                    setNewCon("");
+                  }}
+                  placeholder="Add a con..."
+                  className="h-8 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newCon.trim()) return;
+                    setCons((prev) => [...prev, newCon.trim()]);
+                    setNewCon("");
+                  }}
+                  aria-label="Add con"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Icon icon={IconCheck} size={14} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

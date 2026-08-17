@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { IconAdjustments, IconCopy, IconDots, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconCopy, IconDots, IconPencil, IconTrash } from "@tabler/icons-react";
 
 import type { Issue } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
-import { IssueSettingsDialog } from "@/components/issue/issue-settings-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,15 +46,6 @@ export function IssueAdminBar({ issue, canEdit }: { issue: Issue; canEdit: boole
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <IssueSettingsDialog
-              issue={issue}
-              trigger={
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <Icon icon={IconAdjustments} size={16} />
-                  Issue settings
-                </DropdownMenuItem>
-              }
-            />
             <CreateIssueDialog
               duplicateFrom={issue}
               trigger={

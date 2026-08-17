@@ -35,6 +35,13 @@ export type Category = {
   icon: IconComponent;
 };
 
+/** Serializable category shape (icon slug, not a component reference) — safe to pass Server -> Client. */
+export type CategoryOption = {
+  slug: string;
+  label: string;
+  iconSlug: string | null;
+};
+
 export const CATEGORIES: Category[] = [
   { slug: "shidduchim", label: "Shidduchim", icon: IconHeartHandshake },
   { slug: "education", label: "Education", icon: IconSchool },
@@ -108,7 +115,9 @@ export type Solution = {
   hidden?: boolean;
   deleted?: boolean;
   reviewStatus?: "pending" | "approved" | "rejected";
-  submitter?: { name: string; email: string; phone?: string };
+  submitter?: { name: string; email: string; phone?: string; location?: string | null };
+  createdAt: string;
+  sortOrder?: number;
 };
 
 export type ActionTaskStatus =

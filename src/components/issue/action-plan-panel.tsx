@@ -29,6 +29,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ActionPlanVisibilityToggle } from "@/components/issue/action-plan-visibility-toggle";
+import { ActionTeamPanel } from "@/components/issue/action-team-panel";
 import type { VariantProps } from "class-variance-authority";
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
@@ -44,13 +46,17 @@ const TASK_STATUS_CONFIG: Record<ActionTaskStatus, { label: string; variant: Bad
 const STATUS_KEYS = Object.keys(TASK_STATUS_CONFIG) as ActionTaskStatus[];
 
 export function ActionPlanPanel({
+  issueId,
   actionPlanId,
   plan,
   canEdit,
+  actionPlanVisible,
 }: {
+  issueId: string;
   actionPlanId: string;
   plan: ActionPlan;
   canEdit: boolean;
+  actionPlanVisible: boolean;
 }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -131,9 +137,14 @@ export function ActionPlanPanel({
 
   return (
     <Card>
+      {canEdit && (
+        <div className="px-6 pt-6">
+          <ActionPlanVisibilityToggle issueId={issueId} visible={actionPlanVisible} />
+        </div>
+      )}
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
-          <CardTitle>Action plan</CardTitle>
+          <CardTitle className="text-lg">Action plan</CardTitle>
           <span className="text-sm font-medium text-muted-foreground">
             {progressPct}% complete
           </span>
@@ -268,6 +279,8 @@ export function ActionPlanPanel({
             </Button>
           </div>
         )}
+
+        <ActionTeamPanel issueId={issueId} actionPlan={plan} canEdit={canEdit} />
       </CardContent>
     </Card>
   );
