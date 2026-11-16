@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { IconChevronDown, IconCurrentLocation, IconFlame } from "@tabler/icons-react";
+import { IconChevronDown, IconCurrentLocation, IconFlame, IconLoader2, IconX } from "@tabler/icons-react";
 
 import type { Issue, Category, CategoryOption } from "@/lib/mock-data";
 import { CATEGORIES } from "@/lib/mock-data";
 import { abbreviateLocation } from "@/lib/format";
-import { LocationSearch, shortLabel, type NominatimResult } from "@/components/location-search";
+import { shortLabel, type NominatimResult } from "@/components/location-search";
+import { GlobalSearch } from "@/components/global-search";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { IssueCard } from "@/components/issue-card";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const PAGE_SIZE = 5;
 
@@ -44,11 +46,11 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
     [categories],
   );
   const [place, setPlace] = useState("");
+  const [textQuery, setTextQuery] = useState("");
   const [locating, setLocating] = useState(false);
   const [categorySlugs, setCategorySlugs] = useState<string[]>([]);
   const [sort, setSort] = useState<SortOption>("recent");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [showAllCategories, setShowAllCategories] = useState(false);
 
   // One category at a time; picking the active one again clears it.
   function toggleCategory(slug: string) {
@@ -113,10 +115,17 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
       const matchesLocation = !wanted || sameLocation(norm(issue.location ?? ""), wanted);
       const matchesCategory =
         categorySlugs.length === 0 || categorySlugs.includes(issue.categorySlug);
-      return matchesLocation && matchesCategory;
+      const text = textQuery.trim().toLowerCase();
+      const matchesText =
+        text.length < 2 ||
+        issue.title.toLowerCase().includes(text) ||
+        issue.description.toLowerCase().includes(text) ||
+        (issue.location ?? "").toLowerCase().includes(text) ||
+        (categoryList.find((c) => c.slug === issue.categorySlug)?.label ?? "").toLowerCase().includes(text);
+      return matchesLocation && matchesCategory && matchesText;
     });
     return sortIssues(matches, sort);
-  }, [issues, place, categorySlugs, sort]);
+  }, [issues, place, categorySlugs, sort, textQuery, categoryList]);
 
   const popularCategories = useMemo(() => {
     const counts = new Map<string, number>();
@@ -127,26 +136,52 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
       .map((c) => ({ ...c, count: counts.get(c.slug) ?? 0 }));
   }, [issues, categoryList]);
 
+  const moreActive = popularCategories.slice(5).find((c) => categorySlugs.includes(c.slug));
   const visible = filtered.slice(0, visibleCount);
 
   return (
     <div className="flex flex-col gap-5">
-      <h2 className="text-balance text-center text-3xl font-black sm:text-4xl">Find issues near you</h2>
       <div className="mx-auto w-full max-w-2xl">
-        <LocationSearch
-          large
-          value={place}
-          placeholder="Search your city and state"
-          onChange={(v) => v === "" && selectPlace("")}
-          onSelect={selectPlace}
+        <GlobalSearch
+          issues={issues}
+          categories={categoryList}
+          query={textQuery}
+          onQuery={(q) => {
+            setTextQuery(q);
+            setVisibleCount(PAGE_SIZE);
+          }}
+          onPickPlace={selectPlace}
+          onPickTopic={(slug) => {
+            setCategorySlugs([slug]);
+            setVisibleCount(PAGE_SIZE);
+          }}
+          onUseCurrent={useMyLocation}
+          locating={locating}
           trailing={
             <Button type="button" size="sm" onClick={useMyLocation} disabled={locating} className="h-10 px-3">
-              <Icon icon={IconCurrentLocation} size={16} />
-              {locating ? "Finding..." : "Near me"}
+              <Icon icon={locating ? IconLoader2 : IconCurrentLocation} size={16} className={locating ? "animate-spin" : ""} />
+              {locating ? "Finding you" : "Near me"}
             </Button>
           }
         />
       </div>
+
+      {place && (
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 rounded-xl bg-accent px-4 py-2.5 text-sm text-accent-foreground animate-tick">
+          <span>
+            Showing <strong className="font-extrabold">{filtered.length}</strong> {filtered.length === 1 ? "issue" : "issues"} in{" "}
+            <strong className="font-extrabold">{place}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => selectPlace("")}
+            className="flex items-center gap-1 font-bold underline underline-offset-4 hover:opacity-80"
+          >
+            <Icon icon={IconX} size={14} />
+            Show everywhere
+          </button>
+        </div>
+      )}
 
       {popularCategories.length > 0 && (
         <div className="flex flex-wrap justify-center gap-2">
@@ -154,7 +189,7 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
             type="button"
             onClick={showTrending}
             aria-pressed={sort === "trending" && categorySlugs.length === 0}
-            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold shadow-sm transition-all ${
               sort === "trending" && categorySlugs.length === 0
                 ? "border-foreground bg-foreground text-background"
                 : "border-border bg-card hover:border-foreground"
@@ -163,7 +198,7 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
             <Icon icon={IconFlame} size={15} />
             Trending
           </button>
-          {(showAllCategories ? popularCategories : popularCategories.slice(0, 5)).map((c) => {
+          {popularCategories.slice(0, 5).map((c) => {
             const active = categorySlugs.includes(c.slug);
             return (
               <button
@@ -171,7 +206,7 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
                 type="button"
                 onClick={() => toggleCategory(c.slug)}
                 aria-pressed={active}
-                className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold shadow-sm transition-all ${
                   active
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-card hover:border-foreground"
@@ -186,23 +221,62 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
             );
           })}
           {popularCategories.length > 5 && (
-            <button
-              type="button"
-              onClick={() => setShowAllCategories((v) => !v)}
-              className="flex items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-            >
-              {showAllCategories ? "Less" : "More"}
-              <Icon icon={IconChevronDown} size={14} className={showAllCategories ? "rotate-180" : ""} />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold shadow-sm transition-all ${
+                    moreActive
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-dashed border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                  }`}
+                >
+                  {moreActive ? moreActive.label : "More"}
+                  <Icon icon={IconChevronDown} size={14} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-80 min-w-56 overflow-y-auto rounded-xl p-1.5">
+                {popularCategories.slice(5).map((c) => (
+                  <DropdownMenuItem
+                    key={c.slug}
+                    onClick={() => toggleCategory(c.slug)}
+                    className="gap-2 rounded-lg py-2 font-medium"
+                  >
+                    <Icon icon={c.icon} size={16} />
+                    {c.label}
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {categorySlugs[0] === c.slug ? "Selected" : c.count}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       )}
 
       {filtered.length === 0 ? (
-        <p className="text-muted-foreground">No issues match these filters yet. Try another city or clear the category.</p>
+        <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-14 text-center">
+          <p className="font-heading text-lg font-extrabold">Nothing here yet{place ? ` for ${place}` : ""}.</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Try a nearby city, pick a different topic, or be the first to raise an issue here.
+          </p>
+          <div className="flex gap-2">
+            {place && (
+              <Button variant="outline" size="sm" onClick={() => selectPlace("")}>
+                Show everywhere
+              </Button>
+            )}
+            {categorySlugs.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setCategorySlugs([])}>
+                Clear topic
+              </Button>
+            )}
+          </div>
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
             {visible.map((issue) => (
               <IssueCard key={issue.id} issue={issue} categories={categoryList} />
             ))}

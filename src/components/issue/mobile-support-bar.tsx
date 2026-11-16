@@ -75,7 +75,7 @@ export function MobileSupportBar({
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
-      <div className="mx-auto flex max-w-5xl items-center gap-3">
+      <div className="mx-auto flex max-w-6xl items-center gap-3">
         <span className="flex-1 text-sm text-foreground">
           <span key={supporterCount} className="inline-block animate-tick font-semibold tabular-nums">
             {supporterCount}

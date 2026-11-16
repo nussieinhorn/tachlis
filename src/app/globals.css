@@ -4,10 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.125rem;
+  --radius: 0.75rem;
 
   /* Warm, optimistic base palette */
-  --background: #fbfaf6;
+  --background: #ffffff;
   --foreground: #0e0e0e;
 
   --card: #ffffff;
@@ -32,7 +32,7 @@
   --destructive-foreground: #ffffff;
 
   --border: #cdc8bd;
-  --input: #0e0e0e;
+  --input: #c9c6bf;
   --ring: #f45d48;
 
   /* Issue lifecycle status colors — hue carries meaning, keep fixed */
@@ -96,10 +96,10 @@
 }
 
 @theme inline {
-  --radius-sm: 0px;
-  --radius-md: 2px;
-  --radius-lg: 2px;
-  --radius-xl: 3px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -150,6 +150,14 @@
 
 /* Quieter loading pulse for skeletons */
 @theme {
+  @keyframes roll-left {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
   --animate-pop: pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
   --animate-tick: tick 220ms ease-out;
   @keyframes pop {
@@ -176,6 +184,10 @@
       opacity: 0.75;
     }
   }
+}
+
+.roll-left {
+  animation: roll-left 80s linear infinite;
 }
 
 @layer base {

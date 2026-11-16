@@ -5,17 +5,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[2px] text-sm font-bold tracking-tight transition-[color,background-color,transform] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-bold tracking-tight transition-[color,background-color,box-shadow,border-color,transform] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default:
+          "bg-primary text-primary-foreground shadow-sm shadow-primary/30 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/30",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 hover:shadow-md",
         outline:
-          "border border-foreground bg-background text-foreground hover:bg-foreground hover:text-background",
+          "border border-border bg-background text-foreground shadow-sm hover:border-foreground/40 hover:bg-muted hover:shadow-md",
         secondary:
-          "bg-foreground text-background hover:bg-foreground/85",
+          "bg-foreground text-background shadow-sm hover:bg-foreground/85 hover:shadow-md",
         ghost: "hover:bg-muted",
         link: "text-foreground underline decoration-primary decoration-2 underline-offset-4 hover:text-primary",
       },

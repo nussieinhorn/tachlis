@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { IconPlus, IconUserCircle, IconLogout, IconCircleCheck, IconList, IconUsersGroup, IconSettings, IconUserCog } from "@tabler/icons-react";
+import { IconSearch, IconPlus, IconUserCircle, IconLogout, IconCircleCheck, IconList, IconUsersGroup, IconSettings, IconUserCog } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import { MotiveLogo } from "@/components/motive-logo";
 import { Icon } from "@/components/ui/icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { SearchCombobox } from "@/components/search-combobox";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
 import { InboxDropdown } from "@/components/inbox-dropdown";
 import { AuthGate } from "@/components/auth-gate";
@@ -68,17 +67,22 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 py-4">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 py-4">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
           <Link href="/" aria-label="motive home" className="justify-self-start">
             <MotiveLogo />
           </Link>
 
-          <div className="hidden w-80 md:block">
-            <SearchCombobox />
-          </div>
+          <Link
+            href="/discover"
+            className="group hidden items-center gap-2 text-sm font-bold text-foreground transition-colors hover:text-primary md:flex"
+          >
+            <Icon icon={IconSearch} size={18} className="transition-transform duration-200 group-hover:scale-110" />
+            Search &amp; Discover
+          </Link>
 
           <div className="col-start-3 flex items-center justify-self-end gap-2">
+
             <CreateIssueDialog
               trigger={
                 <Button size="sm">

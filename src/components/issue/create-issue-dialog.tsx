@@ -47,6 +47,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { siteUrl } from "@/lib/site-url";
 
 const STEPS = ["Privacy", "Basic info", "Settings", "Team", "Review"];
 
@@ -117,7 +118,7 @@ export function CreateIssueDialog({
   const [newCategoryIconSlug, setNewCategoryIconSlug] = useState(CATEGORY_ICON_OPTIONS[0].slug);
 
   const category = categories.find((c) => c.slug === categorySlug);
-  const publishedUrl = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
+  const publishedUrl = siteUrl();
 
   useEffect(() => {
     if (!open) return;
@@ -297,7 +298,7 @@ export function CreateIssueDialog({
       return;
     }
 
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
+    const origin = siteUrl();
     for (const member of team) {
       if (!member.canEdit || !member.email.trim() || !user) continue;
       const email = member.email.trim().toLowerCase();

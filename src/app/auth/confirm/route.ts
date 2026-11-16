@@ -9,6 +9,16 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/";
 
+  // Supabase's default email links arrive with a one-time `code` instead of a token hash; accept both.
+  const code = searchParams.get("code");
+  if (code) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      return NextResponse.redirect(`${origin}${next}${next.includes("?") ? "&" : "?"}confirmed=1`);
+    }
+  }
+
   if (token_hash && type) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });

@@ -144,14 +144,17 @@ function NotificationsSection() {
 }
 
 function MyProfileSection() {
-  const { profile, updateProfile, updateEmail, deleteAccount, signOut } = useAuth();
+  const { profile, updateProfile, updateEmail, updatePassword, deleteAccount, signOut } = useAuth();
   const router = useRouter();
 
   const [name, setName] = useState(profile?.name ?? "");
   const [phone, setPhone] = useState(profile?.phone ?? "");
   const [email, setEmail] = useState(profile?.email ?? "");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [profileSaved, setProfileSaved] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -189,6 +192,29 @@ function MyProfileSection() {
       return;
     }
     setEmailSaved(true);
+  }
+
+  async function savePassword() {
+    setError(null);
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setSubmitting(true);
+    const { error: err } = await updatePassword(password);
+    setSubmitting(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setPassword("");
+    setConfirmPassword("");
+    setPasswordSaved(true);
+    setTimeout(() => setPasswordSaved(false), 2000);
   }
 
   async function handleDelete() {
@@ -240,6 +266,33 @@ function MyProfileSection() {
             Update email
           </Button>
         )}
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-xl border border-border p-5">
+        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Password</h2>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="profile-password">New password</Label>
+          <Input id="profile-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="profile-password-confirm">Confirm new password</Label>
+          <Input
+            id="profile-password-confirm"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+        </div>
+        <Button size="sm" className="w-fit" onClick={savePassword} disabled={submitting || !password}>
+          {passwordSaved ? (
+            <>
+              <Icon icon={IconCheck} size={14} />
+              Updated
+            </>
+          ) : (
+            "Update password"
+          )}
+        </Button>
       </section>
 
       <section className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-5">

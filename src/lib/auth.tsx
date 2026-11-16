@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { User } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
+import { siteUrl } from "@/lib/site-url";
 
 type Profile = {
   id: string;
@@ -28,6 +29,10 @@ type AuthContextValue = {
   loading: boolean;
   user: User | null;
   profile: Profile | null;
+  signUp: (name: string, email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: string | null }>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
   /** Emails a one-time sign-in code. Creates the account on first use; `name` only applies to a new account. */
   sendCode: (email: string, name?: string) => Promise<{ error: string | null }>;
   verifyCode: (email: string, code: string) => Promise<{ error: string | null }>;
@@ -38,6 +43,20 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/** "Remember me" unchecked: rewrite the just-issued Supabase session cookie(s) as session-only (no Max-Age), so they clear on browser close instead of persisting for 400 days. */
+function downgradeAuthCookiesToSessionOnly() {
+  if (typeof document === "undefined") return;
+  const names = document.cookie
+    .split(";")
+    .map((c) => c.split("=")[0].trim())
+    .filter((name) => name.startsWith("sb-") && name.includes("-auth-token"));
+  for (const name of names) {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    if (!match) continue;
+    document.cookie = `${name}=${match[1]}; path=/; SameSite=Lax`;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -85,6 +104,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.subscription.unsubscribe();
   }, []);
+
+  async function signUp(name: string, email: string, password: string) {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name }, emailRedirectTo: `${siteUrl()}/auth/confirm` },
+    });
+    return { error: error?.message ?? null };
+  }
+
+  async function signIn(email: string, password: string, rememberMe = true) {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      // Force a fresh round-trip rather than trusting a cached session from a previous account in this tab.
+      await supabase.auth.getUser();
+      if (!rememberMe) downgradeAuthCookiesToSessionOnly();
+    }
+    return { error: error?.message ?? null };
+  }
+
+  async function resetPassword(email: string) {
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl()}/auth/confirm?next=/auth/reset-password`,
+    });
+    return { error: error?.message ?? null };
+  }
+
+  async function updatePassword(password: string) {
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error: error?.message ?? null };
+  }
 
   async function sendCode(email: string, name?: string) {
     const supabase = createClient();
@@ -149,6 +203,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         user,
         profile,
+        signUp,
+        signIn,
+        resetPassword,
+        updatePassword,
         sendCode,
         verifyCode,
         signOut,

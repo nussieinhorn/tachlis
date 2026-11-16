@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Icon } from "@/components/ui/icon";
+import { siteUrl } from "@/lib/site-url";
 
 export function PrivateIssueGate({ issueId }: { issueId: string }) {
   const { isSignedIn, user } = useAuth();
@@ -58,7 +59,7 @@ export function PrivateIssueGate({ issueId }: { issueId: string }) {
       setError(writeError.message);
       return;
     }
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
+    const origin = siteUrl();
     try {
       await supabase.functions.invoke("send-transactional-email", {
         body: {

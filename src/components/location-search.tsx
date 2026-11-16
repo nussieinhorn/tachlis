@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { IconLoader2, IconMapPin } from "@tabler/icons-react";
+import { IconCurrentLocation, IconLoader2, IconMapPin, IconX } from "@tabler/icons-react";
 
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { abbreviateLocation } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export type NominatimResult = {
   place_id: number;
@@ -20,10 +21,18 @@ export type NominatimResult = {
   display_name: string;
 };
 
+/** "Lakewood Township" -> "Lakewood", so labels match how people type places. */
+function plainCity(city: string): string {
+  return city.replace(/\s+(township|twp\.?|city|town|borough|village)$/i, "").trim() || city;
+}
+
 export function shortLabel(r: NominatimResult): string {
   const a = r.address;
   const city = a?.city ?? a?.town ?? a?.village ?? a?.hamlet ?? a?.municipality;
-  if (city && a?.state) return abbreviateLocation(`${city}, ${a.state}`) ?? `${city}, ${a.state}`;
+  if (city && a?.state) {
+    const label = `${plainCity(city)}, ${a.state}`;
+    return abbreviateLocation(label) ?? label;
+  }
   return r.display_name.split(",").slice(0, 2).join(",").trim();
 }
 
@@ -32,6 +41,9 @@ export function LocationSearch({
   value,
   onChange,
   onSelect,
+  onClear,
+  onUseCurrent,
+  locating = false,
   placeholder = "Search city, state...",
   large = false,
   trailing,
@@ -40,61 +52,104 @@ export function LocationSearch({
   onChange: (value: string) => void;
   /** Fires only when a suggestion is picked (not on every keystroke). */
   onSelect?: (value: string) => void;
+  /** Shows a clear (x) button while the field has text. */
+  onClear?: () => void;
+  /** Adds a "Use my current location" row to the suggestions. */
+  onUseCurrent?: () => void;
+  locating?: boolean;
   placeholder?: string;
   large?: boolean;
   /** Optional control shown inside the right end of the field. */
   trailing?: ReactNode;
 }) {
   const [query, setQuery] = useState(value);
+  const [results, setResults] = useState<NominatimResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Lets a parent fill the field itself (e.g. from the browser's current location).
   useEffect(() => {
     setQuery(value);
   }, [value]);
-  const [results, setResults] = useState<NominatimResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.trim().length < 3) {
+    abortRef.current?.abort();
+    if (query.trim().length < 3 || query === value) {
       setResults([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&featureType=city&limit=5&q=${encodeURIComponent(query)}`,
+          { signal: controller.signal },
         );
         if (!res.ok) return;
         const data: NominatimResult[] = await res.json();
         setResults(data);
+        setActive(data.length > 0 ? 0 : -1);
       } catch {
-        setResults([]);
+        /* aborted or offline */
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
-    }, 300);
+    }, 220);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  const showDropdown = open && (loading || results.length > 0);
+  const showCurrentRow = Boolean(onUseCurrent) && query.trim().length < 3;
+  const showDropdown = open && (loading || results.length > 0 || showCurrentRow);
+
+  function pick(r: NominatimResult) {
+    const short = shortLabel(r);
+    setQuery(short);
+    onChange(short);
+    onSelect?.(short);
+    setOpen(false);
+    inputRef.current?.blur();
+  }
+
+  function clear() {
+    setQuery("");
+    setResults([]);
+    onChange("");
+    onClear?.();
+    inputRef.current?.focus();
+  }
 
   return (
     <div className="relative">
       <Icon
         icon={IconMapPin}
-        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground ${large ? "left-4 text-foreground" : "left-3"}`}
+        className={cn(
+          "pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground",
+          large ? "left-4 text-foreground" : "left-3",
+        )}
       />
       <Input
-        className={large ? `h-14 border-2 border-foreground bg-background pl-12 text-lg font-semibold placeholder:font-medium focus-visible:border-primary focus-visible:ring-primary/30 ${trailing ? "pr-36" : ""}` : "pl-9"}
+        ref={inputRef}
+        className={cn(
+          large
+            ? "h-14 rounded-2xl border-2 border-foreground bg-background pl-12 text-lg font-semibold shadow-md placeholder:font-medium focus-visible:border-primary focus-visible:ring-primary/30"
+            : "pl-9",
+          trailing && "pr-36",
+          onClear && query && !trailing && "pr-10",
+        )}
         placeholder={placeholder}
         value={query}
+        autoComplete="off"
         onChange={(e) => {
           setQuery(e.target.value);
           onChange(e.target.value);
@@ -102,31 +157,87 @@ export function LocationSearch({
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" && results.length > 0) {
+            e.preventDefault();
+            setActive((i) => (i + 1) % results.length);
+          } else if (e.key === "ArrowUp" && results.length > 0) {
+            e.preventDefault();
+            setActive((i) => (i <= 0 ? results.length - 1 : i - 1));
+          } else if (e.key === "Enter" && open && results[active]) {
+            e.preventDefault();
+            pick(results[active]);
+          } else if (e.key === "Escape") {
+            setOpen(false);
+          }
+        }}
       />
-      {trailing && <div className="absolute top-1/2 right-2 -translate-y-1/2">{trailing}</div>}
+
+      <div className={cn("absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1")}>
+        {onClear && query && (
+          <button
+            type="button"
+            onClick={clear}
+            aria-label="Clear location"
+            className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Icon icon={IconX} size={16} />
+          </button>
+        )}
+        {trailing}
+      </div>
+
       {showDropdown && (
-        <ul className="absolute top-full left-0 z-50 mt-1 min-h-11 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-md">
-          {loading ? (
+        <ul className="absolute top-full left-0 z-50 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover p-1.5 shadow-xl">
+          {showCurrentRow && (
+            <li>
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-accent"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setOpen(false);
+                  onUseCurrent?.();
+                }}
+              >
+                <span className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                  {locating ? (
+                    <Icon icon={IconLoader2} size={16} className="animate-spin" />
+                  ) : (
+                    <Icon icon={IconCurrentLocation} size={16} />
+                  )}
+                </span>
+                Use my current location
+              </button>
+            </li>
+          )}
+          {loading && !showCurrentRow ? (
             <li className="flex items-center gap-2 px-3 py-2.5 text-sm text-muted-foreground">
               <Icon icon={IconLoader2} size={14} className="animate-spin" />
               Searching...
             </li>
           ) : (
-            results.map((r) => (
+            results.map((r, i) => (
               <li key={r.place_id}>
                 <button
                   type="button"
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+                    i === active ? "bg-accent text-accent-foreground" : "hover:bg-accent/60",
+                  )}
+                  onMouseEnter={() => setActive(i)}
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    const short = shortLabel(r);
-                    setQuery(short);
-                    onChange(short);
-                    onSelect?.(short);
-                    setOpen(false);
+                    pick(r);
                   }}
                 >
-                  {shortLabel(r)}
+                  <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Icon icon={IconMapPin} size={16} />
+                  </span>
+                  <span className="font-medium">{shortLabel(r)}</span>
+                  <span className="ml-auto truncate text-xs text-muted-foreground">
+                    {r.display_name.split(",").slice(-2).join(",").trim()}
+                  </span>
                 </button>
               </li>
             ))

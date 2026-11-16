@@ -400,3 +400,90 @@ export async function getPendingSolutions(issueId: string): Promise<Solution[]> 
   if (error || !data) return [];
   return (data as unknown as SolutionRow[]).map(mapSolution);
 }
+
+export type IdeaPreview = {
+  id: string;
+  title: string;
+  description: string;
+  votes: number;
+  voteRequiresLogin: boolean;
+  issueTitle: string;
+  issueCode: string;
+  location: string;
+};
+
+/** Approved solutions on public issues, most-voted first — the "ideas you can vote on" shown on the homepage. */
+export async function getTopIdeas(limit = 6): Promise<IdeaPreview[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("solutions")
+    .select(
+      "id, title, description, solution_votes(count), issues!inner(title, display_code, location, visibility, vote_requires_login)",
+    )
+    .eq("deleted", false)
+    .eq("hidden", false)
+    .eq("review_status", "approved")
+    .eq("issues.visibility", "public");
+  if (error || !data) return [];
+  type Row = {
+    id: string;
+    title: string;
+    description: string;
+    solution_votes: { count: number }[];
+    issues: { title: string; display_code: string; location: string | null; vote_requires_login: boolean };
+  };
+  return (data as unknown as Row[])
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      description: r.description,
+      votes: r.solution_votes[0]?.count ?? 0,
+      voteRequiresLogin: r.issues.vote_requires_login,
+      issueTitle: r.issues.title,
+      issueCode: r.issues.display_code,
+      location: r.issues.location ?? "",
+    }))
+    .sort((a, b) => b.votes - a.votes)
+    .slice(0, limit);
+}
+
+export type ActionPlanPreview = {
+  issueCode: string;
+  issueTitle: string;
+  location: string;
+  leadName: string | null;
+  done: number;
+  total: number;
+  nextTask: string | null;
+};
+
+/** Action plans that organizers have published, with task progress — shown on the homepage. */
+export async function getActionPlanPreviews(limit = 3): Promise<ActionPlanPreview[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("action_plans")
+    .select("lead_name, action_tasks(title, status, hidden, sort_order), issues!inner(title, display_code, location, visibility, action_plan_visible)")
+    .eq("issues.visibility", "public")
+    .eq("issues.action_plan_visible", true);
+  if (error || !data) return [];
+  type Row = {
+    lead_name: string | null;
+    action_tasks: { title: string; status: string; hidden: boolean; sort_order: number }[];
+    issues: { title: string; display_code: string; location: string | null };
+  };
+  return (data as unknown as Row[])
+    .map((r) => {
+      const tasks = r.action_tasks.filter((t) => !t.hidden).sort((a, b) => a.sort_order - b.sort_order);
+      return {
+        issueCode: r.issues.display_code,
+        issueTitle: r.issues.title,
+        location: r.issues.location ?? "",
+        leadName: r.lead_name,
+        done: tasks.filter((t) => t.status === "done").length,
+        total: tasks.length,
+        nextTask: tasks.find((t) => t.status !== "done")?.title ?? null,
+      };
+    })
+    .filter((p) => p.total > 0)
+    .slice(0, limit);
+}

@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { siteUrl } from "@/lib/site-url";
 
 type ResourceType = "issue" | "community";
 type Role = "viewer" | "editor";
@@ -86,7 +87,7 @@ export function ShareAccessPanel({
 
   const table = TABLES[resourceType];
   const label = resourceType === "issue" ? "issue" : "community";
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
+  const origin = siteUrl();
 
   async function load() {
     const supabase = createClient();

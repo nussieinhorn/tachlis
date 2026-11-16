@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
+import { siteUrl } from "@/lib/site-url";
 
 const TONES: CommunityTone[] = ["coral", "amber", "blue", "violet", "green", "slate"];
 const STEPS = ["Privacy", "Basics", "Invite"];
@@ -124,7 +125,7 @@ export function CreateCommunityDialog({
       return;
     }
 
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://tachlis.org";
+    const origin = siteUrl();
     for (const invite of invites) {
       const email = invite.email.trim().toLowerCase();
       if (!email || !isValidEmail(email)) continue;
