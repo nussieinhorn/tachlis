@@ -1,35 +1,57 @@
-"use client";
-
 import Link from "next/link";
-import { IconLock, IconUsersGroup } from "@tabler/icons-react";
+import { IconArrowRight, IconLock, IconMapPin, IconUsers } from "@tabler/icons-react";
 
 import type { Community } from "@/lib/communities-data";
-import { Button } from "@/components/ui/button";
+import { pluralize } from "@/lib/utils";
+import { CommunityAvatar } from "@/components/community-avatar";
 import { Icon } from "@/components/ui/icon";
 
+/** The community this issue belongs to: a clickable card with its logo, what it is and how big it is. */
 export function IssueCommunitySection({ community }: { community: Community }) {
   const isPrivate = community.privacy === "private";
 
   return (
-    <section className="flex flex-col gap-3 border-t border-border pt-6">
-      <h2 className="font-heading text-lg font-semibold text-foreground">Community</h2>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-            <Icon icon={IconUsersGroup} size={18} />
+    <section className="flex flex-col gap-3">
+      <h2 className="type-panel">Part of a community</h2>
+      <Link
+        href={`/communities/${community.displayCode}`}
+        className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow duration-200 hover:shadow-lg sm:flex-row sm:items-center sm:gap-5 sm:p-6"
+      >
+        <CommunityAvatar
+          logoUrl={community.logoUrl}
+          tone={community.tone}
+          name={community.name}
+          className="size-14 sm:size-16"
+          iconSize={26}
+        />
+
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span className="type-subsection flex items-center gap-1.5 transition-colors duration-150 group-hover:text-primary">
+            {isPrivate && <Icon icon={IconLock} size={16} className="text-muted-foreground" />}
+            {community.name}
           </span>
-          <div className="flex flex-col gap-0.5">
-            <span className="flex items-center gap-1.5 font-medium text-foreground">
-              {isPrivate && <Icon icon={IconLock} size={14} className="text-muted-foreground" />}
-              {community.name}
+          {community.description && (
+            <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{community.description}</p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-0.5 text-xs text-muted-foreground">
+            {community.location && (
+              <span className="flex items-center gap-1">
+                <Icon icon={IconMapPin} size={14} />
+                {community.location}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Icon icon={IconUsers} size={14} />
+              {community.memberCount} {pluralize(community.memberCount, "member")}
             </span>
-            <span className="line-clamp-1 text-sm text-muted-foreground">{community.description}</span>
           </div>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/communities/${community.displayCode}`}>View community</Link>
-        </Button>
-      </div>
+
+        <span className="flex shrink-0 items-center gap-1.5 self-start rounded-full bg-foreground px-4 py-2 text-sm font-bold text-background shadow-sm transition-transform duration-200 group-hover:translate-x-0.5 sm:self-center">
+          View community
+          <Icon icon={IconArrowRight} size={16} />
+        </span>
+      </Link>
     </section>
   );
 }

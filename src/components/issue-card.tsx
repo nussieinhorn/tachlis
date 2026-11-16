@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pluralize } from "@/lib/utils";
 import { IconMapPin, IconUsers } from "@tabler/icons-react";
 
 import type { Category, Issue } from "@/lib/mock-data";
@@ -23,14 +24,14 @@ export function IssueCard({ issue, categories }: { issue: Issue; categories?: Ca
         </Badge>
       </div>
 
-      <h3 className="font-heading text-2xl leading-snug font-semibold tracking-tight text-foreground transition-colors duration-150 group-hover:text-primary sm:text-3xl">
+      <h3 className="type-card-title transition-colors duration-150 group-hover:text-primary">
         {issue.title}
       </h3>
 
       <div className="mt-auto flex items-center gap-4 pt-2 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <Icon icon={IconUsers} size={16} />
-          {issue.supporterCount} supporters
+          {issue.supporterCount} {pluralize(issue.supporterCount, "supporter")}
         </span>
         <span className="flex items-center gap-1">
           <Icon icon={IconMapPin} size={16} />

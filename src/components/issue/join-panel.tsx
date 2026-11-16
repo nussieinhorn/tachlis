@@ -250,7 +250,7 @@ export function JoinPanel({
             </div>
           )}
         </div>
-        <span className="text-sm text-muted-foreground">supporters</span>
+        <span className="text-sm text-muted-foreground">{supporterCount === 1 ? "supporter" : "supporters"}</span>
       </div>
 
       <div className="flex items-center gap-3 border-t border-border pt-3 text-xs text-muted-foreground">

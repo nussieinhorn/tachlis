@@ -33,7 +33,7 @@ function ThemeSection() {
   ];
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-border p-5">
-      <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Appearance</h2>
+      <h2 className="type-eyebrow">Appearance</h2>
       <div className="flex gap-2">
         {options.map((opt) => (
           <button
@@ -90,7 +90,7 @@ function NotificationsSection() {
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-border p-5">
       <div className="flex flex-col gap-1">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Notifications</h2>
+        <h2 className="type-eyebrow">Notifications</h2>
         <p className="text-xs text-muted-foreground">
           Choose what shows up in your notifications inbox, and which of those should also email you.
         </p>
@@ -230,7 +230,7 @@ function MyProfileSection() {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <section className="flex flex-col gap-3 rounded-xl border border-border p-5">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Name &amp; phone</h2>
+        <h2 className="type-eyebrow">Name &amp; phone</h2>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="profile-name">Name</Label>
           <Input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -252,7 +252,7 @@ function MyProfileSection() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-xl border border-border p-5">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Email</h2>
+        <h2 className="type-eyebrow">Email</h2>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="profile-email">Email address</Label>
           <Input id="profile-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -269,7 +269,7 @@ function MyProfileSection() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-xl border border-border p-5">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Password</h2>
+        <h2 className="type-eyebrow">Password</h2>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="profile-password">New password</Label>
           <Input id="profile-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -296,7 +296,7 @@ function MyProfileSection() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-5">
-        <h2 className="text-sm font-semibold tracking-wide text-destructive uppercase">Danger zone</h2>
+        <h2 className="type-eyebrow text-destructive">Danger zone</h2>
         <p className="text-sm text-muted-foreground">
           Deleting your account is permanent — your issues and solutions stay, but you&apos;ll lose access to
           everything tied to this login.
@@ -348,7 +348,7 @@ export default function ProfilePage() {
     <>
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-6 py-10">
-        <h1 className="font-heading text-2xl font-bold text-foreground">Profile</h1>
+        <h1 className="type-title">Profile</h1>
 
         <Tabs defaultValue="profile">
           <TabsList className="w-full">

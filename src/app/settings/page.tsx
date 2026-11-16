@@ -45,7 +45,7 @@ function StatusConfigEditor({ table, title }: { table: "issue_status_config" | "
 
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-border p-5">
-      <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">{title}</h2>
+      <h2 className="type-eyebrow">{title}</h2>
       <ul className="flex flex-col gap-2">
         {rows.map((row) => (
           <li key={row.key} className="flex items-center gap-2">
@@ -107,7 +107,7 @@ export default function SettingsPage() {
     <>
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-lg flex-col gap-8 px-6 py-10">
-        <h1 className="font-heading text-2xl font-bold text-foreground">Settings</h1>
+        <h1 className="type-title">Settings</h1>
         <p className="-mt-4 text-sm text-muted-foreground">
           Site-wide options. For your own theme and notification preferences, see your{" "}
           <a href="/profile" className="text-primary hover:underline">

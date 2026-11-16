@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { IconCheck, IconLock, IconPlus, IconUsersGroup, IconWorld, IconX } from "@tabler/icons-react";
+import { IconCheck, IconLoader2, IconLock, IconPlus, IconUpload, IconUsersGroup, IconWorld, IconX } from "@tabler/icons-react";
 
 import {
   COMMUNITY_TONE_CLASSES,
@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
 import { AuthGate } from "@/components/auth-gate";
+import { CommunityAvatar } from "@/components/community-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +63,40 @@ export function CreateCommunityDialog({
   const [name, setName] = useState(editCommunity?.name ?? "");
   const [description, setDescription] = useState(editCommunity?.description ?? "");
   const [location, setLocation] = useState(editCommunity?.location ?? "");
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(editCommunity?.logoUrl ?? null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const logoInput = useRef<HTMLInputElement>(null);
+
+  const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+
+  async function uploadLogo(file: File) {
+    if (!user) return;
+    setLogoError(null);
+    if (!LOGO_TYPES.includes(file.type)) {
+      setLogoError("Use a PNG, JPG, WebP or GIF image.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setLogoError("That image is over 2 MB. Pick a smaller one.");
+      return;
+    }
+    setUploadingLogo(true);
+    const supabase = createClient();
+    const ext = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
+    const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("community-logos")
+      .upload(path, file, { contentType: file.type, cacheControl: "31536000" });
+    if (uploadError) {
+      setUploadingLogo(false);
+      setLogoError(uploadError.message);
+      return;
+    }
+    setLogoUrl(supabase.storage.from("community-logos").getPublicUrl(path).data.publicUrl);
+    setUploadingLogo(false);
+  }
   const [tone, setTone] = useState<CommunityTone>(editCommunity?.tone ?? "coral");
   const [privacy, setPrivacy] = useState<"public" | "private">(editCommunity?.privacy ?? defaultPrivacy ?? "public");
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -79,6 +114,8 @@ export function CreateCommunityDialog({
       setLocation(editCommunity?.location ?? "");
       setTone(editCommunity?.tone ?? "coral");
       setPrivacy(editCommunity?.privacy ?? "public");
+      setLogoUrl(editCommunity?.logoUrl ?? null);
+      setLogoError(null);
       setInvites([]);
       router.refresh();
     }
@@ -103,7 +140,16 @@ export function CreateCommunityDialog({
     if (isEditing && editCommunity) {
       const { error: updateError } = await supabase
         .from("communities")
-        .update({ name: name.trim(), description, location, tone, privacy })
+        .update({
+          name: name.trim(),
+          description,
+          location,
+          tone,
+          privacy,
+          logo_url: logoUrl,
+          ...(locationCoords ? { latitude: locationCoords.lat, longitude: locationCoords.lon } : {}),
+          ...(!location.trim() ? { latitude: null, longitude: null } : {}),
+        })
         .eq("id", editCommunity.id);
       setSubmitting(false);
       if (updateError) {
@@ -116,7 +162,17 @@ export function CreateCommunityDialog({
 
     const { data, error: insertError } = await supabase
       .from("communities")
-      .insert({ name: name.trim(), description, location, tone, privacy, owner_id: user.id })
+      .insert({
+        name: name.trim(),
+        description,
+        location,
+        tone,
+        privacy,
+        logo_url: logoUrl,
+        owner_id: user.id,
+        latitude: location.trim() && locationCoords ? locationCoords.lat : null,
+        longitude: location.trim() && locationCoords ? locationCoords.lon : null,
+      })
       .select()
       .single();
     if (insertError || !data) {
@@ -168,12 +224,14 @@ export function CreateCommunityDialog({
   }
 
   const singlePage = isEditing || quickMode;
-  const canAdvance = step === 1 ? name.trim().length > 0 : true;
+  // A typed location must be a real place picked from the map search (an unchanged saved one is fine).
+  const locationOk = !location.trim() || locationCoords !== null || location === (editCommunity?.location ?? "");
+  const canAdvance = step === 1 ? name.trim().length > 0 && locationOk : true;
 
   return (
     <Dialog open={open} onOpenChange={reset}>
       <span onClick={() => setOpen(true)}>{trigger}</span>
-      <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-lg">
+      <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-xl">
         {!user ? (
           <>
             <DialogHeader>
@@ -227,9 +285,12 @@ export function CreateCommunityDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>
-                {isEditing ? "Edit community" : quickMode ? "Create a new community" : STEPS[step]}
-              </DialogTitle>
+              <DialogTitle>{isEditing ? "Edit community" : "Create community"}</DialogTitle>
+              {!isEditing && !quickMode && !singlePage && (
+                <p className="type-eyebrow">
+                  Step {step + 1} of {STEPS.length} · {STEPS[step]}
+                </p>
+              )}
             </DialogHeader>
 
             <div className="flex-1 overflow-y-auto px-1">
@@ -325,26 +386,77 @@ export function CreateCommunityDialog({
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="community-location">Location</Label>
-                    <LocationSearch value={location} onChange={setLocation} />
+                    <LocationSearch
+                      value={location}
+                      onChange={setLocation}
+                      onResolve={(p) => setLocationCoords(p ? { lat: p.lat, lon: p.lon } : null)}
+                      status={locationOk ? "verified" : "unverified"}
+                    />
                   </div>
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-2">
                     <Label>Logo</Label>
-                    <div className="flex gap-2">
-                      {TONES.map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setTone(t)}
-                          className={cn(
-                            "flex size-11 items-center justify-center rounded-full text-white ring-offset-2 transition-shadow",
-                            COMMUNITY_TONE_CLASSES[t],
-                            tone === t && "ring-2 ring-primary",
+                    <div className="flex items-center gap-4">
+                      <CommunityAvatar
+                        logoUrl={logoUrl}
+                        tone={tone}
+                        name={name || "Community"}
+                        className="size-16"
+                        iconSize={28}
+                      />
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-wrap gap-2">
+                          <input
+                            ref={logoInput}
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/gif"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) void uploadLogo(file);
+                              e.target.value = "";
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={uploadingLogo}
+                            onClick={() => logoInput.current?.click()}
+                          >
+                            <Icon icon={uploadingLogo ? IconLoader2 : IconUpload} size={16} className={uploadingLogo ? "animate-spin" : ""} />
+                            {logoUrl ? "Change image" : "Upload image"}
+                          </Button>
+                          {logoUrl && (
+                            <Button type="button" size="sm" variant="ghost" onClick={() => setLogoUrl(null)}>
+                              Remove
+                            </Button>
                           )}
-                        >
-                          {tone === t ? <Icon icon={IconCheck} size={18} /> : <Icon icon={IconUsersGroup} size={18} />}
-                        </button>
-                      ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">PNG, JPG, WebP or GIF, up to 2 MB. Square works best.</p>
+                      </div>
                     </div>
+                    {logoError && <p className="text-xs text-destructive">{logoError}</p>}
+                    {!logoUrl && (
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs text-muted-foreground">Or pick a colour</span>
+                        <div className="flex gap-2">
+                          {TONES.map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => setTone(t)}
+                              className={cn(
+                                "flex size-9 items-center justify-center rounded-full text-white ring-offset-2 transition-shadow",
+                                COMMUNITY_TONE_CLASSES[t],
+                                tone === t && "ring-2 ring-primary",
+                              )}
+                            >
+                              {tone === t ? <Icon icon={IconCheck} size={16} /> : <Icon icon={IconUsersGroup} size={16} />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Privacy</Label>

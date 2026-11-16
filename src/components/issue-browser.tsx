@@ -15,6 +15,16 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const PAGE_SIZE = 5;
+/** How far from the chosen place an issue can be and still count as "near". */
+const NEARBY_KM = 40;
+
+function distanceKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLon = (b.lon - a.lon) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
 
 type SortOption = "trending" | "recent" | "alphabetical";
 
@@ -37,7 +47,17 @@ function sortIssues(issues: Issue[], sort: SortOption): Issue[] {
   return issues;
 }
 
-export function IssueBrowser({ issues, categories }: { issues: Issue[]; categories?: CategoryOption[] }) {
+export function IssueBrowser({
+  issues,
+  categories,
+  initialQuery,
+  initialCategory,
+}: {
+  issues: Issue[];
+  categories?: CategoryOption[];
+  initialQuery?: string;
+  initialCategory?: string;
+}) {
   const categoryList: Category[] = useMemo(
     () =>
       categories
@@ -46,9 +66,10 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
     [categories],
   );
   const [place, setPlace] = useState("");
-  const [textQuery, setTextQuery] = useState("");
+  const [placeCoords, setPlaceCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [textQuery, setTextQuery] = useState(initialQuery ?? "");
   const [locating, setLocating] = useState(false);
-  const [categorySlugs, setCategorySlugs] = useState<string[]>([]);
+  const [categorySlugs, setCategorySlugs] = useState<string[]>(initialCategory ? [initialCategory] : []);
   const [sort, setSort] = useState<SortOption>("recent");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -64,8 +85,9 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
     setVisibleCount(PAGE_SIZE);
   }
 
-  function selectPlace(next: string) {
+  function selectPlace(next: string, coords?: { lat: number; lon: number }) {
     setPlace(next);
+    setPlaceCoords(next ? (coords ?? null) : null);
     setVisibleCount(PAGE_SIZE);
   }
 
@@ -79,7 +101,12 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=10&lat=${coords.latitude}&lon=${coords.longitude}`,
           );
-          if (res.ok) selectPlace(shortLabel((await res.json()) as NominatimResult));
+          if (res.ok) {
+            selectPlace(shortLabel((await res.json()) as NominatimResult), {
+              lat: coords.latitude,
+              lon: coords.longitude,
+            });
+          }
         } catch {
           /* leave unfiltered */
         }
@@ -112,7 +139,12 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
         .trim();
     const wanted = place ? norm(place) : "";
     const matches = issues.filter((issue) => {
-      const matchesLocation = !wanted || sameLocation(norm(issue.location ?? ""), wanted);
+      // Real distance when both the search and the issue have coordinates; otherwise match by place name.
+      const matchesLocation =
+        !wanted ||
+        (placeCoords && issue.latitude != null && issue.longitude != null
+          ? distanceKm(placeCoords, { lat: issue.latitude, lon: issue.longitude }) <= NEARBY_KM
+          : sameLocation(norm(issue.location ?? ""), wanted));
       const matchesCategory =
         categorySlugs.length === 0 || categorySlugs.includes(issue.categorySlug);
       const text = textQuery.trim().toLowerCase();
@@ -124,8 +156,16 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
         (categoryList.find((c) => c.slug === issue.categorySlug)?.label ?? "").toLowerCase().includes(text);
       return matchesLocation && matchesCategory && matchesText;
     });
-    return sortIssues(matches, sort);
-  }, [issues, place, categorySlugs, sort, textQuery, categoryList]);
+    const sorted = sortIssues(matches, sort);
+    if (placeCoords && sort === "recent") {
+      const d = (i: Issue) =>
+        i.latitude != null && i.longitude != null
+          ? distanceKm(placeCoords, { lat: i.latitude, lon: i.longitude })
+          : Number.MAX_SAFE_INTEGER;
+      return [...sorted].sort((a, b) => d(a) - d(b));
+    }
+    return sorted;
+  }, [issues, place, placeCoords, categorySlugs, sort, textQuery, categoryList]);
 
   const popularCategories = useMemo(() => {
     const counts = new Map<string, number>();
@@ -150,7 +190,7 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
             setTextQuery(q);
             setVisibleCount(PAGE_SIZE);
           }}
-          onPickPlace={selectPlace}
+          onPickPlace={(label, coords) => selectPlace(label, coords)}
           onPickTopic={(slug) => {
             setCategorySlugs([slug]);
             setVisibleCount(PAGE_SIZE);
@@ -276,7 +316,7 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
         </div>
       ) : (
         <>
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
             {visible.map((issue) => (
               <IssueCard key={issue.id} issue={issue} categories={categoryList} />
             ))}

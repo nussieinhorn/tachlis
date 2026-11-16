@@ -71,7 +71,7 @@ export function AuthGate({
         <div className="flex size-12 items-center justify-center rounded-full bg-status-resolved/15 text-status-resolved">
           <Icon icon={IconMailCheck} size={22} />
         </div>
-        <h2 className="font-heading text-2xl font-extrabold tracking-tight text-foreground">Check your email</h2>
+        <h2 className="type-dialog">Check your email</h2>
         <p className="text-sm text-muted-foreground">
           We sent a confirmation link to <strong className="text-foreground">{email}</strong>. Click it to
           activate your account, then come back and sign in.
@@ -84,7 +84,7 @@ export function AuthGate({
     return (
       <div className="mx-auto flex w-full max-w-sm flex-col gap-6">
         <div className="flex flex-col gap-2 text-center">
-          <h2 className="font-heading text-2xl font-extrabold tracking-tight text-foreground">Reset your password</h2>
+          <h2 className="type-dialog">Reset your password</h2>
           <p className="text-base text-muted-foreground">We'll email you a link to set a new one.</p>
         </div>
         {resetSent ? (
@@ -118,7 +118,7 @@ export function AuthGate({
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col gap-6">
       <div className="flex flex-col gap-2 text-center">
-        <h2 className="font-heading text-2xl font-extrabold tracking-tight text-foreground">{title}</h2>
+        <h2 className="type-dialog">{title}</h2>
         <p className="text-base text-muted-foreground">{description}</p>
       </div>
 

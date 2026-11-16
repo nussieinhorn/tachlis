@@ -83,7 +83,7 @@ export function PrivateIssueGate({ issueId }: { issueId: string }) {
         <div className="flex size-12 items-center justify-center rounded-full bg-muted">
           <Icon icon={IconLock} size={22} className="text-muted-foreground" />
         </div>
-        <h1 className="font-heading text-xl font-semibold text-foreground">This is private</h1>
+        <h1 className="type-title">This is private</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
           You need to request access to view it. Check your email — if someone approves your request,
           you&apos;ll receive an email with a link back here.

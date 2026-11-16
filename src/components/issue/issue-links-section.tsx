@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/ui/icon";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -130,9 +129,9 @@ export function IssueLinksSection({
   if (links.length === 0 && !canEdit) return null;
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-3 pt-6 pb-6">
-        <h3 className="font-heading text-sm font-semibold text-foreground">Links</h3>
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
+        <h2 className="type-panel">Links</h2>
 
         {links.length === 0 ? (
           <p className="text-sm text-muted-foreground">No links added yet.</p>
@@ -187,7 +186,7 @@ export function IssueLinksSection({
             Add link
           </Button>
         )}
-      </CardContent>
+      </div>
 
       <LinkFormDialog open={addOpen} onOpenChange={setAddOpen} onSave={addLink} />
       {editingLink && (
@@ -198,6 +197,6 @@ export function IssueLinksSection({
           onSave={(label, url) => updateLink(editingLink.id, label, url)}
         />
       )}
-    </Card>
+    </section>
   );
 }

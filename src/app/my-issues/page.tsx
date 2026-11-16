@@ -1,6 +1,6 @@
 import { SiteHeader } from "@/components/site-header";
 import { AuthGateRefresh } from "@/components/auth-gate-refresh";
-import { MyIssuesTable } from "@/components/my-issues-table";
+import { MyIssuesView } from "@/components/my-issues-view";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories, getIssuesOwnedBy } from "@/lib/supabase/queries";
 
@@ -17,7 +17,7 @@ export default async function MyIssuesPage() {
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
         <header className="flex flex-col gap-2">
-          <h1 className="font-heading text-2xl font-bold text-foreground">My issues</h1>
+          <h1 className="type-title">My issues</h1>
           <p className="max-w-2xl text-muted-foreground">
             Issues you&apos;ve created. Sort, group and update several at once.
           </p>
@@ -33,7 +33,7 @@ export default async function MyIssuesPage() {
         ) : myIssues.length === 0 ? (
           <p className="text-muted-foreground">You haven&apos;t created any issues yet.</p>
         ) : (
-          <MyIssuesTable issues={myIssues} categories={categories} />
+          <MyIssuesView issues={myIssues} categories={categories} />
         )}
       </main>
     </>

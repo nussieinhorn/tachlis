@@ -1,9 +1,8 @@
 import type { Comment, Update } from "@/lib/mock-data";
 import { JoinPanel } from "@/components/issue/join-panel";
 import { AdminUpdates } from "@/components/issue/admin-updates";
-import { CommentThread } from "@/components/issue/comment-thread";
+import { CommentsDialog } from "@/components/issue/comments-dialog";
 import { IssueLinksSection } from "@/components/issue/issue-links-section";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function IssueSidebar({
@@ -42,7 +41,7 @@ export function IssueSidebar({
   const showCommentsTab = commentsEnabled || canEdit;
 
   return (
-    <aside className="flex flex-col gap-4">
+    <aside className="flex flex-col gap-6">
       <Card>
         <CardContent className="pt-6 pb-6">
           <JoinPanel
@@ -60,36 +59,21 @@ export function IssueSidebar({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6 pb-6">
-          {showCommentsTab ? (
-            <Tabs defaultValue="updates">
-              <TabsList className="w-full">
-                <TabsTrigger value="updates">Updates</TabsTrigger>
-                <TabsTrigger value="comments">Comments</TabsTrigger>
-              </TabsList>
-              <TabsContent value="updates" className="pt-4">
-                <AdminUpdates issueId={issueId} initialUpdates={updates} canEdit={canEdit} />
-              </TabsContent>
-              <TabsContent value="comments" className="pt-4">
-                {canEdit && !commentsEnabled && (
-                  <p className="mb-3 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                    Comments are off — only you can see this tab.
-                  </p>
-                )}
-                <CommentThread
-                  issueId={issueId}
-                  initialComments={discussion}
-                  commentsEnabled={commentsEnabled}
-                  commentsRequireLogin={commentsRequireLogin}
-                />
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <AdminUpdates issueId={issueId} initialUpdates={updates} canEdit={canEdit} />
+      {/* Updates and comments sit open on the page, with no box or rule. */}
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5">
+          <AdminUpdates issueId={issueId} initialUpdates={updates} canEdit={canEdit} authorName={ownerName} />
+          {showCommentsTab && (
+            <CommentsDialog
+              issueId={issueId}
+              comments={discussion}
+              canEdit={canEdit}
+              commentsEnabled={commentsEnabled}
+              commentsRequireLogin={commentsRequireLogin}
+            />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <IssueLinksSection issueId={issueId} initialLinks={links} canEdit={canEdit} />
     </aside>

@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { IconSearch, IconPlus, IconUserCircle, IconLogout, IconCircleCheck, IconList, IconUsersGroup, IconSettings, IconUserCog } from "@tabler/icons-react";
+import { IconSearch, IconPlus, IconUserCircle, IconLogout, IconList, IconUsersGroup, IconSettings, IconUserCog } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import { MotiveLogo } from "@/components/motive-logo";
+import { SearchDialog } from "@/components/search-dialog";
 import { Icon } from "@/components/ui/icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
@@ -73,13 +74,32 @@ export function SiteHeader() {
             <MotiveLogo />
           </Link>
 
-          <Link
-            href="/discover"
-            className="group hidden items-center gap-2 text-sm font-bold text-foreground transition-colors hover:text-primary md:flex"
-          >
-            <Icon icon={IconSearch} size={18} className="transition-transform duration-200 group-hover:scale-110" />
-            Search &amp; Discover
-          </Link>
+          <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+            <Link
+              href="/issues"
+              className="rounded-full px-4 py-2 text-sm font-bold text-foreground transition-colors hover:bg-muted"
+            >
+              Issues
+            </Link>
+            <Link
+              href="/communities"
+              className="rounded-full px-4 py-2 text-sm font-bold text-foreground transition-colors hover:bg-muted"
+            >
+              Communities
+            </Link>
+            <SearchDialog
+              trigger={
+                <button
+                  type="button"
+                  aria-label="Search everything"
+                  title="Search (Ctrl/Cmd+K)"
+                  className="flex size-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
+                >
+                  <Icon icon={IconSearch} size={18} />
+                </button>
+              }
+            />
+          </nav>
 
           <div className="col-start-3 flex items-center justify-self-end gap-2">
 
@@ -120,12 +140,6 @@ export function SiteHeader() {
                     <Link href="/my-communities">
                       <Icon icon={IconUsersGroup} size={16} />
                       My Communities
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/solved">
-                      <Icon icon={IconCircleCheck} size={16} />
-                      Solved
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

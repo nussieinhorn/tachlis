@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 
 export type NominatimResult = {
   place_id: number;
+  lat?: string;
+  lon?: string;
   address?: {
     city?: string;
     town?: string;
@@ -37,10 +39,14 @@ export function shortLabel(r: NominatimResult): string {
 }
 
 // Free, keyless geocoding via OpenStreetMap's Nominatim — city/town granularity only, short "City, ST" results.
+export type ResolvedPlace = { label: string; lat: number; lon: number };
+
 export function LocationSearch({
   value,
   onChange,
   onSelect,
+  onResolve,
+  status,
   onClear,
   onUseCurrent,
   locating = false,
@@ -52,6 +58,10 @@ export function LocationSearch({
   onChange: (value: string) => void;
   /** Fires only when a suggestion is picked (not on every keystroke). */
   onSelect?: (value: string) => void;
+  /** Fires with the real place (label + coordinates) when one is picked, and with null as soon as the text is edited. */
+  onResolve?: (place: ResolvedPlace | null) => void;
+  /** Shows a small line under the field: a verified tick, or a nudge to pick from the list. */
+  status?: "verified" | "unverified";
   /** Shows a clear (x) button while the field has text. */
   onClear?: () => void;
   /** Adds a "Use my current location" row to the suggestions. */
@@ -70,6 +80,7 @@ export function LocationSearch({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pickedRef = useRef<string | null>(null);
 
   // Lets a parent fill the field itself (e.g. from the browser's current location).
   useEffect(() => {
@@ -79,7 +90,7 @@ export function LocationSearch({
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     abortRef.current?.abort();
-    if (query.trim().length < 3 || query === value) {
+    if (query.trim().length < 3 || query === pickedRef.current) {
       setResults([]);
       setLoading(false);
       return;
@@ -114,22 +125,27 @@ export function LocationSearch({
 
   function pick(r: NominatimResult) {
     const short = shortLabel(r);
+    pickedRef.current = short;
     setQuery(short);
     onChange(short);
     onSelect?.(short);
+    if (onResolve && r.lat && r.lon) onResolve({ label: short, lat: parseFloat(r.lat), lon: parseFloat(r.lon) });
     setOpen(false);
     inputRef.current?.blur();
   }
 
   function clear() {
+    pickedRef.current = null;
     setQuery("");
     setResults([]);
     onChange("");
+    onResolve?.(null);
     onClear?.();
     inputRef.current?.focus();
   }
 
   return (
+    <div>
     <div className="relative">
       <Icon
         icon={IconMapPin}
@@ -151,8 +167,10 @@ export function LocationSearch({
         value={query}
         autoComplete="off"
         onChange={(e) => {
+          pickedRef.current = null;
           setQuery(e.target.value);
           onChange(e.target.value);
+          onResolve?.(null);
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
@@ -243,6 +261,17 @@ export function LocationSearch({
             ))
           )}
         </ul>
+      )}
+    </div>
+      {status && query.trim() && (
+        <p
+          className={cn(
+            "mt-1.5 flex items-center gap-1.5 text-xs font-medium",
+            status === "verified" ? "text-status-resolved" : "text-muted-foreground",
+          )}
+        >
+          {status === "verified" ? "✓ Verified location" : "Pick a place from the list so we can find it on the map."}
+        </p>
       )}
     </div>
   );

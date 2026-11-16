@@ -14,6 +14,7 @@ export function OtherProposals({
   canEdit,
   isFirstChosen,
   label = "archived proposals",
+  startIndex,
   commentsEnabled,
   commentsRequireLogin,
 }: {
@@ -22,6 +23,8 @@ export function OtherProposals({
   canEdit: boolean;
   isFirstChosen: boolean;
   label?: string;
+  /** When set, solutions are numbered continuing from this index. */
+  startIndex?: number;
   commentsEnabled?: boolean;
   commentsRequireLogin?: boolean;
 }) {
@@ -37,10 +40,11 @@ export function OtherProposals({
       </Button>
       {open && (
         <div className="flex flex-col gap-3">
-          {solutions.map((solution) => (
+          {solutions.map((solution, i) => (
             <SolutionCard
               key={solution.id}
               solution={solution}
+              index={startIndex !== undefined ? startIndex + i : undefined}
               issueId={issueId}
               canEdit={canEdit}
               isFirstChosen={isFirstChosen}

@@ -242,7 +242,7 @@ export function SolutionCard({
                   Solution {index + 1}
                 </span>
               )}
-              <CardTitle className={headline ? "text-xl" : "text-base"}>{solution.title}</CardTitle>
+              <CardTitle className={headline ? "type-section" : "type-panel"}>{solution.title}</CardTitle>
             </div>
             <div className="flex shrink-0 items-start gap-1">
               {canEdit ? (
@@ -272,7 +272,6 @@ export function SolutionCard({
           <CardDescription className="line-clamp-2 text-sm">
             {solution.description}
           </CardDescription>
-          {metaLine}
           {hidden && canEdit && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Icon icon={IconEyeOff} size={12} />
@@ -280,55 +279,65 @@ export function SolutionCard({
             </p>
           )}
         </CardHeader>
-        <CardContent className="flex items-center gap-3 px-4 pb-4">
-          <Button
-            size="sm"
-            variant={voted ? "secondary" : "outline"}
-            onClick={castVote}
-            className="gap-1.5"
-          >
-            <Icon key={String(voted)} icon={voted ? IconCheck : IconArrowUp} size={16} className="animate-pop" />
-            <span key={votes} className="animate-tick tabular-nums">
-              {votes}
-            </span>
-          </Button>
-          {commentsEnabled && (
-            <span className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Icon icon={IconMessageCircle} size={16} />
-              {solution.comments.length}
-            </span>
-          )}
+        <CardContent className="flex items-center justify-between gap-3 px-4 pb-4">
+          <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              variant={voted ? "secondary" : "outline"}
+              onClick={castVote}
+              className="gap-1.5"
+            >
+              <Icon key={String(voted)} icon={voted ? IconCheck : IconArrowUp} size={16} className="animate-pop" />
+              <span key={votes} className="animate-tick tabular-nums">
+                {votes}
+              </span>
+              <span className="hidden sm:inline">{votes === 1 ? "vote" : "votes"}</span>
+            </Button>
+            {commentsEnabled && (
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Icon icon={IconMessageCircle} size={16} />
+                {solution.comments.length}
+              </span>
+            )}
+          </div>
+          {metaLine}
         </CardContent>
       </Card>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="overflow-y-auto sm:max-w-xl">
-          <SheetHeader className="gap-3">
-            <div className="flex items-center gap-2 pr-8">
-              <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                {typeof index === "number" ? `Solution ${index + 1}` : "Solution"} · #{solution.displayCode}
-              </span>
-              <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-              <div className="ml-auto flex items-center gap-1">
+          <SheetHeader className="gap-4">
+            <div className="flex items-center justify-between gap-3 pr-10">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="type-eyebrow">{typeof index === "number" ? `Solution ${index + 1}` : "Solution"}</span>
+                <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+              </div>
+              <div className="flex items-center gap-1">
                 {editPencil}
                 {adminMenu}
               </div>
             </div>
-            <Button
-              size="lg"
-              variant={voted ? "secondary" : "default"}
-              className="w-fit"
-              onClick={() => castVote()}
-            >
-              <Icon key={String(voted)} icon={voted ? IconCheck : IconArrowUp} className="animate-pop" />
-              <span key={votes} className="animate-tick tabular-nums">
-                {votes}
-              </span>{" "}
-              {voted ? "· voted" : "votes"}
-            </Button>
-            <SheetTitle className="text-2xl">{solution.title}</SheetTitle>
-            <SheetDescription className="text-base">{solution.description}</SheetDescription>
-            {metaLine}
+
+            <SheetTitle className="type-section">{solution.title}</SheetTitle>
+            <SheetDescription className="text-base leading-relaxed">{solution.description}</SheetDescription>
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {metaLine}
+              <span className="text-xs text-muted-foreground">#{solution.displayCode}</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/40 p-3 pl-4">
+              <div className="flex items-baseline gap-2">
+                <span key={votes} className="animate-tick font-heading text-3xl font-black tabular-nums">
+                  {votes}
+                </span>
+                <span className="text-sm text-muted-foreground">{votes === 1 ? "vote" : "votes"}</span>
+              </div>
+              <Button size="lg" variant={voted ? "secondary" : "default"} onClick={() => castVote()}>
+                <Icon key={String(voted)} icon={voted ? IconCheck : IconArrowUp} className="animate-pop" />
+                {voted ? "Voted" : "Vote for this"}
+              </Button>
+            </div>
           </SheetHeader>
 
           <div className="flex flex-col gap-6 px-6">
@@ -347,7 +356,7 @@ export function SolutionCard({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <h4 className="flex items-center gap-1 text-sm font-medium text-status-resolved">
+                <h4 className="type-label flex items-center gap-1 text-status-resolved">
                   <Icon icon={IconCheck} size={16} />
                   Pros
                 </h4>
@@ -364,7 +373,7 @@ export function SolutionCard({
                 </ul>
               </div>
               <div className="flex flex-col gap-1.5">
-                <h4 className="flex items-center gap-1 text-sm font-medium text-destructive">
+                <h4 className="type-label flex items-center gap-1 text-destructive">
                   <Icon icon={IconX} size={16} />
                   Cons
                 </h4>
@@ -389,7 +398,7 @@ export function SolutionCard({
             </div>
 
             <div className="flex flex-col gap-3 border-t border-border pt-4">
-              <h4 className="text-sm font-medium text-muted-foreground">
+              <h4 className="type-label">
                 Discussion ({solution.comments.length})
               </h4>
               <CommentThread

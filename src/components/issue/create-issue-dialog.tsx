@@ -93,6 +93,9 @@ export function CreateIssueDialog({
   const [descriptionMore, setDescriptionMore] = useState(source?.descriptionMore ?? "");
   const [categorySlug, setCategorySlug] = useState<string | undefined>(source?.categorySlug);
   const [location, setLocation] = useState(source?.location ?? "");
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lon: number } | null>(
+    source?.latitude != null && source?.longitude != null ? { lat: source.latitude, lon: source.longitude } : null,
+  );
 
   const [communityId, setCommunityId] = useState<string | undefined>(
     lockedCommunityId ?? source?.communityId,
@@ -216,6 +219,9 @@ export function CreateIssueDialog({
       setDescriptionMore(source?.descriptionMore ?? "");
       setCategorySlug(source?.categorySlug);
       setLocation(source?.location ?? "");
+      setLocationCoords(
+        source?.latitude != null && source?.longitude != null ? { lat: source.latitude, lon: source.longitude } : null,
+      );
       setCommunityId(lockedCommunityId ?? source?.communityId);
       setVisibility(source?.visibility ?? "public");
       setShowOnHomepage(source?.showOnHomepage ?? true);
@@ -261,7 +267,9 @@ export function CreateIssueDialog({
       description,
       description_more: descriptionMore.trim() || null,
       category_slug: categorySlug,
-      location: location || null,
+      location: location.trim() || null,
+      latitude: location.trim() && locationCoords ? locationCoords.lat : null,
+      longitude: location.trim() && locationCoords ? locationCoords.lon : null,
       community_id: communityId ?? null,
       visibility,
       show_on_homepage: showOnHomepage,
@@ -339,9 +347,16 @@ export function CreateIssueDialog({
     }
   }
 
+  // A typed location must be a real place picked from the map search (an unchanged saved one is fine).
+  const locationOk = !location.trim() || locationCoords !== null || location === (source?.location ?? "");
+
   const canAdvance =
     step === 0 ||
-    (step === 1 && title.trim().length > 0 && description.trim().length > 0 && Boolean(categorySlug)) ||
+    (step === 1 &&
+      title.trim().length > 0 &&
+      description.trim().length > 0 &&
+      Boolean(categorySlug) &&
+      locationOk) ||
     step === 2 ||
     step === 3;
 
@@ -445,7 +460,12 @@ export function CreateIssueDialog({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>Location (optional)</Label>
-          <LocationSearch value={location} onChange={setLocation} />
+          <LocationSearch
+            value={location}
+            onChange={setLocation}
+            onResolve={(p) => setLocationCoords(p ? { lat: p.lat, lon: p.lon } : null)}
+            status={locationOk ? "verified" : "unverified"}
+          />
         </div>
       </div>
     </div>
@@ -454,7 +474,7 @@ export function CreateIssueDialog({
   const settingsFields = (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Visibility</h4>
+        <h4 className="type-eyebrow">Visibility</h4>
         <div className="flex gap-2">
           <button
             type="button"
@@ -499,7 +519,7 @@ export function CreateIssueDialog({
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-4">
-        <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Comments &amp; permissions</h4>
+        <h4 className="type-eyebrow">Comments &amp; permissions</h4>
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           <SettingRow
             label="Support requires login"
@@ -523,7 +543,7 @@ export function CreateIssueDialog({
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-4">
-        <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Timeline</h4>
+        <h4 className="type-eyebrow">Timeline</h4>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="go-live">Goes live</Label>
@@ -546,7 +566,7 @@ export function CreateIssueDialog({
       </div>
 
       <div className="flex flex-col gap-1.5 border-t border-border pt-4">
-        <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Community</h4>
+        <h4 className="type-eyebrow">Community</h4>
         {lockedCommunityId ? (
           <div className="flex h-9 items-center rounded-md border border-border bg-muted px-3 text-sm text-muted-foreground">
             {lockedCommunity?.name}
@@ -685,7 +705,7 @@ export function CreateIssueDialog({
             </div>
             {error && <p className="px-1 text-sm text-destructive">{error}</p>}
             <div className="flex items-center justify-end border-t border-border pt-3">
-              <Button size="sm" onClick={publish} disabled={submitting}>
+              <Button size="sm" onClick={publish} disabled={submitting || !locationOk}>
                 {submitting ? "Saving..." : "Save changes"}
               </Button>
             </div>
@@ -693,7 +713,10 @@ export function CreateIssueDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>{STEPS[step]}</DialogTitle>
+              <DialogTitle>{isEditing ? "Edit issue" : "Create issue"}</DialogTitle>
+              <p className="type-eyebrow">
+                Step {step + 1} of {STEPS.length} · {STEPS[step]}
+              </p>
               <Progress value={((step + 1) / STEPS.length) * 100} />
               <div className="flex items-center justify-between pt-1">
                 {STEPS.map((label, i) => (
@@ -848,7 +871,7 @@ export function CreateIssueDialog({
                       <Badge variant="secondary">{selectedCommunity.name}</Badge>
                     )}
                   </div>
-                  <h3 className="font-heading text-xl leading-snug font-bold text-foreground">
+                  <h3 className="type-subsection">
                     {title || "Untitled issue"}
                   </h3>
                   <p className="text-sm text-muted-foreground">{description || "No description yet."}</p>
@@ -885,7 +908,7 @@ export function CreateIssueDialog({
                   Next
                 </Button>
               ) : (
-                <Button size="sm" onClick={publish} disabled={submitting}>
+                <Button size="sm" onClick={publish} disabled={submitting || !locationOk}>
                   {submitting ? "Publishing..." : "Publish"}
                 </Button>
               )}

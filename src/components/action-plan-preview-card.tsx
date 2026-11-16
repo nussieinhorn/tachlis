@@ -15,7 +15,7 @@ export function ActionPlanPreviewCard({ plan }: { plan: ActionPlanPreview }) {
         <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           {plan.location || "Action plan"}
         </span>
-        <h3 className="font-heading text-xl leading-snug font-extrabold text-foreground group-hover:text-primary">
+        <h3 className="type-subsection group-hover:text-primary">
           {plan.issueTitle}
         </h3>
       </div>

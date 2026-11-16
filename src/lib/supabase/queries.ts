@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { LOCATIONS, type Issue, type Solution, type Comment, type Update, type ActionPlan, type CategoryOption } from "@/lib/mock-data";
 import type { Community } from "@/lib/communities-data";
 import type { Database } from "@/lib/supabase/types";
-import { formatRelativeTime as formatRelativeDate } from "@/lib/format";
+import { formatRelativeTime as formatRelativeDate, abbreviateName } from "@/lib/format";
 
 /**
  * All categories (seeded + admin-added). Returns plain data (no icon component reference) since
@@ -80,6 +80,9 @@ export function mapCommunity(row: CommunityRow, memberCount: number, ownerName?:
     privacy: row.privacy as Community["privacy"],
     memberCount,
     tone: row.tone as Community["tone"],
+    logoUrl: row.logo_url ?? undefined,
+    latitude: row.latitude,
+    longitude: row.longitude,
     ownerId: row.owner_id ?? undefined,
     ownerName,
   };
@@ -163,6 +166,16 @@ export async function getCommunitiesOwnedBy(userId: string): Promise<Community[]
   return rows.map((row) => mapCommunity(row, memberCounts.get(row.id) ?? 0, row.owner?.name));
 }
 
+/** Issue counts for many communities in one query (instead of one query per community). */
+export async function getCommunityIssueCounts(ids: string[]): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  if (ids.length === 0) return counts;
+  const supabase = await createClient();
+  const { data } = await supabase.from("issues").select("community_id").in("community_id", ids);
+  for (const row of data ?? []) if (row.community_id) counts[row.community_id] = (counts[row.community_id] ?? 0) + 1;
+  return counts;
+}
+
 export async function getCommunityIssueCount(id: string): Promise<number> {
   const supabase = await createClient();
   const { count } = await supabase.from("issues").select("id", { count: "exact", head: true }).eq("community_id", id);
@@ -228,6 +241,8 @@ function mapIssueRow(row: IssueRow, supporterCount: number, ownerName?: string):
     categorySlug: row.category_slug,
     locationArea: deriveLocationArea(row.location),
     location: row.location ?? "",
+    latitude: row.latitude,
+    longitude: row.longitude,
     status: row.status as Issue["status"],
     supporterCount,
     shareCount: row.share_count,
@@ -333,7 +348,7 @@ export async function getIssue(code: string): Promise<Issue | undefined> {
 
   const updates: Update[] = (data.issue_updates as Database["public"]["Tables"]["issue_updates"]["Row"][])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map((u) => ({ date: formatRelativeDate(u.created_at), body: u.body }));
+    .map((u) => ({ date: formatRelativeDate(u.created_at), body: u.body, title: u.title ?? undefined, at: u.created_at }));
 
   const actionPlanRow = data.action_plans as
     | (Database["public"]["Tables"]["action_plans"]["Row"] & {
@@ -486,4 +501,203 @@ export async function getActionPlanPreviews(limit = 3): Promise<ActionPlanPrevie
     })
     .filter((p) => p.total > 0)
     .slice(0, limit);
+}
+
+export type DashboardIssue = Issue & {
+  solutionCount: number;
+  pendingSolutions: number;
+  votes: number;
+  /** New supporters per day for the last 30 days, oldest first. */
+  supportSeries: number[];
+  newSupportersThisWeek: number;
+};
+
+export type ActivityItem = {
+  id: string;
+  kind: "support" | "solution" | "comment" | "vote";
+  issueTitle: string;
+  issueCode: string;
+  detail: string;
+  at: string;
+};
+
+export type DashboardData = {
+  issues: DashboardIssue[];
+  communities: (Community & { issueCount: number })[];
+  /** Cumulative supporters across all of my issues per day, last 30 days. */
+  totalSeries: number[];
+  totals: { supporters: number; votes: number; solutions: number; newThisWeek: number };
+  activity: ActivityItem[];
+};
+
+const DAYS = 30;
+
+function dayIndex(iso: string, now: number): number {
+  const diff = Math.floor((now - new Date(iso).getTime()) / 86_400_000);
+  return DAYS - 1 - diff;
+}
+
+/** Everything the signed-in dashboard shows: my issues with growth, my communities, and recent activity. */
+export async function getDashboardData(userId: string): Promise<DashboardData> {
+  const supabase = await createClient();
+  const [issues, communities] = await Promise.all([getIssuesOwnedBy(userId), getCommunitiesOwnedBy(userId)]);
+  const issueIds = issues.map((i) => i.id);
+  const byId = new Map(issues.map((i) => [i.id, i]));
+  const now = Date.now();
+
+  // One query for every community's issue count, instead of one per community.
+  const communityIssueCounts = async () => {
+    const counts = new Map<string, number>();
+    if (communities.length === 0) return counts;
+    const { data } = await supabase.from("issues").select("community_id").in("community_id", communities.map((c) => c.id));
+    for (const row of data ?? []) if (row.community_id) counts.set(row.community_id, (counts.get(row.community_id) ?? 0) + 1);
+    return counts;
+  };
+
+  if (issueIds.length === 0) {
+    const counts = await communityIssueCounts();
+    const withCounts = communities.map((c) => ({ ...c, issueCount: counts.get(c.id) ?? 0 }));
+    return {
+      issues: [],
+      communities: withCounts,
+      totalSeries: Array(DAYS).fill(0),
+      totals: { supporters: 0, votes: 0, solutions: 0, newThisWeek: 0 },
+      activity: [],
+    };
+  }
+
+  const [supportsRes, solutionsRes, commentsRes, communityCounts] = await Promise.all([
+    supabase.from("issue_supports").select("id, issue_id, created_at, level").in("issue_id", issueIds),
+    supabase
+      .from("solutions")
+      .select("id, issue_id, title, created_at, review_status, solution_votes(id, created_at)")
+      .in("issue_id", issueIds)
+      .eq("deleted", false),
+    supabase
+      .from("comments")
+      .select("id, issue_id, author_name, created_at")
+      .in("issue_id", issueIds)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    communityIssueCounts(),
+  ]);
+
+  const supports = supportsRes.data ?? [];
+  const solutions = solutionsRes.data ?? [];
+  const comments = commentsRes.data ?? [];
+  const votes = solutions.flatMap((sol) =>
+    (sol.solution_votes ?? []).map((v) => ({ id: v.id, solution_id: sol.id, created_at: v.created_at })),
+  );
+  const solutionIssue = new Map(solutions.map((s) => [s.id, s]));
+
+  const perIssueNew = new Map<string, number[]>();
+  const totalNew: number[] = Array(DAYS).fill(0);
+  for (const s of supports) {
+    const idx = dayIndex(s.created_at, now);
+    if (idx < 0 || idx >= DAYS) continue;
+    const arr = perIssueNew.get(s.issue_id) ?? Array(DAYS).fill(0);
+    arr[idx] += 1;
+    perIssueNew.set(s.issue_id, arr);
+    totalNew[idx] += 1;
+  }
+
+  // Cumulative line for the whole account: start from supporters before the 30-day window.
+  const before = supports.filter((s) => dayIndex(s.created_at, now) < 0).length;
+  let running = before;
+  const totalSeries = totalNew.map((n) => (running += n));
+
+  const votesByIssue = new Map<string, number>();
+  for (const v of votes) {
+    const issueId = solutionIssue.get(v.solution_id)?.issue_id;
+    if (issueId) votesByIssue.set(issueId, (votesByIssue.get(issueId) ?? 0) + 1);
+  }
+
+  const dashIssues: DashboardIssue[] = issues.map((issue) => {
+    const mine = solutions.filter((s) => s.issue_id === issue.id);
+    const series = perIssueNew.get(issue.id) ?? Array(DAYS).fill(0);
+    return {
+      ...issue,
+      solutionCount: mine.filter((s) => s.review_status === "approved").length,
+      pendingSolutions: mine.filter((s) => s.review_status === "pending").length,
+      votes: votesByIssue.get(issue.id) ?? 0,
+      supportSeries: series,
+      newSupportersThisWeek: series.slice(-7).reduce((a, b) => a + b, 0),
+    };
+  });
+
+  const activity: ActivityItem[] = [
+    ...supports.map((s) => ({
+      id: `s-${s.id}`,
+      kind: "support" as const,
+      issueTitle: byId.get(s.issue_id)?.title ?? "",
+      issueCode: byId.get(s.issue_id)?.displayCode ?? "",
+      detail: s.level === "willing-to-help" ? "Someone offered to help" : "New supporter",
+      at: s.created_at,
+    })),
+    ...solutions.map((s) => ({
+      id: `p-${s.id}`,
+      kind: "solution" as const,
+      issueTitle: byId.get(s.issue_id)?.title ?? "",
+      issueCode: byId.get(s.issue_id)?.displayCode ?? "",
+      detail: s.review_status === "pending" ? `New solution to review: ${s.title}` : `Solution: ${s.title}`,
+      at: s.created_at,
+    })),
+    ...comments.map((c) => ({
+      id: `c-${c.id}`,
+      kind: "comment" as const,
+      issueTitle: byId.get(c.issue_id ?? "")?.title ?? "",
+      issueCode: byId.get(c.issue_id ?? "")?.displayCode ?? "",
+      detail: `${abbreviateName(c.author_name)} commented`,
+      at: c.created_at,
+    })),
+    ...votes.map((v) => {
+      const sol = solutionIssue.get(v.solution_id);
+      return {
+        id: `v-${v.id}`,
+        kind: "vote" as const,
+        issueTitle: byId.get(sol?.issue_id ?? "")?.title ?? "",
+        issueCode: byId.get(sol?.issue_id ?? "")?.displayCode ?? "",
+        detail: `New vote on "${sol?.title ?? "a solution"}"`,
+        at: v.created_at,
+      };
+    }),
+  ]
+    .filter((a) => a.issueCode)
+    .sort((a, b) => (a.at < b.at ? 1 : -1))
+    .slice(0, 8);
+
+  return {
+    issues: dashIssues,
+    communities: communities.map((c) => ({ ...c, issueCount: communityCounts.get(c.id) ?? 0 })),
+    totalSeries,
+    totals: {
+      supporters: supports.length,
+      votes: votes.length,
+      solutions: solutions.filter((s) => s.review_status === "approved").length,
+      newThisWeek: totalNew.slice(-7).reduce((a, b) => a + b, 0),
+    },
+    activity,
+  };
+}
+
+/** Public issues that aren't mine, most supported first — "discover" suggestions for the dashboard. */
+export function pickSuggestedIssues(all: Issue[], excludeIds: string[], limit = 6): Issue[] {
+  return all
+    .filter((i) => i.visibility === "public" && i.showInSearch && i.status !== "resolved" && !excludeIds.includes(i.id))
+    .sort((a, b) => b.supporterCount - a.supporterCount)
+    .slice(0, limit);
+}
+
+/** A few public communities that aren't mine. One cheap query (no member counts) so the dashboard stays fast. */
+export async function getSuggestedCommunities(userId: string, limit = 3): Promise<Community[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("communities")
+    .select("*, owner:profiles!communities_owner_id_fkey(name)")
+    .eq("privacy", "public")
+    .neq("owner_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as unknown as CommunityRowWithOwner[]).map((row) => mapCommunity(row, 0, row.owner?.name));
 }

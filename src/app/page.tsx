@@ -9,7 +9,15 @@ import { ActionPlanShowcase } from "@/components/action-plan-showcase";
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { getCategories, getIssues } from "@/lib/supabase/queries";
+import { HomeSwitcher } from "@/components/home-switcher";
+import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getCategories,
+  getDashboardData,
+  getIssues,
+  pickSuggestedIssues,
+} from "@/lib/supabase/queries";
 
 const WHY = [
   {
@@ -29,7 +37,43 @@ const WHY = [
   },
 ];
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+  const { view } = await searchParams;
+  const supabase = await createClient();
+  // getClaims verifies the session token locally, so deciding who's signed in costs no network round trip.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub ?? null;
+  const user = userId ? { id: userId } : null;
+
+  // Signed-in people land on their dashboard; ?view=home shows the public homepage instead.
+  if (user && view !== "home") {
+    const [data, categories, allIssues, profile] = await Promise.all([
+      getDashboardData(user.id),
+      getCategories(),
+      getIssues(),
+      supabase.from("profiles").select("name").eq("id", user.id).maybeSingle(),
+    ]);
+    const suggestedIssues = pickSuggestedIssues(
+      allIssues,
+      data.issues.map((i) => i.id),
+      4,
+    );
+    return (
+      <>
+        <SiteHeader />
+        <main className="flex w-full flex-col">
+          <HomeSwitcher active="dashboard" />
+          <DashboardView
+            name={profile.data?.name ?? ""}
+            data={data}
+            categories={categories}
+            suggestedIssues={suggestedIssues}
+          />
+        </main>
+      </>
+    );
+  }
+
   const [issues, categories] = await Promise.all([getIssues(), getCategories()]);
   const recent = issues.filter((i) => i.visibility === "public" && i.showOnHomepage && i.status !== "resolved")
     .sort((a, b) => b.supporterCount - a.supporterCount)
@@ -39,9 +83,10 @@ export default async function Home() {
     <>
       <SiteHeader />
       <main className="flex w-full flex-col">
+        {user && <HomeSwitcher active="public" />}
         <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-6 pt-20 pb-24 text-center">
-          <h1 className="animate-fade-up max-w-4xl text-balance text-5xl font-black text-foreground sm:text-7xl">
-            Post a problem. Solve it together.
+          <h1 className="type-display animate-fade-up max-w-4xl text-balance">
+            Raise an issue, solve it together.
           </h1>
           <p className="animate-fade-up max-w-xl text-lg font-medium text-muted-foreground [animation-delay:120ms]">
             Public issues, proposed solutions, and public action tracking for your community — raise a problem, rally
@@ -56,7 +101,7 @@ export default async function Home() {
               }
             />
             <Button asChild size="lg" variant="outline" className="h-12 px-8 text-base">
-              <Link href="/discover">Discover issues</Link>
+              <Link href="/issues">Discover issues</Link>
             </Button>
           </div>
           <CreateCommunityDialog
@@ -73,9 +118,9 @@ export default async function Home() {
         {recent.length > 0 && (
           <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 pb-32">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black sm:text-3xl">Top issues now</h2>
+              <h2 className="type-section">Top issues now</h2>
               <Button asChild variant="outline" className="shrink-0">
-                <Link href="/discover">
+                <Link href="/issues">
                   Discover more
                   <Icon icon={IconArrowRight} size={16} />
                 </Link>
@@ -95,7 +140,7 @@ export default async function Home() {
 
         <section className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 pb-32">
           <Reveal className="flex flex-col gap-2 text-center">
-            <h2 className="mx-auto max-w-3xl text-balance text-3xl font-black sm:text-4xl">
+            <h2 className="type-feature mx-auto max-w-3xl text-balance">
               Stop complaining in the group chat. Start fixing it.
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
@@ -109,7 +154,7 @@ export default async function Home() {
                 <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                   <Icon icon={item.icon} size={22} />
                 </span>
-                <h3 className="font-heading text-lg leading-snug font-extrabold">{item.title}</h3>
+                <h3 className="type-panel">{item.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{item.body}</p>
               </div>
               </Reveal>

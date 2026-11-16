@@ -162,6 +162,7 @@ export function SuggestSolution({
           aria-label="Add a solution"
         >
           <Icon icon={IconPlus} />
+          {size === "lg" && "Create new solution"}
         </Button>
       ) : (
         <Button

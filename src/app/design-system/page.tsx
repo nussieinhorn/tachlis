@@ -19,7 +19,7 @@ const SWATCHES = [
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-5 border-t-2 border-foreground pt-4">
-      <h2 className="font-heading text-xs font-extrabold uppercase tracking-[0.18em] text-primary">{label}</h2>
+      <h2 className="type-eyebrow text-primary">{label}</h2>
       {children}
     </section>
   );
@@ -30,26 +30,39 @@ export default function ThemePage() {
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-14 px-6 py-14">
       <header className="flex flex-col gap-6">
         <MotiveLogo />
-        <h1 className="max-w-4xl text-6xl font-black sm:text-8xl">The theme, in one page.</h1>
+        <h1 className="type-display max-w-4xl">The theme, in one page.</h1>
         <p className="max-w-xl text-lg font-medium text-muted-foreground">
           Headlines that hit like a front page. Square corners, ink-black rules, hard-edged buttons.
         </p>
       </header>
 
-      <Section label="Headlines">
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col gap-2">
-            <p className="font-heading text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Front page · 128 supporters</p>
-            <h1 className="max-w-4xl text-5xl font-black sm:text-7xl">City ignores the Elm Street potholes. Residents are done waiting.</h1>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h2 className="max-w-3xl text-4xl font-extrabold sm:text-5xl">Three solutions on the table, one vote left to cast</h2>
-            <p className="max-w-2xl text-lg text-muted-foreground">
-              Body copy sits in Public Sans: plain, readable and neutral, so the headlines can be loud.
-            </p>
-          </div>
-          <h3 className="max-w-2xl text-2xl font-extrabold">Repaving crews start Monday after the council vote</h3>
+      <Section label="Type scale">
+        <div className="flex flex-col divide-y divide-border">
+          {[
+            ["type-display", "Raise an issue, solve it together.", "Hero headline, once per page"],
+            ["type-title", "My issues", "Page title (h1)"],
+            ["type-feature", "Watch it get fixed, step by step.", "Large marketing section heading"],
+            ["type-section", "Top issues now", "Section heading (h2)"],
+            ["type-dialog", "Sign in to continue", "Dialog and popup titles"],
+            ["type-subsection", "Repair the Elm Street crosswalk", "Card and sub-section heading (h3)"],
+            ["type-card-title", "Rents are rising faster than young families can keep up", "Issue card title"],
+            ["type-panel", "Solutions (3)", "Panel and sidebar heading"],
+            ["type-label", "Visible to supporters", "Small bold label"],
+            ["type-eyebrow", "Name & phone", "Overline above a block"],
+          ].map(([cls, sample, use]) => (
+            <div key={cls} className="grid items-baseline gap-2 py-4 md:grid-cols-[11rem_1fr]">
+              <div className="flex flex-col">
+                <code className="text-xs font-semibold text-primary">{cls}</code>
+                <span className="text-xs text-muted-foreground">{use}</span>
+              </div>
+              <p className={`${cls} max-w-3xl`}>{sample}</p>
+            </div>
+          ))}
         </div>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Headings never set their own size or weight. Pick a tier above and add only layout classes (width, spacing,
+          colour). Body text is Public Sans; every tier above uses Archivo.
+        </p>
       </Section>
 
       <Section label="Buttons">

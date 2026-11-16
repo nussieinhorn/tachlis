@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { SolutionCard } from "@/components/issue/solution-card";
 import { OtherProposals } from "@/components/issue/other-proposals";
+import { SolutionStack } from "@/components/issue/solution-stack";
 import { SuggestSolution } from "@/components/issue/suggest-solution";
 import { ManageSolutionsDialog } from "@/components/issue/manage-solutions-dialog";
 
@@ -39,7 +40,7 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
     return (
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-heading text-lg font-semibold text-foreground">
+          <h2 className="type-panel">
             Solution{chosen.length > 1 ? "s" : ""} chosen
           </h2>
           <div className="flex items-center gap-2">
@@ -76,7 +77,7 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-heading text-lg font-semibold text-foreground">
+        <h2 className="type-panel">
           Solutions {visible.length > 0 && `(${visible.length})`}
         </h2>
         <div className="flex items-center gap-2">
@@ -94,7 +95,7 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {visible.slice(0, 5).map((solution, i) => (
+          {visible.slice(0, 2).map((solution, i) => (
             <SolutionCard
               key={solution.id}
               solution={solution}
@@ -108,13 +109,13 @@ export function IssueSolutionsSection({ issue, canEdit }: { issue: Issue; canEdi
           ))}
         </div>
       )}
-      {visible.length > 5 && (
-        <OtherProposals
-          solutions={visible.slice(5)}
+      {visible.length > 2 && (
+        <SolutionStack
+          solutions={visible.slice(2)}
           issueId={issue.id}
           canEdit={canEdit}
           isFirstChosen={isFirstChosen}
-          label="more solutions"
+          startIndex={2}
           commentsEnabled={issue.commentsEnabled}
           commentsRequireLogin={issue.commentsRequireLogin}
         />

@@ -141,7 +141,7 @@ export function ActionTeamPanel({
   return (
     <section className="flex flex-col gap-3 border-t border-border pt-6">
       <div className="flex items-center gap-3">
-        <h2 className="font-heading text-lg font-semibold text-foreground">Action Team</h2>
+        <h2 className="type-panel">Action Team</h2>
         <button
           type="button"
           onClick={() => setJoinOpen(true)}

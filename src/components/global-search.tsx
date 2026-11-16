@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { IconCurrentLocation, IconFileText, IconLoader2, IconMapPin, IconSearch, IconX } from "@tabler/icons-react";
+import { IconCurrentLocation, IconFileText, IconLoader2, IconMapPin, IconSearch, IconUsersGroup, IconX } from "@tabler/icons-react";
 
 import type { Category, Issue } from "@/lib/mock-data";
+import type { Community } from "@/lib/communities-data";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { shortLabel, type NominatimResult } from "@/components/location-search";
@@ -12,15 +13,18 @@ import { cn } from "@/lib/utils";
 
 type Item =
   | { kind: "issue"; key: string; title: string; sub: string; code: string }
+  | { kind: "community"; key: string; title: string; sub: string; code: string }
   | { kind: "topic"; key: string; title: string; sub: string; slug: string; icon: Category["icon"] }
-  | { kind: "place"; key: string; title: string; sub: string };
+  | { kind: "place"; key: string; title: string; sub: string; lat?: number; lon?: number };
 
-const GROUP_TITLES: Record<Item["kind"], string> = { issue: "Issues", topic: "Topics", place: "Places" };
+const GROUP_TITLES: Record<Item["kind"], string> = { issue: "Issues", community: "Communities", topic: "Topics", place: "Places" };
 
 /** One search box for everything: issue titles, topics (categories) and places. Typing also live-filters the feed. */
 export function GlobalSearch({
   issues,
   categories,
+  communities = [],
+  placeholder = "Search issues, places or topics",
   query,
   onQuery,
   onPickPlace,
@@ -31,9 +35,12 @@ export function GlobalSearch({
 }: {
   issues: Issue[];
   categories: Category[];
+  /** When given, communities are suggested too (use with empty issues/categories on the Communities page). */
+  communities?: Community[];
+  placeholder?: string;
   query: string;
   onQuery: (q: string) => void;
-  onPickPlace: (place: string) => void;
+  onPickPlace: (place: string, coords?: { lat: number; lon: number }) => void;
   onPickTopic: (slug: string) => void;
   onUseCurrent: () => void;
   locating: boolean;
@@ -82,6 +89,10 @@ export function GlobalSearch({
       .filter((i) => i.title.toLowerCase().includes(q) || i.description.toLowerCase().includes(q))
       .slice(0, 4)
       .map((i) => ({ kind: "issue", key: `i-${i.id}`, title: i.title, sub: i.location || "", code: i.displayCode }));
+    const communityMatches: Item[] = communities
+      .filter((c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q) || c.location.toLowerCase().includes(q))
+      .slice(0, 4)
+      .map((c) => ({ kind: "community", key: `c-${c.id}`, title: c.name, sub: c.location, code: c.displayCode }));
     const topicMatches: Item[] = categories
       .filter((c) => c.label.toLowerCase().includes(q))
       .slice(0, 3)
@@ -94,9 +105,11 @@ export function GlobalSearch({
       key: `p-${p.place_id}`,
       title: shortLabel(p),
       sub: p.display_name.split(",").slice(-2).join(",").trim(),
+      lat: p.lat ? parseFloat(p.lat) : undefined,
+      lon: p.lon ? parseFloat(p.lon) : undefined,
     }));
-    return [...issueMatches, ...topicMatches, ...placeMatches];
-  }, [q, issues, categories, places]);
+    return [...issueMatches, ...communityMatches, ...topicMatches, ...placeMatches];
+  }, [q, issues, categories, communities, places]);
 
   useEffect(() => setActive(0), [items.length]);
 
@@ -104,12 +117,14 @@ export function GlobalSearch({
     setOpen(false);
     if (item.kind === "issue") {
       router.push(`/issues/${item.code}`);
+    } else if (item.kind === "community") {
+      router.push(`/communities/${item.code}`);
     } else if (item.kind === "topic") {
       onQuery("");
       onPickTopic(item.slug);
     } else {
       onQuery("");
-      onPickPlace(item.title);
+      onPickPlace(item.title, item.lat != null && item.lon != null ? { lat: item.lat, lon: item.lon } : undefined);
     }
     inputRef.current?.blur();
   }
@@ -126,7 +141,7 @@ export function GlobalSearch({
         ref={inputRef}
         value={query}
         autoComplete="off"
-        placeholder="Search issues, places or topics"
+        placeholder={placeholder}
         className="h-14 rounded-2xl border-2 border-foreground bg-background pr-36 pl-12 text-lg font-semibold shadow-md placeholder:font-medium focus-visible:border-primary focus-visible:ring-primary/30"
         onChange={(e) => {
           onQuery(e.target.value);
@@ -211,7 +226,7 @@ export function GlobalSearch({
                 >
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                     <Icon
-                      icon={item.kind === "issue" ? IconFileText : item.kind === "place" ? IconMapPin : item.icon}
+                      icon={item.kind === "issue" ? IconFileText : item.kind === "community" ? IconUsersGroup : item.kind === "place" ? IconMapPin : item.icon}
                       size={16}
                     />
                   </span>

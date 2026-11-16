@@ -77,7 +77,7 @@ export function HomeIdeaCard({ idea }: { idea: IdeaPreview }) {
         <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           For: {idea.issueTitle}
         </span>
-        <h3 className="font-heading text-xl leading-snug font-extrabold text-foreground group-hover:text-primary">
+        <h3 className="type-subsection group-hover:text-primary">
           {idea.title}
         </h3>
       </Link>

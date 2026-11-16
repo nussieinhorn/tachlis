@@ -7,7 +7,7 @@ export default function ConfirmErrorPage() {
     <>
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-6 py-24 text-center">
-        <h1 className="font-heading text-xl font-semibold text-foreground">
+        <h1 className="type-title">
           That confirmation link didn&apos;t work
         </h1>
         <p className="text-sm text-muted-foreground">

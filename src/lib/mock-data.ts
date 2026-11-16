@@ -153,6 +153,9 @@ export type ActionPlan = {
 export type Update = {
   date: string;
   body: string;
+  title?: string;
+  /** ISO timestamp, for "new" badges. */
+  at?: string;
 };
 
 export type Issue = {
@@ -165,6 +168,8 @@ export type Issue = {
   categorySlug: string;
   locationArea: Location;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
   status: IssueStatus;
   supporterCount: number;
   shareCount: number;

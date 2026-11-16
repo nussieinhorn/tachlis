@@ -3,14 +3,22 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { IconBell, IconCheck, IconX, IconChevronDown } from "@tabler/icons-react";
+import {
+  IconBell,
+  IconBulb,
+  IconCheck,
+  IconChevronDown,
+  IconCircleCheck,
+  IconFlag,
+  IconSpeakerphone,
+  IconX,
+} from "@tabler/icons-react";
 
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -243,122 +251,183 @@ export function InboxDropdown() {
 
   if (!isSignedIn) return null;
 
+  const TYPE_ICON = {
+    update_posted: IconSpeakerphone,
+    solution_chosen: IconCircleCheck,
+    status_changed: IconFlag,
+    solution_suggested: IconBulb,
+  } as const;
+
+  const tabs: { key: "notifications" | "requests"; label: string; count?: number }[] = [
+    { key: "notifications", label: "Notifications" },
+    ...(canManage ? [{ key: "requests" as const, label: "Requests", count: requests.length }] : []),
+  ];
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="relative flex size-9 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="relative flex size-9 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
           aria-label="Notifications"
         >
           <Icon icon={IconBell} size={20} />
           {requests.length > 0 && (
-            <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary" />
+            <span className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] leading-none font-bold text-primary-foreground ring-2 ring-background">
+              {requests.length}
+            </span>
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-96 p-0">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "notifications" | "requests")}>
-          <TabsList className="w-full rounded-none">
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            {canManage && <TabsTrigger value="requests">Requests {requests.length > 0 && `(${requests.length})`}</TabsTrigger>}
-          </TabsList>
-          <TabsContent value="notifications" className="flex max-h-96 flex-col gap-1 overflow-y-auto p-2">
+      <DropdownMenuContent align="end" className="w-[26rem] overflow-hidden rounded-2xl p-0 shadow-xl">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
+          <h2 className="type-panel">Inbox</h2>
+          <div className="inline-flex gap-1 rounded-full bg-muted p-1">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+                  tab === t.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t.label}
+                {t.count ? (
+                  <span className="rounded-full bg-primary px-1.5 py-px text-[10px] leading-none text-primary-foreground">
+                    {t.count}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tab === "notifications" && (
+          <div className="flex max-h-[26rem] flex-col gap-0.5 overflow-y-auto p-2">
             {notifications.length === 0 ? (
-              <p className="px-2 py-3 text-sm text-muted-foreground">No notifications yet.</p>
+              <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+                <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <Icon icon={IconBell} size={22} />
+                </span>
+                <p className="type-label">You&apos;re all caught up</p>
+                <p className="text-xs text-muted-foreground">Updates on the issues you follow will show up here.</p>
+              </div>
             ) : (
               notifications.map((n) => (
                 <Link
                   key={n.id}
                   href={`/issues/${n.issueCode}`}
-                  className="flex flex-col gap-0.5 rounded-lg px-2 py-2 hover:bg-accent"
+                  className="flex items-start gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-muted/70"
                 >
-                  <span className="truncate text-xs font-medium text-primary">{n.issueTitle}</span>
-                  <span className="flex items-center justify-between gap-2 text-sm text-foreground">
-                    <span className="line-clamp-1">{notificationText(n)}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{formatRelativeTime(n.createdAt)}</span>
+                  <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                    <Icon icon={TYPE_ICON[n.type as keyof typeof TYPE_ICON] ?? IconBell} size={18} />
                   </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="line-clamp-2 text-sm leading-snug font-semibold text-foreground">{notificationText(n)}</span>
+                    <span className="truncate text-xs text-muted-foreground">{n.issueTitle}</span>
+                  </span>
+                  <span className="shrink-0 pt-0.5 text-[11px] text-muted-foreground">{formatRelativeTime(n.createdAt)}</span>
                 </Link>
               ))
             )}
-          </TabsContent>
-          {canManage && (
-            <TabsContent value="requests" className="flex max-h-96 flex-col gap-2 overflow-y-auto p-2">
-              {requests.length === 0 ? (
-                <p className="px-2 py-3 text-sm text-muted-foreground">No pending requests.</p>
-              ) : (
-                requests.map((r) => (
-                  <div key={r.id} className="flex flex-col gap-1.5 rounded-lg border border-border px-3 py-2 text-sm">
-                    <div className="flex flex-col overflow-hidden">
-                      <span className="font-medium text-foreground">{r.name}</span>
-                      <span className="text-xs text-muted-foreground">{r.email}</span>
+          </div>
+        )}
+
+        {canManage && tab === "requests" && (
+          <div className="flex max-h-[26rem] flex-col gap-2 overflow-y-auto p-3">
+            {requests.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+                <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <Icon icon={IconCheck} size={22} />
+                </span>
+                <p className="type-label">No pending requests</p>
+              </div>
+            ) : (
+              requests.map((r) => (
+                <div key={r.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3.5 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
+                      {(r.name || "?").trim().charAt(0).toUpperCase()}
+                    </span>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="text-sm font-semibold text-foreground">{r.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{r.email}</span>
                       <span className="text-xs text-muted-foreground">
                         {r.kind === "private_access" && "wants access to "}
                         {r.kind === "community_access" && "wants to join "}
                         {r.kind === "action_team" && "wants to join the team on "}
-                        <Link href={`/${r.kind === "community_access" ? "communities" : "issues"}/${r.targetCode}`} className="font-medium text-primary hover:underline">
+                        <Link
+                          href={`/${r.kind === "community_access" ? "communities" : "issues"}/${r.targetCode}`}
+                          className="font-semibold text-primary hover:underline"
+                        >
                           {r.targetTitle}
                         </Link>
                       </span>
                       {r.message && <span className="mt-1 text-xs text-foreground/80">&quot;{r.message}&quot;</span>}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      {(r.kind === "private_access" || r.kind === "community_access") && (
-                        <>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                type="button"
-                                className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium capitalize text-foreground hover:bg-accent"
-                              >
-                                {roleFor(r.id)}
-                                <Icon icon={IconChevronDown} size={12} />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                              <DropdownMenuItem onClick={() => setRoleChoice((prev) => ({ ...prev, [r.id]: "viewer" }))}>
-                                Viewer
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setRoleChoice((prev) => ({ ...prev, [r.id]: "editor" }))}>
-                                Editor
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          <button
-                            type="button"
-                            aria-label="Approve"
-                            onClick={() => (r.kind === "private_access" ? approvePrivateAccess(r.id) : approveCommunityAccess(r.id))}
-                            className="flex size-7 items-center justify-center rounded-md border border-status-resolved/25 bg-status-resolved/12 text-status-resolved hover:bg-status-resolved/20"
-                          >
-                            <Icon icon={IconCheck} size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label="Reject"
-                            onClick={() => (r.kind === "private_access" ? rejectPrivateAccess(r.id) : rejectCommunityAccess(r.id))}
-                            className="flex size-7 items-center justify-center rounded-md border border-destructive/25 bg-destructive/12 text-destructive hover:bg-destructive/20"
-                          >
-                            <Icon icon={IconX} size={14} />
-                          </button>
-                        </>
-                      )}
-                      {r.kind === "action_team" && (
-                        <>
-                          <Button size="sm" variant="outline" onClick={() => approveActionTeam(r.id)}>
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => rejectActionTeam(r.id)}>
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                    </div>
                   </div>
-                ))
-              )}
-            </TabsContent>
-          )}
-        </Tabs>
+                  <div className="flex items-center justify-end gap-2">
+                    {(r.kind === "private_access" || r.kind === "community_access") && (
+                      <>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="flex h-8 items-center gap-1 rounded-full border border-border px-3 text-xs font-bold capitalize text-foreground transition-colors hover:bg-muted"
+                            >
+                              {roleFor(r.id)}
+                              <Icon icon={IconChevronDown} size={12} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-xl">
+                            <DropdownMenuItem onClick={() => setRoleChoice((prev) => ({ ...prev, [r.id]: "viewer" }))}>
+                              Viewer
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setRoleChoice((prev) => ({ ...prev, [r.id]: "editor" }))}>
+                              Editor
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-full"
+                          aria-label="Reject"
+                          onClick={() => (r.kind === "private_access" ? rejectPrivateAccess(r.id) : rejectCommunityAccess(r.id))}
+                        >
+                          <Icon icon={IconX} size={14} />
+                          Decline
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="rounded-full"
+                          aria-label="Approve"
+                          onClick={() => (r.kind === "private_access" ? approvePrivateAccess(r.id) : approveCommunityAccess(r.id))}
+                        >
+                          <Icon icon={IconCheck} size={14} />
+                          Approve
+                        </Button>
+                      </>
+                    )}
+                    {r.kind === "action_team" && (
+                      <>
+                        <Button size="sm" variant="ghost" className="rounded-full" onClick={() => rejectActionTeam(r.id)}>
+                          <Icon icon={IconX} size={14} />
+                          Decline
+                        </Button>
+                        <Button size="sm" className="rounded-full" onClick={() => approveActionTeam(r.id)}>
+                          <Icon icon={IconCheck} size={14} />
+                          Approve
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

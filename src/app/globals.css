@@ -229,3 +229,127 @@
     cursor: pointer;
   }
 }
+
+
+/* ── Type scale ───────────────────────────────────────────────────────────
+   Every heading in the app uses one of these. See /design-system. */
+@utility type-display {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 3rem;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  @media (min-width: 40rem) {
+    font-size: 4.5rem;
+  }
+}
+@utility type-title {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 1.875rem;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  @media (min-width: 40rem) {
+    font-size: 2.5rem;
+  }
+}
+@utility type-feature {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 1.875rem;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  @media (min-width: 40rem) {
+    font-size: 2.25rem;
+  }
+}
+@utility type-section {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  @media (min-width: 40rem) {
+    font-size: 1.875rem;
+  }
+}
+@utility type-dialog {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+@utility type-subsection {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+@utility type-card-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  @media (min-width: 40rem) {
+    font-size: 1.875rem;
+  }
+}
+@utility type-panel {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+@utility type-label {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.875rem;
+  line-height: 1.3;
+}
+@utility type-eyebrow {
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+
+/* Page loader (see LogoLoader) */
+.logo-ring {
+  animation: logo-turn 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+.logo-dot {
+  animation: logo-breathe 1.6s ease-in-out infinite;
+}
+.logo-sparks {
+  animation: logo-twinkle 1.6s ease-in-out infinite;
+}
+@keyframes logo-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes logo-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
+@keyframes logo-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}

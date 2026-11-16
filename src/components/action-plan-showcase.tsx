@@ -40,7 +40,7 @@ export function ActionPlanShowcase() {
   return (
     <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr]">
       <div className="flex flex-col gap-4">
-        <h2 className="text-balance text-3xl font-black sm:text-4xl">Watch it get fixed, step by step.</h2>
+        <h2 className="type-feature text-balance">Watch it get fixed, step by step.</h2>
         <p className="max-w-lg text-lg text-muted-foreground">
           Once neighbors pick a solution, it becomes a public action plan: every step, who&apos;s on it, and what&apos;s
           done. Nobody has to wonder whether anything is happening.
@@ -62,7 +62,7 @@ export function ActionPlanShowcase() {
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Example action plan</span>
-            <h3 className="font-heading text-xl font-extrabold">Repair the Elm Street crosswalk</h3>
+            <h3 className="type-subsection">Repair the Elm Street crosswalk</h3>
           </div>
           <span
             className={cn(

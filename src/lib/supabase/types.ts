@@ -255,7 +255,10 @@ export type Database = {
           description: string | null
           display_code: string
           id: string
+          latitude: number | null
           location: string | null
+          longitude: number | null
+          logo_url: string | null
           name: string
           owner_id: string | null
           privacy: string
@@ -267,7 +270,10 @@ export type Database = {
           description?: string | null
           display_code?: string
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
+          logo_url?: string | null
           name: string
           owner_id?: string | null
           privacy?: string
@@ -279,7 +285,10 @@ export type Database = {
           description?: string | null
           display_code?: string
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
+          logo_url?: string | null
           name?: string
           owner_id?: string | null
           privacy?: string
@@ -375,16 +384,22 @@ export type Database = {
         Row: {
           created_at: string
           issue_id: string
+          email: boolean
+          notify_types: string[] | null
           user_id: string
         }
         Insert: {
           created_at?: string
           issue_id: string
+          email?: boolean
+          notify_types?: string[] | null
           user_id: string
         }
         Update: {
           created_at?: string
           issue_id?: string
+          email?: boolean
+          notify_types?: string[] | null
           user_id?: string
         }
         Relationships: [
@@ -544,6 +559,7 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          title: string | null
           issue_id: string
         }
         Insert: {
@@ -551,6 +567,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          title?: string | null
           issue_id: string
         }
         Update: {
@@ -558,6 +575,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          title?: string | null
           issue_id?: string
         }
         Relationships: [
@@ -593,7 +611,9 @@ export type Database = {
           go_live_date: string | null
           hidden_date: string | null
           id: string
+          latitude: number | null
           location: string | null
+          longitude: number | null
           owner_id: string
           share_count: number
           show_hidden_solutions_after_chosen: boolean
@@ -624,7 +644,9 @@ export type Database = {
           go_live_date?: string | null
           hidden_date?: string | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           owner_id: string
           share_count?: number
           show_hidden_solutions_after_chosen?: boolean
@@ -655,7 +677,9 @@ export type Database = {
           go_live_date?: string | null
           hidden_date?: string | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           owner_id?: string
           share_count?: number
           show_hidden_solutions_after_chosen?: boolean
