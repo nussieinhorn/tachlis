@@ -235,6 +235,7 @@ function mapIssueRow(row: IssueRow, supporterCount: number, ownerName?: string):
     viewCount: row.view_count,
     createdBy: ownerName ?? "",
     createdAt: formatRelativeDate(row.created_at),
+    createdAtIso: row.created_at,
     solutions: [],
     updates: [],
     discussion: [],

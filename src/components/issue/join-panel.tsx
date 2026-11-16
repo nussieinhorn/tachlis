@@ -122,6 +122,10 @@ export function JoinPanel({
     }
 
     setError(null);
+    // Optimistic: show "Supporting" and the thank-you straight away, then save in the background.
+    setSupported(true);
+    setSupporterCount((c) => c + 1);
+    setDialogState("thanks");
     const supabase = createClient();
     const useProfileContact = tag === "willing-to-help" && user && profile;
     const { data, error: insertError } = await supabase
@@ -137,14 +141,14 @@ export function JoinPanel({
       .select("id")
       .single();
     if (insertError) {
+      setSupported(false);
+      setSupporterCount((c) => Math.max(0, c - 1));
+      setDialogState("options");
       setError(insertError.message);
       return;
     }
-    setSupported(true);
     setSupportRowId(data?.id ?? null);
-    setSupporterCount((c) => c + 1);
-    setDialogState("thanks");
-    setTimeout(() => setOpen(false), 1500);
+    setTimeout(() => setOpen(false), 1200);
   }
 
   async function completeContact() {
@@ -179,12 +183,18 @@ export function JoinPanel({
       setUnsupportOpen(false);
       return;
     }
-    const supabase = createClient();
-    await supabase.from("issue_supports").delete().eq("id", supportRowId);
+    const rowId = supportRowId;
     setSupported(false);
     setSupportRowId(null);
     setSupporterCount((c) => Math.max(0, c - 1));
     setUnsupportOpen(false);
+    const supabase = createClient();
+    const { error: deleteError } = await supabase.from("issue_supports").delete().eq("id", rowId);
+    if (deleteError) {
+      setSupported(true);
+      setSupportRowId(rowId);
+      setSupporterCount((c) => c + 1);
+    }
   }
 
   function resetDialog(nextOpen: boolean) {
@@ -205,7 +215,9 @@ export function JoinPanel({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-1.5">
-          <span className="font-heading text-5xl font-bold text-foreground">{supporterCount}</span>
+          <span key={supporterCount} className="animate-tick font-heading text-5xl font-bold text-foreground tabular-nums">
+            {supporterCount}
+          </span>
           {supporterBreakdown && (
             <div className="relative">
               <button
@@ -254,7 +266,7 @@ export function JoinPanel({
           className="h-11 flex-1 text-base"
           onClick={() => (supported ? setUnsupportOpen(true) : setOpen(true))}
         >
-          <Icon icon={IconCheck} className={cn(!supported && "hidden")} />
+          <Icon icon={IconCheck} className={cn(!supported ? "hidden" : "animate-pop")} />
           {supported ? "Supporting" : "Support"}
         </Button>
         <div className="flex-1">

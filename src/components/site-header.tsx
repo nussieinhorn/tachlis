@@ -69,16 +69,16 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 py-4">
-        <div className="flex items-center gap-4">
-          <Link href="/" aria-label="motive home">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <Link href="/" aria-label="motive home" className="justify-self-start">
             <MotiveLogo />
           </Link>
 
-          <div className="hidden sm:block">
+          <div className="hidden w-80 md:block">
             <SearchCombobox />
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="col-start-3 flex items-center justify-self-end gap-2">
             <CreateIssueDialog
               trigger={
                 <Button size="sm">

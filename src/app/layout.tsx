@@ -3,6 +3,7 @@ import { Archivo, Gabarito, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
+import { SiteFooter } from "@/components/site-footer";
 
 const THEME_INIT_SCRIPT = `
 (function () {
@@ -54,6 +55,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <ThemeProvider>{children}</ThemeProvider>
+        <SiteFooter />
         </AuthProvider>
       </body>
     </html>

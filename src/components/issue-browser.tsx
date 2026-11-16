@@ -1,37 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { IconChevronDown, IconMapPin, IconArrowsSort } from "@tabler/icons-react";
+import { useEffect, useMemo, useState } from "react";
+import { IconChevronDown, IconCurrentLocation, IconFlame } from "@tabler/icons-react";
 
 import type { Issue, Category, CategoryOption } from "@/lib/mock-data";
-import { CATEGORIES, LOCATIONS, type Location } from "@/lib/mock-data";
+import { CATEGORIES } from "@/lib/mock-data";
+import { abbreviateLocation } from "@/lib/format";
+import { LocationSearch, shortLabel, type NominatimResult } from "@/components/location-search";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { IssueCard } from "@/components/issue-card";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const PAGE_SIZE = 5;
 
 type SortOption = "trending" | "recent" | "alphabetical";
-type HeaderMode = "public" | "trending";
 
-const SORT_LABELS: Record<SortOption, string> = {
-  trending: "Trending",
-  recent: "Recent",
-  alphabetical: "Alphabetical",
-};
-
-const HEADER_LABELS: Record<HeaderMode, string> = {
-  public: "Public issues",
-  trending: "Trending issues",
-};
+/** Same city, and the same state when the issue's location names one ("Lakewood Township, Ocean County" has none). */
+function sameLocation(issueLoc: string, wanted: string): boolean {
+  const [city, state] = issueLoc.split(",").map((p) => p.trim());
+  const [wantedCity, wantedState] = wanted.split(",").map((p) => p.trim());
+  if (city !== wantedCity) return false;
+  if (!state || state.length !== 2 || !wantedState) return true;
+  return state === wantedState;
+}
 
 function sortIssues(issues: Issue[], sort: SortOption): Issue[] {
   if (sort === "alphabetical") {
@@ -43,9 +35,6 @@ function sortIssues(issues: Issue[], sort: SortOption): Issue[] {
   return issues;
 }
 
-const FILTER_PILL_CLASS =
-  "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground";
-
 export function IssueBrowser({ issues, categories }: { issues: Issue[]; categories?: CategoryOption[] }) {
   const categoryList: Category[] = useMemo(
     () =>
@@ -54,124 +43,163 @@ export function IssueBrowser({ issues, categories }: { issues: Issue[]; categori
         : CATEGORIES,
     [categories],
   );
-  const [headerMode, setHeaderMode] = useState<HeaderMode>("public");
-  const [location, setLocation] = useState<Location>("Worldwide");
+  const [place, setPlace] = useState("");
+  const [locating, setLocating] = useState(false);
   const [categorySlugs, setCategorySlugs] = useState<string[]>([]);
   const [sort, setSort] = useState<SortOption>("recent");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
-  function selectHeaderMode(mode: HeaderMode) {
-    setHeaderMode(mode);
-    setSort(mode === "trending" ? "trending" : "recent");
-  }
-
+  // One category at a time; picking the active one again clears it.
   function toggleCategory(slug: string) {
-    setCategorySlugs((prev) =>
-      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
-    );
+    setCategorySlugs((prev) => (prev[0] === slug ? [] : [slug]));
     setVisibleCount(PAGE_SIZE);
   }
 
-  function selectLocation(loc: Location) {
-    setLocation(loc);
+  function showTrending() {
+    setCategorySlugs([]);
+    setSort("trending");
     setVisibleCount(PAGE_SIZE);
   }
+
+  function selectPlace(next: string) {
+    setPlace(next);
+    setVisibleCount(PAGE_SIZE);
+  }
+
+  // Start from where the visitor is. If they decline or it fails, the feed just stays unfiltered.
+  function useMyLocation() {
+    if (!("geolocation" in navigator)) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=10&lat=${coords.latitude}&lon=${coords.longitude}`,
+          );
+          if (res.ok) selectPlace(shortLabel((await res.json()) as NominatimResult));
+        } catch {
+          /* leave unfiltered */
+        }
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { timeout: 8000, maximumAge: 600000 },
+    );
+  }
+
+  useEffect(() => {
+    if (!("permissions" in navigator)) return;
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((status) => {
+        if (status.state === "granted") useMyLocation();
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(() => {
+    // "Lakewood Township, NJ" (from GPS) should match "Lakewood, NJ" (as people type it).
+    const norm = (v: string) =>
+      (abbreviateLocation(v) ?? v)
+        .toLowerCase()
+        .replace(/\b(township|twp\.?|city|town|borough|village)\b/g, "")
+        .replace(/\s+/g, " ")
+        .replace(/\s+,/g, ",")
+        .trim();
+    const wanted = place ? norm(place) : "";
     const matches = issues.filter((issue) => {
-      const matchesLocation = location === "Worldwide" || issue.locationArea === location;
+      const matchesLocation = !wanted || sameLocation(norm(issue.location ?? ""), wanted);
       const matchesCategory =
         categorySlugs.length === 0 || categorySlugs.includes(issue.categorySlug);
       return matchesLocation && matchesCategory;
     });
     return sortIssues(matches, sort);
-  }, [issues, location, categorySlugs, sort]);
+  }, [issues, place, categorySlugs, sort]);
+
+  const popularCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const issue of issues) counts.set(issue.categorySlug, (counts.get(issue.categorySlug) ?? 0) + 1);
+    return categoryList
+      .filter((c) => counts.has(c.slug))
+      .sort((a, b) => (counts.get(b.slug) ?? 0) - (counts.get(a.slug) ?? 0))
+      .map((c) => ({ ...c, count: counts.get(c.slug) ?? 0 }));
+  }, [issues, categoryList]);
 
   const visible = filtered.slice(0, visibleCount);
-  const categoryLabel =
-    categorySlugs.length === 0 ? "All" : `${categorySlugs.length} selected`;
 
   return (
-    <div className="flex flex-col gap-4">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button type="button" className="flex w-fit items-center gap-1.5 hover:opacity-80">
-            <h2 className="font-heading text-xl font-bold text-foreground">{HEADER_LABELS[headerMode]}</h2>
-            <Icon icon={IconChevronDown} size={18} className="text-muted-foreground" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {(Object.keys(HEADER_LABELS) as HeaderMode[]).map((mode) => (
-            <DropdownMenuItem key={mode} onClick={() => selectHeaderMode(mode)}>
-              {HEADER_LABELS[mode]}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className={FILTER_PILL_CLASS}>
-                <Icon icon={IconMapPin} size={14} />
-                {location}
-                <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {LOCATIONS.map((loc) => (
-                <DropdownMenuItem key={loc} onClick={() => selectLocation(loc)}>
-                  {loc}
-                  {loc === location && <span className="ml-auto text-xs text-muted-foreground">Selected</span>}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className={FILTER_PILL_CLASS}>
-                Category: {categoryLabel}
-                <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {categoryList.map((category) => (
-                <DropdownMenuCheckboxItem
-                  key={category.slug}
-                  checked={categorySlugs.includes(category.slug)}
-                  onSelect={(e) => e.preventDefault()}
-                  onCheckedChange={() => toggleCategory(category.slug)}
-                >
-                  {category.label}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className={FILTER_PILL_CLASS}>
-              <Icon icon={IconArrowsSort} size={14} />
-              Sort: {SORT_LABELS[sort]}
-              <Icon icon={IconChevronDown} size={14} className="text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {(Object.keys(SORT_LABELS) as SortOption[]).map((option) => (
-              <DropdownMenuItem key={option} onClick={() => setSort(option)}>
-                {SORT_LABELS[option]}
-                {option === sort && <span className="ml-auto text-xs text-muted-foreground">Selected</span>}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <div className="flex flex-col gap-5">
+      <h2 className="text-balance text-center text-3xl font-black sm:text-4xl">Find issues near you</h2>
+      <div className="mx-auto w-full max-w-2xl">
+        <LocationSearch
+          large
+          value={place}
+          placeholder="Search your city and state"
+          onChange={(v) => v === "" && selectPlace("")}
+          onSelect={selectPlace}
+          trailing={
+            <Button type="button" size="sm" onClick={useMyLocation} disabled={locating} className="h-10 px-3">
+              <Icon icon={IconCurrentLocation} size={16} />
+              {locating ? "Finding..." : "Near me"}
+            </Button>
+          }
+        />
       </div>
 
+      {popularCategories.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-2">
+          <button
+            type="button"
+            onClick={showTrending}
+            aria-pressed={sort === "trending" && categorySlugs.length === 0}
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors ${
+              sort === "trending" && categorySlugs.length === 0
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-card hover:border-foreground"
+            }`}
+          >
+            <Icon icon={IconFlame} size={15} />
+            Trending
+          </button>
+          {(showAllCategories ? popularCategories : popularCategories.slice(0, 5)).map((c) => {
+            const active = categorySlugs.includes(c.slug);
+            return (
+              <button
+                key={c.slug}
+                type="button"
+                onClick={() => toggleCategory(c.slug)}
+                aria-pressed={active}
+                className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                  active
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-card hover:border-foreground"
+                }`}
+              >
+                <Icon icon={c.icon} size={15} />
+                {c.label}
+                <span className={`text-xs font-medium ${active ? "text-background/70" : "text-muted-foreground"}`}>
+                  {c.count}
+                </span>
+              </button>
+            );
+          })}
+          {popularCategories.length > 5 && (
+            <button
+              type="button"
+              onClick={() => setShowAllCategories((v) => !v)}
+              className="flex items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+            >
+              {showAllCategories ? "Less" : "More"}
+              <Icon icon={IconChevronDown} size={14} className={showAllCategories ? "rotate-180" : ""} />
+            </button>
+          )}
+        </div>
+      )}
+
       {filtered.length === 0 ? (
-        <p className="text-muted-foreground">No issues match these filters yet.</p>
+        <p className="text-muted-foreground">No issues match these filters yet. Try another city or clear the category.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

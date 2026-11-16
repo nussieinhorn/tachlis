@@ -36,7 +36,7 @@ export function MotiveMark({ className }: { className?: string }) {
 
 export function MotiveLogo({ className }: { className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-3 text-foreground", className)}>
+    <span className={cn("inline-flex items-center gap-1.5 text-foreground", className)}>
       <MotiveMark />
       <span className="font-logo text-2xl font-extrabold leading-none tracking-tight">motive</span>
     </span>

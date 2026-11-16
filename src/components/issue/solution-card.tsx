@@ -121,16 +121,21 @@ export function SolutionCard({
       setUnvoteOpen(true);
       return;
     }
+    // Optimistic: flip the button and count instantly, then sync; undo if the save fails.
+    setVoted(true);
+    setVotes((v) => v + 1);
     const supabase = createClient();
     const { data, error } = await supabase
       .from("solution_votes")
       .insert({ solution_id: solution.id, user_id: user?.id ?? null })
       .select("id")
       .single();
-    if (error) return;
-    setVoted(true);
+    if (error) {
+      setVoted(false);
+      setVotes((v) => Math.max(0, v - 1));
+      return;
+    }
     setVoteRowId(data?.id ?? null);
-    setVotes((v) => v + 1);
   }
 
   async function removeVote(e?: React.MouseEvent) {
@@ -139,12 +144,18 @@ export function SolutionCard({
       setUnvoteOpen(false);
       return;
     }
-    const supabase = createClient();
-    await supabase.from("solution_votes").delete().eq("id", voteRowId);
+    const rowId = voteRowId;
     setVoted(false);
     setVoteRowId(null);
     setVotes((v) => Math.max(0, v - 1));
     setUnvoteOpen(false);
+    const supabase = createClient();
+    const { error } = await supabase.from("solution_votes").delete().eq("id", rowId);
+    if (error) {
+      setVoted(true);
+      setVoteRowId(rowId);
+      setVotes((v) => v + 1);
+    }
   }
 
   async function toggleHide(e?: React.MouseEvent) {
@@ -276,8 +287,10 @@ export function SolutionCard({
             onClick={castVote}
             className="gap-1.5"
           >
-            <Icon icon={voted ? IconCheck : IconArrowUp} size={16} />
-            {votes}
+            <Icon key={String(voted)} icon={voted ? IconCheck : IconArrowUp} size={16} className="animate-pop" />
+            <span key={votes} className="animate-tick tabular-nums">
+              {votes}
+            </span>
           </Button>
           {commentsEnabled && (
             <span className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -307,8 +320,11 @@ export function SolutionCard({
               className="w-fit"
               onClick={() => castVote()}
             >
-              <Icon icon={IconArrowUp} />
-              {votes} {voted ? "· voted" : "votes"}
+              <Icon key={String(voted)} icon={voted ? IconCheck : IconArrowUp} className="animate-pop" />
+              <span key={votes} className="animate-tick tabular-nums">
+                {votes}
+              </span>{" "}
+              {voted ? "· voted" : "votes"}
             </Button>
             <SheetTitle className="text-2xl">{solution.title}</SheetTitle>
             <SheetDescription className="text-base">{solution.description}</SheetDescription>

@@ -1,3 +1,4 @@
+import { abbreviateName } from "@/lib/format";
 import { notFound } from "next/navigation";
 import { IconMapPin, IconCalendar, IconUserCircle } from "@tabler/icons-react";
 
@@ -79,7 +80,7 @@ export default async function IssueDetailPage({
                   {issue.createdBy && (
                     <>
                       <Icon icon={IconUserCircle} size={16} className="ml-1" />
-                      By {issue.createdBy}
+                      By {abbreviateName(issue.createdBy)}
                     </>
                   )}
                 </span>

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { IconLoader2, IconMapPin } from "@tabler/icons-react";
 
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { abbreviateLocation } from "@/lib/format";
 
-type NominatimResult = {
+export type NominatimResult = {
   place_id: number;
   address?: {
     city?: string;
@@ -20,7 +20,7 @@ type NominatimResult = {
   display_name: string;
 };
 
-function shortLabel(r: NominatimResult): string {
+export function shortLabel(r: NominatimResult): string {
   const a = r.address;
   const city = a?.city ?? a?.town ?? a?.village ?? a?.hamlet ?? a?.municipality;
   if (city && a?.state) return abbreviateLocation(`${city}, ${a.state}`) ?? `${city}, ${a.state}`;
@@ -31,11 +31,26 @@ function shortLabel(r: NominatimResult): string {
 export function LocationSearch({
   value,
   onChange,
+  onSelect,
+  placeholder = "Search city, state...",
+  large = false,
+  trailing,
 }: {
   value: string;
   onChange: (value: string) => void;
+  /** Fires only when a suggestion is picked (not on every keystroke). */
+  onSelect?: (value: string) => void;
+  placeholder?: string;
+  large?: boolean;
+  /** Optional control shown inside the right end of the field. */
+  trailing?: ReactNode;
 }) {
   const [query, setQuery] = useState(value);
+
+  // Lets a parent fill the field itself (e.g. from the browser's current location).
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -74,11 +89,11 @@ export function LocationSearch({
     <div className="relative">
       <Icon
         icon={IconMapPin}
-        className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground ${large ? "left-4 text-foreground" : "left-3"}`}
       />
       <Input
-        className="pl-9"
-        placeholder="Search city, state..."
+        className={large ? `h-14 border-2 border-foreground bg-background pl-12 text-lg font-semibold placeholder:font-medium focus-visible:border-primary focus-visible:ring-primary/30 ${trailing ? "pr-36" : ""}` : "pl-9"}
+        placeholder={placeholder}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -88,6 +103,7 @@ export function LocationSearch({
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
       />
+      {trailing && <div className="absolute top-1/2 right-2 -translate-y-1/2">{trailing}</div>}
       {showDropdown && (
         <ul className="absolute top-full left-0 z-50 mt-1 min-h-11 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-md">
           {loading ? (
@@ -106,6 +122,7 @@ export function LocationSearch({
                     const short = shortLabel(r);
                     setQuery(short);
                     onChange(short);
+                    onSelect?.(short);
                     setOpen(false);
                   }}
                 >

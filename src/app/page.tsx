@@ -12,10 +12,10 @@ export default async function Home() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-14">
-        <section className="flex flex-col items-start gap-6 border-b-2 border-foreground pb-12 pt-4">
-          <h1 className="max-w-4xl text-5xl font-black text-foreground sm:text-7xl">
-            Post a problem in your community. Solve it together.
+      <main className="flex w-full flex-col">
+        <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-6 pt-16 pb-16 text-center">
+          <h1 className="max-w-4xl text-balance text-5xl font-black text-foreground sm:text-7xl">
+            Post a problem. Solve it together.
           </h1>
           <p className="max-w-xl text-lg font-medium text-muted-foreground">
             Public issues, proposed solutions, and public action tracking for
@@ -40,7 +40,12 @@ export default async function Home() {
           />
         </section>
 
-        <IssueBrowser issues={activeIssues} categories={categories} />
+        {/* A separate band: the search is the main thing, the feed is what it finds. */}
+        <section className="border-y border-border bg-[#f1f1ef] dark:bg-card">
+          <div className="mx-auto w-full max-w-5xl px-6 py-14">
+            <IssueBrowser issues={activeIssues} categories={categories} />
+          </div>
+        </section>
       </main>
     </>
   );

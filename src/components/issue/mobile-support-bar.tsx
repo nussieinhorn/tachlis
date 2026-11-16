@@ -56,13 +56,18 @@ export function MobileSupportBar({
 
   async function quickSupport() {
     if (supported) return;
+    // Optimistic: respond instantly, undo if the save fails.
+    setSupported(true);
+    setSupporterCount((c) => c + 1);
     const supabase = createClient();
     const { error } = await supabase
       .from("issue_supports")
       .insert({ issue_id: issueId, user_id: user?.id ?? null, level: "just-support" });
-    if (error) return;
-    setSupported(true);
-    setSupporterCount((c) => c + 1);
+    if (error) {
+      setSupported(false);
+      setSupporterCount((c) => Math.max(0, c - 1));
+      return;
+    }
     router.refresh();
   }
 
@@ -72,10 +77,12 @@ export function MobileSupportBar({
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
       <div className="mx-auto flex max-w-5xl items-center gap-3">
         <span className="flex-1 text-sm text-foreground">
-          <span className="font-semibold">{supporterCount}</span> people are supporting this issue
+          <span key={supporterCount} className="inline-block animate-tick font-semibold tabular-nums">
+            {supporterCount}
+          </span> people are supporting this issue
         </span>
         <Button size="sm" variant={supported ? "secondary" : "default"} onClick={quickSupport} disabled={supported}>
-          {supported && <Icon icon={IconCheck} size={14} />}
+          {supported && <Icon icon={IconCheck} size={14} className="animate-pop" />}
           {supported ? "Supporting" : "Support"}
         </Button>
         <ShareAccessPanel

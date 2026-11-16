@@ -62,9 +62,9 @@ export function AuthGate({
 
   if (step === "code") {
     return (
-      <div className="mx-auto flex w-full max-w-sm flex-col gap-5">
+      <div className="mx-auto flex w-full max-w-sm flex-col gap-7">
         <div className="flex flex-col gap-1 text-center">
-          <h2 className="font-heading text-lg font-semibold text-foreground">Enter your code</h2>
+          <h2 className="font-heading text-3xl font-black tracking-tight text-foreground">Enter your code</h2>
           <p className="text-sm text-muted-foreground">
             We sent a code to <strong className="text-foreground">{email.trim()}</strong>.
           </p>
@@ -113,9 +113,9 @@ export function AuthGate({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-sm flex-col gap-7">
       <div className="flex flex-col gap-1 text-center">
-        <h2 className="font-heading text-lg font-semibold text-foreground">{title}</h2>
+        <h2 className="font-heading text-3xl font-black tracking-tight text-foreground">{title}</h2>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       <div className="flex flex-col gap-3">

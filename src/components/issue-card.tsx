@@ -13,7 +13,7 @@ export function IssueCard({ issue, categories }: { issue: Issue; categories?: Ca
   return (
     <Link
       href={`/issues/${issue.displayCode}`}
-      className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-6 transition-shadow hover:shadow-md sm:p-8"
+      className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-6 transition-colors duration-150 hover:border-foreground/50 sm:p-8"
     >
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={issue.status} />
@@ -23,7 +23,7 @@ export function IssueCard({ issue, categories }: { issue: Issue; categories?: Ca
         </Badge>
       </div>
 
-      <h3 className="font-heading text-2xl leading-snug font-bold text-foreground group-hover:text-primary sm:text-3xl">
+      <h3 className="font-heading text-2xl leading-snug font-bold text-foreground transition-colors duration-150 group-hover:text-primary sm:text-3xl">
         {issue.title}
       </h3>
 

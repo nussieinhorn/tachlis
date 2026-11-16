@@ -172,6 +172,8 @@ export type Issue = {
   viewCount: number;
   createdBy: string;
   createdAt: string;
+  /** ISO timestamp behind `createdAt`, for sorting. */
+  createdAtIso?: string;
   solutions: Solution[];
   chosenSolutionIds?: string[];
   updates: Update[];
