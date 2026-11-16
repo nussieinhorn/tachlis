@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { IconArrowRight, IconBulb, IconChecklist, IconSpeakerphone, IconUsersGroup } from "@tabler/icons-react";
+import { IconArrowRight, IconBulb, IconSpeakerphone, IconUsersGroup } from "@tabler/icons-react";
 
 import { SiteHeader } from "@/components/site-header";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
@@ -21,11 +21,6 @@ const WHY = [
     icon: IconBulb,
     title: "Votes beat volume",
     body: "The loudest voice doesn't win. Neighbors propose solutions and vote, so the best idea rises to the top where everyone can see it.",
-  },
-  {
-    icon: IconChecklist,
-    title: "Watch it actually get fixed",
-    body: "Once a solution is chosen, a public action plan shows each step, who is on it and what's done. No more wondering if anyone is doing anything.",
   },
   {
     icon: IconUsersGroup,
@@ -107,7 +102,7 @@ export default async function Home() {
               Every neighborhood has problems everyone talks about and nobody owns. MOTIVE gives them an owner, a vote and a plan.
             </p>
           </Reveal>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             {WHY.map((item, i) => (
               <Reveal key={item.title} delay={i * 110} className="h-full">
               <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-6 shadow-sm">
