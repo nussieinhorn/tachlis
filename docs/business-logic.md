@@ -1,4 +1,4 @@
-# Tachlis — Business Logic Spec (Supabase Migration)
+# MOTIVE — Business Logic Spec (Supabase Migration)
 
 **Status:** Draft — checkpoint document, not final. More rounds of questions are still pending (see [Open Items](#open-items)). This document exists so the real business rules can be reviewed and corrected *before* any Supabase schema, auth, or RLS work begins.
 

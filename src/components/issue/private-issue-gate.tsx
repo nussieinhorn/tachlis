@@ -76,7 +76,7 @@ export function PrivateIssueGate({ issueId }: { issueId: string }) {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-6 py-20 text-center">
-      <span className="font-heading text-xl font-bold text-foreground">Tachlis</span>
+      <span className="font-heading text-xl font-bold text-foreground">MOTIVE</span>
 
       <div className="flex flex-col items-center gap-2">
         <div className="flex size-12 items-center justify-center rounded-full bg-muted">

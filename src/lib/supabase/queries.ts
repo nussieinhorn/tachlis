@@ -140,14 +140,13 @@ export async function getCommunity(code: string): Promise<Community | undefined>
 /** Looks up a community by its real internal id (uuid) — for following a foreign key (e.g. issue.communityId), not for resolving a URL. */
 export async function getCommunityByInternalId(id: string): Promise<Community | undefined> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("communities")
-    .select("*, owner:profiles!communities_owner_id_fkey(name)")
-    .eq("id", id)
-    .maybeSingle();
+  // The id is already known, so the member count runs alongside the community row instead of after it.
+  const [{ data, error }, memberCounts] = await Promise.all([
+    supabase.from("communities").select("*, owner:profiles!communities_owner_id_fkey(name)").eq("id", id).maybeSingle(),
+    getMemberCounts([id]),
+  ]);
   if (error || !data) return undefined;
   const row = data as unknown as CommunityRowWithOwner;
-  const memberCounts = await getMemberCounts([row.id]);
   return mapCommunity(row, memberCounts.get(row.id) ?? 0, row.owner?.name);
 }
 

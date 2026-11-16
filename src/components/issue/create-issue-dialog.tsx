@@ -478,7 +478,7 @@ export function CreateIssueDialog({
         </div>
         <p className="text-left text-xs text-muted-foreground">
           {visibility === "public"
-            ? "Anyone can find this issue on Tachlis and in search. You choose whether support or voting requires signing in below. You can change this later."
+            ? "Anyone can find this issue on MOTIVE and in search. You choose whether support or voting requires signing in below. You can change this later."
             : "Hidden from search and the homepage. Only people you approve can view or engage with it. You can change this later."}
         </p>
         <div className="grid grid-cols-1 gap-2.5 pt-1 sm:grid-cols-2">
@@ -720,7 +720,7 @@ export function CreateIssueDialog({
                         icon: IconWorld,
                         title: "Public",
                         points: [
-                          { ok: true, text: "Searchable on Tachlis" },
+                          { ok: true, text: "Searchable on MOTIVE" },
                           { ok: true, text: "Can appear on the homepage" },
                           { ok: true, text: "Anyone with the link can view and support it" },
                         ],

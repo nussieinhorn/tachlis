@@ -21,8 +21,11 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  // Refreshes the auth session so server components always see a valid token.
-  await supabase.auth.getUser();
+  // Refreshes the auth session cookie so server components always see a valid token.
+  // getSession() reads the cookie locally and only calls Supabase when the token has expired;
+  // getUser() made a network round trip on every single request. Nothing is authorized here
+  // (RLS and the per-page queries do that), so the local read is safe.
+  await supabase.auth.getSession();
 
   return response;
 }

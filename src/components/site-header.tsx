@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { IconPlus, IconUserCircle, IconLogout, IconCircleCheck, IconList, IconUsersGroup, IconSettings, IconUserCog } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
+import { MotiveLogo } from "@/components/motive-logo";
 import { Icon } from "@/components/ui/icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchCombobox } from "@/components/search-combobox";
@@ -69,8 +70,8 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/" className="font-heading text-xl font-bold text-foreground">
-            Tachlis
+          <Link href="/" aria-label="motive home">
+            <MotiveLogo />
           </Link>
 
           <div className="hidden sm:block">

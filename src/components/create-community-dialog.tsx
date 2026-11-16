@@ -241,7 +241,7 @@ export function CreateCommunityDialog({
                         icon: IconWorld,
                         title: "Public",
                         points: [
-                          { ok: true, text: "Searchable on Tachlis" },
+                          { ok: true, text: "Searchable on MOTIVE" },
                           { ok: true, text: "Can be customized and appear on the homepage" },
                           { ok: true, text: "Anyone with the link can view and support it" },
                         ],

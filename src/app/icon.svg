@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <style>.ink{stroke:#1a1a1a}@media (prefers-color-scheme:dark){.ink{stroke:#f5f5f5}}</style>
+  <circle class="ink" cx="22" cy="26" r="15" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="78.5 15.7" transform="rotate(350 22 26)"/>
+  <circle cx="33.5" cy="16.4" r="5" fill="#f45d48"/>
+  <g fill="none" stroke="#f45d48" stroke-width="3" stroke-linecap="round"><path d="M34.9 8.5l.6-3.5"/><path d="M39.6 11.2l2.7-2.2"/><path d="M41.5 16.4H45"/></g>
+  <path class="ink" d="M17.4 26.4l3.7 3.7 6.5-7.6" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

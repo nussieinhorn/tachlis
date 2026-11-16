@@ -1,11 +1,11 @@
-# Tachlis — v1 Spec
+# MOTIVE — v1 Spec
 
 Community problem-solving platform. Public issues, proposed solutions, voting, and public action tracking — from discussion to actually solved.
 
 ## Core objects
 
 * **Workspace** — name, public/private, members. (v1: workspace concept exists in the data model, but the MVP surface is fully public — no private workspaces yet.)
-* **Issue (Tachlis)** — title, description (rich text), category, location (optional text), splash image, status, created_by (user or anonymous), workspace_id
+* **Issue (MOTIVE)** — title, description (rich text), category, location (optional text), splash image, status, created_by (user or anonymous), workspace_id
 * **Solution** — title, description, pros/cons, issue_id, status (proposed / in-progress / chosen / rejected), created_by
 * **Comment** — body, parent_type (issue / solution), parent_id, user_id, reply_to (threading)
 * **Vote** — user_id, target_type (issue / solution), target_id

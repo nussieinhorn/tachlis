@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOTIVE Logo Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@700;800&family=Gabarito:wght@700;800&family=Outfit:wght@400;500;600&family=Sora:wght@600;700&family=Syne:wght@700;800&family=Bricolage+Grotesque:wght@600;700&family=DM+Sans:wght@600;700&family=Unbounded:wght@500;600&family=Red+Hat+Display:wght@700;800&family=Lexend:wght@500;600&family=Instrument+Sans:wght@600;700&family=Plus+Jakarta+Sans:wght@700;800&family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<style>
+  /* Layout: a quiet grid of equal specimen cards. Light by default; the toggle previews dark. */
+  :root {
+    color-scheme: light;
+    --paper: #f6f5f2;
+    --surface: #ffffff;
+    --ink: #14130f;
+    --muted: #6b6963;
+    --line: #e6e4de;
+    --accent: #f45d48;
+    --on: #ffffff;
+    --font-body: "Hanken Grotesk", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #0e0e0d;
+    --surface: #181816;
+    --ink: #f3f2ee;
+    --muted: #a3a19a;
+    --line: #2c2b28;
+    --accent: #ff6f5a;
+    --on: #181816;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 56px 24px 72px; }
+
+  header.top {
+    display: flex; flex-wrap: wrap; align-items: flex-end;
+    justify-content: space-between; gap: 20px;
+    padding-bottom: 36px; margin-bottom: 36px;
+    border-bottom: 1px solid var(--line);
+  }
+  h1 {
+    font-family: "Manrope", sans-serif; font-weight: 800;
+    font-size: clamp(34px, 5vw, 52px); line-height: 1.05;
+    letter-spacing: -0.02em; margin: 0 0 12px; text-wrap: balance;
+  }
+  .lede { margin: 0; color: var(--muted); max-width: 60ch; font-size: 16px; }
+
+  .toggle {
+    font: 500 13px var(--font-body);
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 9px 16px; cursor: pointer;
+  }
+  .toggle:hover { border-color: var(--ink); }
+  .toggle:focus-visible, .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .grid {
+    display: grid; gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    display: flex; flex-direction: column;
+  }
+  .stage {
+    height: 176px; display: flex; align-items: center; justify-content: center;
+    --on: var(--surface);
+  }
+  .variants {
+    display: flex; align-items: stretch; gap: 10px;
+    padding: 12px; border-top: 1px solid var(--line);
+  }
+  .chip {
+    flex: 1; min-width: 0; background: #121212; color: #fff; --on: #121212;
+    display: flex; align-items: center; justify-content: center; padding: 14px 8px;
+  }
+  .icon {
+    width: 56px; height: 56px; flex: none; background: var(--accent);
+    color: #fff; --accent: #14130f; --on: #f45d48;
+    border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .icon .mk { width: 32px; height: 32px; }
+  .fav {
+    flex: none; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 6px; padding: 0 6px;
+  }
+  .fav .mk.s16 { width: 16px; height: 16px; }
+  .fav .mk.s32 { width: 32px; height: 32px; }
+  .fav span, .meta .tag {
+    font: 400 10.5px var(--font-mono); color: var(--muted); letter-spacing: 0.04em;
+  }
+  .favrow { display: flex; align-items: flex-end; gap: 10px; }
+  .meta { padding: 14px 16px 18px; border-top: 1px solid var(--line); }
+  .meta h2 {
+    margin: 0 0 4px; font: 700 15px "Manrope", sans-serif; letter-spacing: -0.005em;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .meta p { margin: 0; color: var(--muted); font-size: 14px; max-width: 42ch; }
+
+  /* lockup */
+  .lock { display: inline-flex; align-items: center; gap: 0.5em; font-size: 30px; line-height: 1; }
+  .chip .lock { font-size: 17px; }
+  .mk { width: 1.3em; height: 1.3em; flex: none; overflow: visible; }
+  .wm { white-space: nowrap; text-transform: lowercase; }
+  .wm .a { color: var(--accent); }
+
+  /* All wordmarks are lowercase. Tracking is tight, since lowercase needs less air than caps. */
+  .f1  { font-family: "Manrope", sans-serif; font-weight: 800; letter-spacing: -0.03em; font-size: 1.2em; }
+  .f2  { font-family: "Outfit", sans-serif; font-weight: 600; letter-spacing: -0.02em; font-size: 1.25em; }
+  .f3  { font-family: "Sora", sans-serif; font-weight: 700; letter-spacing: -0.02em; font-size: 1em; }
+  .f4  { font-family: "Syne", sans-serif; font-weight: 800; letter-spacing: -0.02em; font-size: 1.2em; }
+  .f5  { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; letter-spacing: -0.03em; font-size: 1.25em; }
+  .f6  { font-family: "DM Sans", sans-serif; font-weight: 700; letter-spacing: -0.03em; font-size: 1.2em; }
+  .f7  { font-family: "Unbounded", sans-serif; font-weight: 600; letter-spacing: -0.02em; font-size: 0.8em; }
+  .f8  { font-family: "Red Hat Display", sans-serif; font-weight: 800; letter-spacing: -0.02em; font-size: 1.2em; }
+  .f9  { font-family: "Lexend", sans-serif; font-weight: 600; letter-spacing: -0.02em; font-size: 1em; }
+  .f10 { font-family: "Instrument Sans", sans-serif; font-weight: 700; letter-spacing: -0.02em; font-size: 1.25em; }
+  .f11 { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; letter-spacing: -0.03em; font-size: 1.2em; }
+  .f12 { font-family: "Fraunces", serif; font-weight: 700; letter-spacing: -0.01em; font-size: 1.25em; }
+  .f13 { font-family: "Fraunces", serif; font-weight: 600; font-style: italic; letter-spacing: -0.01em; font-size: 1.3em; }
+  .f14 { font-family: "Outfit", sans-serif; font-weight: 400; letter-spacing: 0; font-size: 1.3em; }
+  .f16 { font-family: "Gabarito", sans-serif; font-weight: 800; letter-spacing: -0.02em; font-size: 1.25em; }
+  .f15 { font-family: "Unbounded", sans-serif; font-weight: 500; letter-spacing: 0; font-size: 0.85em; }
+
+  .lock.gap-wide { gap: 0.85em; }
+  .words.pick { margin-top: 0; margin-bottom: 56px; }
+  .pickcard { max-width: 560px; }
+  .pickcard .stage { font-size: 58px; height: 230px; }
+  .pickcard .chip .lock { font-size: 26px; }
+  .words.checks { margin-top: 0; margin-bottom: 56px; }
+  h2.sec.more { font: 800 22px "Manrope", sans-serif; letter-spacing: -0.01em; margin: 0 0 20px; }
+  .inl { display: inline-block; width: 0.62em; height: 0.62em; vertical-align: -0.02em; margin: 0 0.03em; overflow: visible; }
+  .words { margin-top: 56px; }
+  .words h2.sec {
+    font: 800 22px "Manrope", sans-serif; letter-spacing: -0.01em; margin: 0 0 6px;
+  }
+  .words p.sec { margin: 0 0 20px; color: var(--muted); max-width: 60ch; }
+  .words .stage { font-size: 44px; }
+  .words .chip .lock { font-size: 22px; }
+  .smallrow {
+    flex: none; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 0 8px;
+  }
+  .smallrow .lock { font-size: 14px; }
+  .smallrow .lock.xs { font-size: 11px; }
+
+  footer.note {
+    margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 14px; max-width: 70ch;
+  }
+  footer.note strong { color: var(--ink); font-weight: 600; }
+  @media (max-width: 420px) { .wrap { padding: 36px 16px 56px; } .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>motive logo options</h1>
+      <p class="lede">Twelve takes on the check, twelve other marks, and eight type-only wordmarks, all in lowercase. Each is shown on white, reversed on black, and at small sizes. The coral is the current brand color.</p>
+    </div>
+    <button class="toggle" id="themeBtn" type="button" aria-pressed="false">Preview dark</button>
+  </header>
+
+  <section class="words pick">
+    <h2 class="sec">Working pick: C8, Orbit spark</h2>
+    <p class="sec">The check now has more room inside the ring, and there is a wider gap between the mark and the word. This is the one to build on.</p>
+    <div id="pick"></div>
+  </section>
+
+  <section class="words checks">
+    <h2 class="sec">Playing with the check</h2>
+    <p class="sec">Twelve takes on the check from option E, in lowercase. A check says the problem is solved, which is what motive is for. C11 and C12 build it into the word itself.</p>
+    <div class="grid" id="checkgrid"></div>
+  </section>
+
+  <h2 class="sec more">More marks</h2>
+  <main class="grid" id="grid"></main>
+
+  <section class="words">
+    <h2 class="sec">Type only</h2>
+    <p class="sec">No symbol, just the word. These lean on the typeface and one touch of coral.</p>
+    <div class="grid" id="wordgrid"></div>
+  </section>
+
+  <footer class="note">
+<strong>Strongest on a small screen:</strong> In the check set, C2 (Solid badge), C3 (Tile) and C12 (o is the check) are the most legible at 16px. Among the others, B (Aim), F (Steps) and L (Upswing) still read at 16px. A, H and D are the safest as a single-color mark. In the type-only set, T4 and T6 hold up best small. Pick one or two and I'll tighten the spacing, build a favicon set, and put the winner into the site.
+  </footer>
+</div>
+
+<script>
+  var S = 'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"';
+  var A = 'fill="none" stroke="var(--accent)" stroke-linecap="round" stroke-linejoin="round"';
+  var rays = '';
+  for (var a = 0; a < 360; a += 45) {
+    rays += '<line x1="24" y1="5" x2="24" y2="13" transform="rotate(' + a + ' 24 24)"/>';
+  }
+
+  var options = [
+    { k: 'A', name: 'Ascent', f: 'f1', lower: false,
+      note: 'An M drawn as two peaks. Plain, sturdy, and it works in one color.',
+      mark: '<path d="M9 39V11l15 18" ' + S + ' stroke-width="5.5"/><path d="M24 29L39 11v28" ' + A + ' stroke-width="5.5"/>' },
+    { k: 'B', name: 'Aim', f: 'f2', lower: true,
+      note: 'A target with the dot found. A motive is what you are aiming at.',
+      mark: '<circle cx="24" cy="24" r="17" ' + S + ' stroke-width="5"/><circle cx="24" cy="24" r="6" fill="var(--accent)"/>' },
+    { k: 'C', name: 'Two voices', f: 'f6', lower: false,
+      note: 'Two speech bubbles overlapping. The discussion that comes before the fix.',
+      mark: '<rect x="5" y="7" width="25" height="21" rx="8" fill="currentColor"/><path d="M11 27l-1 10 10-9z" fill="currentColor"/><rect x="18" y="19" width="25" height="21" rx="8" fill="var(--accent)"/><path d="M37 39l2 6-9-6z" fill="var(--accent)"/>' },
+    { k: 'D', name: 'Forward', f: 'f8', lower: false,
+      note: 'A double chevron for movement. Reads as go at any size.',
+      mark: '<path d="M12 10l15 14-15 14" ' + S + ' stroke-width="6"/><path d="M26 10l15 14-15 14" ' + A + ' stroke-width="6"/>' },
+    { k: 'E', name: 'Resolved', f: 'f5', lower: true,
+      note: 'A ring that closes around a check. The issue is solved.',
+      mark: '<circle cx="24" cy="24" r="17" ' + S + ' stroke-width="5" stroke-dasharray="80 27" transform="rotate(-130 24 24)"/><path d="M16.5 25l5.5 5.5L32 18" ' + A + ' stroke-width="5"/>' },
+    { k: 'F', name: 'Steps', f: 'f3', lower: false,
+      note: 'Four bars climbing from new to solved, with the last one lit.',
+      mark: '<rect x="5" y="32" width="7" height="10" rx="2.5" fill="currentColor"/><rect x="15" y="24" width="7" height="18" rx="2.5" fill="currentColor"/><rect x="25" y="15" width="7" height="27" rx="2.5" fill="currentColor"/><rect x="35" y="5" width="7" height="37" rx="2.5" fill="var(--accent)"/>' },
+    { k: 'G', name: 'Pin', f: 'f11', lower: false,
+      note: 'A pin drop with a dot inside. Where the problem is.',
+      mark: '<path fill-rule="evenodd" fill="currentColor" d="M24 4C14 4 8 11 8 19c0 11 16 25 16 25s16-14 16-25C40 11 34 4 24 4ZM24 13a6 6 0 1 0 0 12 6 6 0 1 0 0-12Z"/><circle cx="24" cy="19" r="3" fill="var(--accent)"/>' },
+    { k: 'H', name: 'Monogram', f: 'f4', lower: false,
+      note: 'A solid M tile, made for app icons and avatars.',
+      mark: '<rect x="4" y="4" width="40" height="40" rx="11" fill="currentColor"/><path d="M13 34V15l11 12 11-12v19" fill="none" stroke="var(--on)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { k: 'I', name: 'Spark', f: 'f9', lower: false,
+      note: 'Eight rays around a point. The thing that gets people moving.',
+      mark: '<g ' + S + ' stroke-width="4.5">' + rays + '</g><circle cx="24" cy="24" r="5.5" fill="var(--accent)"/>' },
+    { k: 'J', name: 'Orbit', f: 'f10', lower: true,
+      note: 'A ring with one point in motion. Quiet and modern.',
+      mark: '<circle cx="24" cy="24" r="17" ' + S + ' stroke-width="4"/><circle cx="37" cy="13" r="6" fill="var(--accent)"/>' },
+    { k: 'K', name: 'Sunrise', f: 'f12', lower: false,
+      note: 'A half sun over a horizon. A problem that gets a new day.',
+      mark: '<path d="M8 30a16 16 0 0 1 32 0Z" fill="var(--accent)"/><path d="M5 36h38M12 42h24" ' + S + ' stroke-width="3.5"/>' },
+    { k: 'L', name: 'Upswing', f: 'f7', lower: false,
+      note: 'The last stroke of the M turns into an arrow. Progress built into the letter.',
+      mark: '<path d="M9 40V16l15 17L39 9" ' + S + ' stroke-width="5.5"/><path d="M28 9h11v11" ' + A + ' stroke-width="5.5"/>' }
+  ];
+
+  function svg(o, cls) {
+    return '<svg class="mk ' + (cls || '') + '" viewBox="0 0 48 48" aria-hidden="true">' + o.mark + '</svg>';
+  }
+  function lock(o) {
+    return '<span class="lock' + (o.gap ? ' gap-wide' : '') + '">' + svg(o) + '<span class="wm ' + o.f + '">motive</span></span>';
+  }
+
+  /* Type-only wordmarks: inner is the word with an optional coral touch. */
+  var words = [
+    { k: 'T1', name: 'Period', f: 'f1', inner: 'motive<span class="a">.</span>',
+      note: 'Tight and heavy, with a coral full stop. It reads as a statement.' },
+    { k: 'T2', name: 'Light', f: 'f14', inner: 'motive',
+      note: 'A thin, open weight. Calm and friendly, and the quietest option here.' },
+    { k: 'T3', name: 'Italic serif', f: 'f13', inner: 'motive',
+      note: 'A soft italic serif. More editorial, more personal.' },
+    { k: 'T4', name: 'Round o', f: 'f5', inner: 'm<span class="a">o</span>tive',
+      note: 'The o picks up the coral. A small mark inside the word.' },
+    { k: 'T5', name: 'Two tone', f: 'f3', inner: 'mo<span class="a">tive</span>',
+      note: 'Split in two: mo, then tive. The back half carries the color.' },
+    { k: 'T6', name: 'Plain bold', f: 'f6', inner: 'motive',
+      note: 'No tricks. Just a clean bold sans that scales down well.' },
+    { k: 'T7', name: 'Wide', f: 'f15', inner: 'motive',
+      note: 'A wide geometric face. Feels like a product, not a charity.' },
+    { k: 'T8', name: 'Sharp', f: 'f4', inner: 'motive',
+      note: 'A sharp, slightly odd grotesque with some attitude.' }
+  ];
+  function wlock(w, cls) {
+    return '<span class="lock ' + (cls || '') + '"><span class="wm ' + w.f + '">' + w.inner + '</span></span>';
+  }
+  document.getElementById('wordgrid').innerHTML = words.map(function (w) {
+    return '<article class="card" aria-label="Wordmark ' + w.k + ', ' + w.name + '">' +
+      '<div class="stage">' + wlock(w) + '</div>' +
+      '<div class="variants">' +
+        '<div class="chip">' + wlock(w) + '</div>' +
+        '<div class="smallrow">' + wlock(w) + wlock(w, 'xs') + '</div>' +
+      '</div>' +
+      '<div class="meta"><h2><span class="tag">' + w.k + '</span>' + w.name + '</h2><p>' + w.note + '</p></div>' +
+    '</article>';
+  }).join('');
+
+  /* Check variations. Entries with `mark` are symbol + word; entries with `inner` build the check into the word. */
+  var CK = 'fill="none" stroke="var(--accent)" stroke-linecap="round" stroke-linejoin="round"';
+  var vcheck = '<svg class="inl" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l7.5 8L21 4" ' + 'fill="none" stroke="var(--accent)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ocheck = '<svg class="inl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="3.4"/><path d="M7.5 12.5l3.3 3.3 6-7" fill="none" stroke="var(--accent)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var checks = [
+    { k: 'C1', name: 'Closed ring', f: 'f2',
+      note: 'The full ring with the check sitting inside. The calmest version.',
+      mark: '<circle cx="24" cy="24" r="17" ' + S + ' stroke-width="5"/><path d="M16 25l6 6 11-13" ' + CK + ' stroke-width="5"/>' },
+    { k: 'C2', name: 'Solid badge', f: 'f1',
+      note: 'A filled coral disc with a white check. Reads instantly, like a verified badge.',
+      mark: '<circle cx="24" cy="24" r="20" fill="var(--accent)"/><path d="M14 25l7 7 13-15" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { k: 'C3', name: 'Tile', f: 'f4',
+      note: 'A dark rounded tile with a white check and one coral dot. Built for the app icon.',
+      mark: '<rect x="4" y="4" width="40" height="40" rx="11" fill="currentColor"/><path d="M14 25l7 7 13-15" fill="none" stroke="var(--on)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="12" r="3.2" fill="var(--accent)"/>' },
+    { k: 'C4', name: 'Bubble check', f: 'f6',
+      note: 'A speech bubble with a check inside. The conversation that ended in a fix.',
+      mark: '<path d="M10 6h28a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6H24l-9 8v-8h-5a6 6 0 0 1-6-6V12a6 6 0 0 1 6-6Z" ' + S + ' stroke-width="4.5"/><path d="M15 21l6 6 12-12" ' + CK + ' stroke-width="5"/>' },
+    { k: 'C5', name: 'Pin check', f: 'f11',
+      note: 'A solid pin with a check cut in. A place, and the problem there is solved.',
+      mark: '<path fill="currentColor" d="M24 3C14 3 8 10 8 18c0 11 16 26 16 26s16-15 16-26C40 10 34 3 24 3Z"/><path d="M16.5 18.5l5 5 9-10" fill="none" stroke="var(--on)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { k: 'C6', name: 'Swoosh', f: 'f8',
+      note: 'A bold check with a long upstroke. The short arm is dark, the long arm is coral.',
+      mark: '<path d="M7 27l9 9" ' + S + ' stroke-width="6.5"/><path d="M16 36L41 8" ' + CK + ' stroke-width="6.5"/>' },
+    { k: 'C7', name: 'Ripple', f: 'f10',
+      note: 'Soft rings spreading out from a check. One issue and how far it reaches.',
+      mark: '<circle cx="24" cy="24" r="20" ' + S + ' stroke-width="2.5" opacity="0.28"/><circle cx="24" cy="24" r="13.5" ' + S + ' stroke-width="2.5" opacity="0.55"/><path d="M18 24.5l4.2 4.2 8-9" ' + CK + ' stroke-width="4.5"/>' },
+    { k: 'C8', name: 'Orbit spark', f: 'f16', gap: true,
+      note: 'The ring opens around the coral dot and three short strokes fan out from it. A smaller check sits in the middle with room on every side.',
+      mark: '<circle cx="22" cy="26" r="15" ' + S + ' stroke-width="4" stroke-dasharray="78.5 15.7" transform="rotate(350 22 26)"/>' +
+            '<circle cx="33.5" cy="16.4" r="5" fill="var(--accent)"/>' +
+            '<g ' + CK + ' stroke-width="3"><path d="M34.9 8.5l.6-3.5"/><path d="M39.6 11.2l2.7-2.2"/><path d="M41.5 16.4H45"/></g>' +
+            '<path d="M17.4 26.4l3.7 3.7 6.5-7.6" ' + S + ' stroke-width="4"/>' },
+    { k: 'C9', name: 'Double check', f: 'f3',
+      note: 'Two checks overlapping, one dark and one coral. Solved, then confirmed.',
+      mark: '<path d="M5 26l8 8L29 13" ' + S + ' stroke-width="5"/><path d="M17 30l5.5 5.5L43 10" ' + CK + ' stroke-width="5"/>' },
+    { k: 'C10', name: 'Checkbox', f: 'f12',
+      note: 'A box with the check breaking out of the corner. It goes past the task.',
+      mark: '<rect x="6" y="11" width="29" height="29" rx="8" ' + S + ' stroke-width="4.5"/><path d="M15 26l7 7L43 8" ' + CK + ' stroke-width="5.5"/>' },
+    { k: 'C11', name: 'v is the check', f: 'f1', inner: 'moti' + vcheck + 'e',
+      note: 'The v of motive is the check. No separate symbol, the word does the work.' },
+    { k: 'C12', name: 'o is the check', f: 'f5', inner: 'm' + ocheck + 'tive',
+      note: 'The o becomes a ring with a check in it. Works as a favicon on its own.' }
+  ];
+  function wlock2(w, cls) {
+    return '<span class="lock ' + (cls || '') + '"><span class="wm ' + w.f + '">' + w.inner + '</span></span>';
+  }
+  document.getElementById('checkgrid').innerHTML = checks.map(function (o) {
+    var variants = o.mark
+      ? '<div class="chip">' + lock(o) + '</div>' +
+        '<div class="icon">' + svg(o) + '</div>' +
+        '<div class="fav"><div class="favrow">' + svg(o, 's32') + svg(o, 's16') + '</div><span>32 / 16</span></div>'
+      : '<div class="chip">' + wlock2(o) + '</div>' +
+        '<div class="smallrow">' + wlock2(o) + wlock2(o, 'xs') + '</div>';
+    return '<article class="card" aria-label="Check option ' + o.k + ', ' + o.name + '">' +
+      '<div class="stage">' + (o.mark ? lock(o) : wlock2(o)) + '</div>' +
+      '<div class="variants">' + variants + '</div>' +
+      '<div class="meta"><h2><span class="tag">' + o.k + '</span>' + o.name + '</h2><p>' + o.note + '</p></div>' +
+    '</article>';
+  }).join('');
+
+  (function () {
+    var o = checks.filter(function (c) { return c.k === 'C8'; })[0];
+    document.getElementById('pick').innerHTML =
+      '<article class="card pickcard" aria-label="Working pick, C8 Orbit spark">' +
+        '<div class="stage">' + lock(o) + '</div>' +
+        '<div class="variants">' +
+          '<div class="chip">' + lock(o) + '</div>' +
+          '<div class="icon">' + svg(o) + '</div>' +
+          '<div class="fav"><div class="favrow">' + svg(o, 's32') + svg(o, 's16') + '</div><span>32 / 16</span></div>' +
+        '</div>' +
+      '</article>';
+  })();
+
+  var html = options.map(function (o) {
+    return '<article class="card" aria-label="Option ' + o.k + ', ' + o.name + '">' +
+      '<div class="stage">' + lock(o) + '</div>' +
+      '<div class="variants">' +
+        '<div class="chip">' + lock(o) + '</div>' +
+        '<div class="icon">' + svg(o) + '</div>' +
+        '<div class="fav"><div class="favrow">' + svg(o, 's32') + svg(o, 's16') + '</div><span>32 / 16</span></div>' +
+      '</div>' +
+      '<div class="meta"><h2><span class="tag">' + o.k + '</span>' + o.name + '</h2><p>' + o.note + '</p></div>' +
+    '</article>';
+  }).join('');
+  document.getElementById('grid').innerHTML = html;
+
+  var btn = document.getElementById('themeBtn');
+  btn.addEventListener('click', function () {
+    var root = document.documentElement;
+    var dark = root.getAttribute('data-theme') === 'dark';
+    if (dark) { root.removeAttribute('data-theme'); } else { root.setAttribute('data-theme', 'dark'); }
+    btn.textContent = dark ? 'Preview dark' : 'Back to light';
+    btn.setAttribute('aria-pressed', String(!dark));
+  });
+</script>
+</body>
+</html>

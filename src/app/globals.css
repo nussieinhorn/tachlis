@@ -4,26 +4,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.125rem;
 
   /* Warm, optimistic base palette */
-  --background: #fffdf9;
-  --foreground: #241b16;
+  --background: #fbfaf6;
+  --foreground: #0e0e0e;
 
   --card: #ffffff;
-  --card-foreground: #241b16;
+  --card-foreground: #0e0e0e;
 
   --popover: #ffffff;
-  --popover-foreground: #241b16;
+  --popover-foreground: #0e0e0e;
 
   --primary: #f45d48;
   --primary-foreground: #ffffff;
 
   --secondary: #f2ebe4;
-  --secondary-foreground: #241b16;
+  --secondary-foreground: #0e0e0e;
 
   --muted: #f2ebe4;
-  --muted-foreground: #8a8178;
+  --muted-foreground: #5f5b54;
 
   --accent: #fbe4dc;
   --accent-foreground: #b8341f;
@@ -31,8 +31,8 @@
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
 
-  --border: #e7dcd1;
-  --input: #e7dcd1;
+  --border: #cdc8bd;
+  --input: #0e0e0e;
   --ring: #f45d48;
 
   /* Issue lifecycle status colors — hue carries meaning, keep fixed */
@@ -96,10 +96,10 @@
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 0px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 3px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -143,8 +143,9 @@
   --color-status-action-foreground: var(--status-action-foreground);
   --color-status-resolved-foreground: var(--status-resolved-foreground);
 
-  --font-sans: var(--font-inter);
-  --font-heading: var(--font-manrope);
+  --font-sans: var(--font-public-sans);
+  --font-heading: var(--font-archivo);
+  --font-logo: var(--font-gabarito);
 }
 
 @layer base {
@@ -156,7 +157,11 @@
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
+    letter-spacing: -0.025em;
+    line-height: 1.02;
   }
+  h1 { font-weight: 900; letter-spacing: -0.04em; line-height: 0.95; }
+  h2, h3 { font-weight: 800; }
   button:not(:disabled), [role="button"]:not([aria-disabled="true"]), a, summary, label[for] {
     cursor: pointer;
   }

@@ -1,96 +1,121 @@
-import {
-  IconBuildingCommunity,
-  IconLeaf,
-  IconSchool,
-  IconRoad,
-  IconHeartHandshake,
-  IconShieldCheck,
-  IconPlus,
-} from "@tabler/icons-react";
+import { IconPlus, IconArrowRight } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StatusBadge, ISSUE_STATUSES } from "@/components/ui/status-badge";
-import { CategoryTile } from "@/components/category-tile";
+import { MotiveLogo } from "@/components/motive-logo";
 import { Icon } from "@/components/ui/icon";
 
-const CATEGORIES = [
-  { icon: IconBuildingCommunity, label: "Housing" },
-  { icon: IconLeaf, label: "Environment" },
-  { icon: IconSchool, label: "Education" },
-  { icon: IconRoad, label: "Infrastructure" },
-  { icon: IconHeartHandshake, label: "Social Care" },
-  { icon: IconShieldCheck, label: "Safety" },
+const SWATCHES = [
+  { name: "Ink", cls: "bg-foreground", hex: "#0e0e0e" },
+  { name: "Paper", cls: "bg-background border border-border", hex: "#fbfaf6" },
+  { name: "Coral (primary)", cls: "bg-primary", hex: "#f45d48" },
+  { name: "Rule", cls: "bg-border", hex: "#cdc8bd" },
+  { name: "Muted text", cls: "bg-muted-foreground", hex: "#5f5b54" },
+  { name: "Wash", cls: "bg-muted", hex: "#f2ebe4" },
 ];
 
-export default function Home() {
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-16">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-heading text-3xl font-bold">Tachlis</h1>
-        <p className="text-muted-foreground">
-          Design system check — buttons, lifecycle status badges, and category
-          tiles built on Tabler icons + shadcn-style components.
+    <section className="flex flex-col gap-5 border-t-2 border-foreground pt-4">
+      <h2 className="font-heading text-xs font-extrabold uppercase tracking-[0.18em] text-primary">{label}</h2>
+      {children}
+    </section>
+  );
+}
+
+export default function ThemePage() {
+  return (
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-14 px-6 py-14">
+      <header className="flex flex-col gap-6">
+        <MotiveLogo />
+        <h1 className="max-w-4xl text-6xl font-black sm:text-8xl">The theme, in one page.</h1>
+        <p className="max-w-xl text-lg font-medium text-muted-foreground">
+          Headlines that hit like a front page. Square corners, ink-black rules, hard-edged buttons.
         </p>
       </header>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Buttons</h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button>
+      <Section label="Headlines">
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-2">
+            <p className="font-heading text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Front page · 128 supporters</p>
+            <h1 className="max-w-4xl text-5xl font-black sm:text-7xl">City ignores the Elm Street potholes. Residents are done waiting.</h1>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="max-w-3xl text-4xl font-extrabold sm:text-5xl">Three solutions on the table, one vote left to cast</h2>
+            <p className="max-w-2xl text-lg text-muted-foreground">
+              Body copy sits in Public Sans: plain, readable and neutral, so the headlines can be loud.
+            </p>
+          </div>
+          <h3 className="max-w-2xl text-2xl font-extrabold">Repaving crews start Monday after the council vote</h3>
+        </div>
+      </Section>
+
+      <Section label="Buttons">
+        <div className="flex flex-wrap items-center gap-4">
+          <Button size="lg">
             <Icon icon={IconPlus} />
-            Start your own
+            Create issue
+          </Button>
+          <Button>
+            Support this
+            <Icon icon={IconArrowRight} />
           </Button>
           <Button variant="secondary">Secondary</Button>
           <Button variant="outline">Outline</Button>
           <Button variant="ghost">Ghost</Button>
-          <Button variant="destructive">Destructive</Button>
+          <Button variant="link">Link</Button>
+          <Button variant="destructive">Delete</Button>
+          <Button disabled>Disabled</Button>
         </div>
-      </section>
+        <div className="flex flex-wrap items-center gap-4">
+          <Button size="sm">Small</Button>
+          <Button>Default</Button>
+          <Button size="lg">Large</Button>
+        </div>
+      </Section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Issue lifecycle</h2>
+      <Section label="Inputs and status">
+        <div className="flex max-w-md flex-col gap-3">
+          <Input placeholder="Email" />
+          <Input placeholder="Search issues..." />
+        </div>
         <div className="flex flex-wrap gap-2">
           {ISSUE_STATUSES.map((status) => (
             <StatusBadge key={status} status={status} />
           ))}
         </div>
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Category picker</h2>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-          {CATEGORIES.map((category, i) => (
-            <CategoryTile
-              key={category.label}
-              icon={category.icon}
-              label={category.label}
-              selected={i === 0}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Sample issue card</h2>
-        <Card>
+      <Section label="Card">
+        <Card className="max-w-xl">
           <CardHeader>
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle>Pothole epidemic on Elm Street</CardTitle>
+            <div className="flex items-start justify-between gap-3">
+              <CardTitle className="text-2xl font-extrabold leading-tight">Pothole epidemic on Elm Street</CardTitle>
               <StatusBadge status="gaining-traction" />
             </div>
-            <CardDescription>
-              42 supporters · Downtown / Elm Street
-            </CardDescription>
+            <CardDescription>42 supporters · Downtown / Elm Street</CardDescription>
           </CardHeader>
           <CardContent className="pb-6">
             <p className="text-sm text-foreground/80">
-              Three cars damaged this month. Residents want the city to
-              prioritize repaving before winter.
+              Three cars damaged this month. Residents want the city to prioritize repaving before winter.
             </p>
           </CardContent>
         </Card>
-      </section>
+      </Section>
+
+      <Section label="Colour">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          {SWATCHES.map((s) => (
+            <div key={s.name} className="flex flex-col gap-2">
+              <div className={`h-20 w-full ${s.cls}`} />
+              <p className="text-sm font-bold">{s.name}</p>
+              <p className="text-xs text-muted-foreground">{s.hex}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
     </main>
   );
 }

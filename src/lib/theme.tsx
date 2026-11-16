@@ -21,11 +21,11 @@ function applyTheme(theme: ThemePreference) {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { profile, updateProfile } = useAuth();
-  const [theme, setThemeState] = useState<ThemePreference>("system");
+  const [theme, setThemeState] = useState<ThemePreference>("light");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = (localStorage.getItem("theme-preference") as ThemePreference | null) ?? "system";
+    const stored = (localStorage.getItem("theme-preference") as ThemePreference | null) ?? "light";
     setThemeState(stored);
     applyTheme(stored);
     setHydrated(true);
@@ -33,7 +33,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated || !profile) return;
-    const pref = (profile.themePreference as ThemePreference) ?? "system";
+    const pref = (profile.themePreference as ThemePreference) ?? "light";
+    // "system" is the old column default, not a deliberate choice: keep the light default unless this browser opted in.
+    if (pref === "system" && localStorage.getItem("theme-preference") !== "system") return;
     setThemeState(pref);
     applyTheme(pref);
     localStorage.setItem("theme-preference", pref);

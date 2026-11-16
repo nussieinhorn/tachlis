@@ -13,14 +13,11 @@ export default async function Home() {
     <>
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-14">
-        <section className="flex flex-col items-center gap-5 py-6 text-center">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary">
-            From discussion to actually solved
-          </p>
-          <h1 className="font-heading max-w-2xl text-4xl font-bold text-foreground sm:text-5xl">
+        <section className="flex flex-col items-start gap-6 border-b-2 border-foreground pb-12 pt-4">
+          <h1 className="max-w-4xl text-5xl font-black text-foreground sm:text-7xl">
             Post a problem in your community. Solve it together.
           </h1>
-          <p className="max-w-xl text-lg text-muted-foreground">
+          <p className="max-w-xl text-lg font-medium text-muted-foreground">
             Public issues, proposed solutions, and public action tracking for
             your community — raise a problem, rally support, and follow it
             through to a fix.
