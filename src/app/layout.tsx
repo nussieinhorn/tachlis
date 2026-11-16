@@ -29,7 +29,7 @@ const gabarito = Gabarito({
 const archivo = Archivo({
   variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800", "900"],
+  // Variable font: every weight from 100 to 900 is available without listing them (a weight list made Vercel's build fail).
 });
 
 export const metadata: Metadata = {
