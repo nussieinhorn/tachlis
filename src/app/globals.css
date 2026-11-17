@@ -150,6 +150,17 @@
 
 /* Quieter loading pulse for skeletons */
 @theme {
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-float-slow: float 9s ease-in-out infinite reverse;
+  @keyframes float {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -8px;
+    }
+  }
   --animate-fade-up: fade-up 700ms ease-out both;
   @keyframes fade-up {
     from {
@@ -158,6 +169,22 @@
     }
     to {
       opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes roll-up {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-50%);
+    }
+  }
+  @keyframes roll-down {
+    from {
+      transform: translateY(-50%);
+    }
+    to {
       transform: translateY(0);
     }
   }
@@ -197,11 +224,61 @@
   }
 }
 
+/* Dashboard chart: the line draws itself in, then the fill and the end dot fade up. */
+.chart-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chart-draw 1.2s 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.chart-area {
+  opacity: 0;
+  animation: chart-fade 0.8s 1s ease-out forwards;
+}
+.chart-dot {
+  opacity: 0;
+  animation: chart-fade 0.5s 1.35s ease-out forwards;
+}
+@keyframes chart-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes chart-fade {
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-line,
+  .chart-area,
+  .chart-dot {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.roll-up {
+  animation: roll-up var(--roll-duration, 40s) linear infinite;
+}
+.roll-down {
+  animation: roll-down var(--roll-duration, 40s) linear infinite;
+}
 .roll-left {
   animation: roll-left 80s linear infinite;
 }
 
 @layer base {
+  /* One global dial for phones: every rem-based size (text, headings, spacing) shrinks ~6% below the sm breakpoint. */
+  html {
+    font-size: 93.75%;
+    -webkit-text-size-adjust: 100%;
+  }
+  @media (min-width: 40rem) {
+    html {
+      font-size: 100%;
+    }
+  }
   * {
     @apply border-border outline-ring/50;
   }
@@ -236,7 +313,7 @@
 @utility type-display {
   font-family: var(--font-heading);
   font-weight: 900;
-  font-size: 3rem;
+  font-size: 2.5rem;
   line-height: 0.95;
   letter-spacing: -0.04em;
   @media (min-width: 40rem) {
@@ -246,7 +323,7 @@
 @utility type-title {
   font-family: var(--font-heading);
   font-weight: 900;
-  font-size: 1.875rem;
+  font-size: 1.625rem;
   line-height: 1.05;
   letter-spacing: -0.03em;
   @media (min-width: 40rem) {
@@ -256,7 +333,7 @@
 @utility type-feature {
   font-family: var(--font-heading);
   font-weight: 900;
-  font-size: 1.875rem;
+  font-size: 1.625rem;
   line-height: 1.05;
   letter-spacing: -0.03em;
   @media (min-width: 40rem) {
@@ -266,7 +343,7 @@
 @utility type-section {
   font-family: var(--font-heading);
   font-weight: 900;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1.1;
   letter-spacing: -0.025em;
   @media (min-width: 40rem) {
@@ -276,21 +353,27 @@
 @utility type-dialog {
   font-family: var(--font-heading);
   font-weight: 800;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  @media (min-width: 40rem) {
+    font-size: 1.5rem;
+  }
   line-height: 1.15;
   letter-spacing: -0.025em;
 }
 @utility type-subsection {
   font-family: var(--font-heading);
   font-weight: 800;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
+  @media (min-width: 40rem) {
+    font-size: 1.25rem;
+  }
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
 @utility type-card-title {
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1.2;
   letter-spacing: -0.02em;
   @media (min-width: 40rem) {

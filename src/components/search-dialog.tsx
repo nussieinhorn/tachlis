@@ -116,7 +116,7 @@ export function SearchDialog({ trigger }: { trigger: React.ReactNode }) {
           if (!next) setQuery("");
         }}
       >
-        <DialogContent showCloseButton={false} className="top-[18%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl sm:p-0 sm:py-0">
+        <DialogContent showCloseButton={false} className="gap-0 overflow-hidden px-0 pt-0 pb-0 sm:top-[18%] sm:max-w-xl sm:translate-y-0 sm:p-0">
           <DialogTitle className="sr-only">Search</DialogTitle>
           <div className="flex items-center gap-3 border-b border-border px-4">
             <Icon icon={loading ? IconLoader2 : IconSearch} size={20} className={cn("text-muted-foreground", loading && "animate-spin")} />
@@ -143,7 +143,7 @@ export function SearchDialog({ trigger }: { trigger: React.ReactNode }) {
           </div>
           <div className="max-h-[22rem] overflow-y-auto p-2">
             {clean(query).length < 2 ? (
-              <p className="px-3 py-8 text-center text-sm text-muted-foreground">Type to search everything on MOTIVE.</p>
+              <p className="px-3 py-8 text-center text-sm text-muted-foreground">Type to search everything on Motive.</p>
             ) : results.length === 0 && !loading ? (
               <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing found yet.</p>
             ) : (

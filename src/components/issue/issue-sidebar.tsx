@@ -41,9 +41,9 @@ export function IssueSidebar({
   const showCommentsTab = commentsEnabled || canEdit;
 
   return (
-    <aside className="flex flex-col gap-6">
-      <Card>
-        <CardContent className="pt-6 pb-6">
+    <aside className="flex flex-col gap-6 max-lg:contents">
+      <Card className="max-lg:order-[20]">
+        <CardContent className="max-sm:px-5 max-sm:pt-5 max-sm:pb-5 pt-6 pb-6">
           <JoinPanel
             issueId={issueId}
             issueTitle={issueTitle}
@@ -60,7 +60,7 @@ export function IssueSidebar({
       </Card>
 
       {/* Updates and comments sit open on the page, with no box or rule. */}
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5 max-lg:order-[50]">
         <div className="flex flex-col gap-5">
           <AdminUpdates issueId={issueId} initialUpdates={updates} canEdit={canEdit} authorName={ownerName} />
           {showCommentsTab && (
@@ -75,7 +75,9 @@ export function IssueSidebar({
         </div>
       </div>
 
-      <IssueLinksSection issueId={issueId} initialLinks={links} canEdit={canEdit} />
+      <div className="max-lg:order-[60] empty:hidden">
+        <IssueLinksSection issueId={issueId} initialLinks={links} canEdit={canEdit} />
+      </div>
     </aside>
   );
 }

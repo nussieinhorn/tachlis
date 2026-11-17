@@ -1,12 +1,16 @@
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 
-export const metadata = { title: "Privacy · MOTIVE" };
+export const metadata: Metadata = {
+  title: "Privacy",
+  description: "What Motive collects, how it is used, who handles it and the choices you have over your information.",
+};
 
 export default function PrivacyPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-14">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6 py-14">
         <h1 className="type-title">Privacy</h1>
         <p className="text-sm text-muted-foreground">Last updated: {new Date().getFullYear()}. Plain-language draft.</p>
         <section className="flex flex-col gap-2">
@@ -27,7 +31,7 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2 className="type-subsection">Who handles it</h2>
           <p className="text-foreground/80 leading-relaxed">
-            We use trusted services to run MOTIVE, including Supabase for data and sign-in, Vercel for hosting and Resend
+            We use trusted services to run Motive, including Supabase for data and sign-in, Vercel for hosting and Resend
             for email. Your approximate location is used in your browser to show nearby issues if you allow it.
           </p>
         </section>

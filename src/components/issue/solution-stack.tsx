@@ -49,7 +49,7 @@ export function SolutionStack({
             />
           </div>
         ))}
-        <Button variant="ghost" size="sm" className="mx-auto w-fit" onClick={() => setOpen(false)}>
+        <Button type="button" variant="ghost" size="sm" className="-ml-3 w-fit self-start text-muted-foreground hover:text-foreground" onClick={() => setOpen(false)}>
           <Icon icon={IconChevronUp} size={16} />
           Show fewer
         </Button>
@@ -60,8 +60,8 @@ export function SolutionStack({
   const total = solutions.length;
 
   return (
-    <div className="flex justify-center">
-      <Button type="button" variant="outline" size="sm" className="rounded-full px-4" onClick={() => setOpen(true)}>
+    <div className="flex justify-start">
+      <Button type="button" variant="ghost" size="sm" className="-ml-3 text-muted-foreground hover:text-foreground" onClick={() => setOpen(true)}>
         See {total} more {pluralize(total, "solution")}
         <Icon icon={IconChevronDown} size={16} />
       </Button>

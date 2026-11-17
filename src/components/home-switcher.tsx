@@ -26,7 +26,7 @@ export function HomeSwitcher({ active }: { active: "dashboard" | "public" }) {
   useEffect(() => setOptimistic(active), [active]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl justify-end px-6 pt-5">
+    <div className="mx-auto flex w-full max-w-6xl justify-end px-4 sm:px-6 pt-5">
       <nav aria-label="Home view" className="inline-flex gap-1 rounded-full border border-border bg-card p-1 shadow-sm">
         {VIEWS.map((v) => {
           const on = optimistic === v.key;

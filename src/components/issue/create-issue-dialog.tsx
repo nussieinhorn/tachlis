@@ -1,5 +1,6 @@
 "use client";
 
+import { ISSUE_TITLE_MAX } from "@/lib/format";
 import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -363,14 +364,25 @@ export function CreateIssueDialog({
   const basicInfoFields = (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
-        <Input
+        {/* A growing textarea so long titles wrap instead of running off the edge. */}
+        <Textarea
           id="title"
+          rows={1}
           placeholder="Give your issue a clear, specific title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => setTitle(e.target.value.replace(/\n/g, " "))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.preventDefault();
+          }}
+          maxLength={ISSUE_TITLE_MAX}
           autoFocus
-          className="h-auto rounded-none border-x-0 border-t-0 border-b-2 border-input px-0 font-heading text-2xl font-semibold shadow-none placeholder:font-normal placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-0 md:text-3xl"
+          className="h-auto min-h-0 resize-none overflow-hidden rounded-none border-x-0 border-t-0 border-b-2 border-input bg-transparent px-0 py-1 font-heading text-2xl leading-tight font-semibold shadow-none placeholder:font-normal placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-0 md:text-3xl"
         />
+        {title.length >= ISSUE_TITLE_MAX * 0.8 && (
+          <span className="self-end text-xs tabular-nums text-muted-foreground">
+            {title.length}/{ISSUE_TITLE_MAX}
+          </span>
+        )}
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="description">Description</Label>
@@ -499,7 +511,7 @@ export function CreateIssueDialog({
         </div>
         <p className="text-left text-xs text-muted-foreground">
           {visibility === "public"
-            ? "Anyone can find this issue on MOTIVE and in search. You choose whether support or voting requires signing in below. You can change this later."
+            ? "Anyone can find this issue on Motive and in search. You choose whether support or voting requires signing in below. You can change this later."
             : "Hidden from search and the homepage. Only people you approve can view or engage with it. You can change this later."}
         </p>
         <div className="grid grid-cols-1 gap-2.5 pt-1 sm:grid-cols-2">
@@ -718,7 +730,7 @@ export function CreateIssueDialog({
                 Step {step + 1} of {STEPS.length} · {STEPS[step]}
               </p>
               <Progress value={((step + 1) / STEPS.length) * 100} />
-              <div className="flex items-center justify-between pt-1">
+              <div className="hidden items-center justify-between pt-1 sm:flex">
                 {STEPS.map((label, i) => (
                   <span
                     key={label}
@@ -744,7 +756,7 @@ export function CreateIssueDialog({
                         icon: IconWorld,
                         title: "Public",
                         points: [
-                          { ok: true, text: "Searchable on MOTIVE" },
+                          { ok: true, text: "Searchable on Motive" },
                           { ok: true, text: "Can appear on the homepage" },
                           { ok: true, text: "Anyone with the link can view and support it" },
                         ],

@@ -14,7 +14,7 @@ export function IssueCard({ issue, categories }: { issue: Issue; categories?: Ca
   return (
     <Link
       href={`/issues/${issue.displayCode}`}
-      className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow duration-200 hover:shadow-lg sm:p-8"
+      className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow duration-200 hover:shadow-lg sm:p-8"
     >
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={issue.status} />

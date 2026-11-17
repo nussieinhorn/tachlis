@@ -215,7 +215,7 @@ export function JoinPanel({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-1.5">
-          <span key={supporterCount} className="animate-tick font-heading text-5xl font-bold text-foreground tabular-nums">
+          <span key={supporterCount} className="animate-tick font-heading text-3xl font-bold sm:text-5xl text-foreground tabular-nums">
             {supporterCount}
           </span>
           {supporterBreakdown && (
@@ -266,7 +266,7 @@ export function JoinPanel({
           className="h-11 flex-1 text-base"
           onClick={() => (supported ? setUnsupportOpen(true) : setOpen(true))}
         >
-          <Icon icon={IconCheck} className={cn(!supported ? "hidden" : "animate-pop")} />
+          <Icon icon={supported ? IconCheck : IconHeart} size={18} className={supported ? "animate-pop" : undefined} />
           {supported ? "Supporting" : "Support"}
         </Button>
         <div className="flex-1">

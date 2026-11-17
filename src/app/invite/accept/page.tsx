@@ -36,7 +36,7 @@ function AcceptInvite() {
   }, [isSignedIn, token, status, router]);
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-6 py-20 text-center">
+    <main className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-4 sm:px-6 py-20 text-center">
       {!token ? (
         <p className="text-sm text-muted-foreground">This invite link is missing its token.</p>
       ) : !isSignedIn ? (
@@ -75,7 +75,7 @@ export default function AcceptInvitePage() {
       <SiteHeader />
       <Suspense
         fallback={
-          <main className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-6 py-20 text-center">
+          <main className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-4 sm:px-6 py-20 text-center">
             <p className="text-sm text-muted-foreground">Loading...</p>
           </main>
         }

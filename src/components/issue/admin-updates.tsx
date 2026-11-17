@@ -11,9 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Icon } from "@/components/ui/icon";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertsSignup } from "@/components/issue/alerts-signup";
 
 const PAGE_SIZE = 5;
+const HEADLINE_MAX = 80;
+const BODY_MAX = 1000;
 const DAY = 86_400_000;
 
 const stampMonth = (iso?: string) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short" }) : "New");
@@ -40,9 +44,10 @@ export function AdminUpdates({
   const [draft, setDraft] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [submitting, setSubmitting] = useState(false);
+  const [open, setOpen] = useState(false);
 
   async function post() {
-    if (!draft.trim() || !user || submitting) return;
+    if (!title.trim() || !draft.trim() || !user || submitting) return;
     setSubmitting(true);
     const supabase = createClient();
     const { error } = await supabase
@@ -56,6 +61,7 @@ export function AdminUpdates({
     ]);
     setTitle("");
     setDraft("");
+    setOpen(false);
     router.refresh();
   }
 
@@ -65,27 +71,62 @@ export function AdminUpdates({
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="type-panel">Updates</h2>
-        <AlertsSignup issueId={issueId} />
+        {canEdit ? (
+          <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+            <Icon icon={IconSpeakerphone} size={16} />
+            New Update
+          </Button>
+        ) : (
+          <AlertsSignup issueId={issueId} />
+        )}
       </div>
 
       {canEdit && (
-        <div className="flex flex-col gap-2 rounded-xl border border-dashed border-primary/40 bg-accent/40 p-3">
-          <Input
-            placeholder="Headline (optional)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="bg-background font-semibold"
-          />
-          <Textarea
-            placeholder="Share progress with everyone following this issue..."
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="min-h-20 bg-background"
-          />
-          <Button size="sm" className="w-fit" onClick={post} disabled={!draft.trim() || submitting}>
-            {submitting ? "Posting..." : "Post update"}
-          </Button>
-        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Post an official update</DialogTitle>
+              <DialogDescription>
+                This is published on the issue&apos;s public timeline and sent to everyone following it
+                {authorName ? `, from ${authorName}` : ""}. Keep it clear and factual.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="alert-headline">Headline</Label>
+                <Input
+                  id="alert-headline"
+                  placeholder="e.g. Board meeting date confirmed"
+                  value={title}
+                  maxLength={HEADLINE_MAX}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="alert-message">Message</Label>
+                <Textarea
+                  id="alert-message"
+                  placeholder="What should everyone following this issue know?"
+                  value={draft}
+                  maxLength={BODY_MAX}
+                  onChange={(e) => setDraft(e.target.value)}
+                  className="min-h-32"
+                />
+                <span className="self-end text-xs tabular-nums text-muted-foreground">
+                  {draft.length}/{BODY_MAX}
+                </span>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={post} disabled={!title.trim() || !draft.trim() || submitting}>
+                {submitting ? "Publishing..." : "Publish update"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {updates.length === 0 ? (

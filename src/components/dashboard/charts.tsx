@@ -28,10 +28,12 @@ export function AreaChart({ values, className, labelFirst, labelLast }: { values
         {[0.25, 0.5, 0.75].map((t) => (
           <line key={t} x1="0" x2={w} y1={h * t} y2={h * t} stroke="currentColor" strokeOpacity="0.08" strokeDasharray="4 6" />
         ))}
-        <path d={area} fill="url(#area-fill)" />
-        <path d={line} fill="none" stroke="#f45d48" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        <circle cx={lastX} cy={lastY} r="5" fill="#f45d48" />
-        <circle cx={lastX} cy={lastY} r="10" fill="#f45d48" fillOpacity="0.2" />
+        <path d={area} fill="url(#area-fill)" className="chart-area" />
+        <path d={line} fill="none" stroke="#f45d48" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" pathLength={1} className="chart-line" />
+        <g className="chart-dot">
+          <circle cx={lastX} cy={lastY} r="5" fill="#f45d48" />
+          <circle cx={lastX} cy={lastY} r="10" fill="#f45d48" fillOpacity="0.2" />
+        </g>
       </svg>
       <div className="mt-2 flex justify-between text-xs text-muted-foreground">
         <span>{labelFirst ?? "30 days ago"}</span>

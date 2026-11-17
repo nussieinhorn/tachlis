@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { IconDots, IconTrash } from "@tabler/icons-react";
 
 import type { Comment } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
@@ -9,16 +10,53 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Icon } from "@/components/ui/icon";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 5;
 
+/** The three-dot menu on a comment: delete, for its author or whoever manages the issue. */
+function CommentMenu({ onDelete }: { onDelete: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Comment options"
+          className="-mt-1 -mr-1.5 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <Icon icon={IconDots} size={16} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <ConfirmDialog
+          title="Delete this comment?"
+          description="It will be removed for everyone, along with any replies. This can't be undone."
+          onConfirm={onDelete}
+          trigger={
+            <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
+              <Icon icon={IconTrash} size={16} />
+              Delete
+            </DropdownMenuItem>
+          }
+        />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function CommentRow({
   comment,
   onReply,
+  canDelete,
+  onDelete,
 }: {
   comment: Comment;
   onReply: (parentId: string, body: string) => void;
+  canDelete: (c: Comment) => boolean;
+  onDelete: (id: string) => void;
 }) {
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState("");
@@ -33,10 +71,13 @@ function CommentRow({
   return (
     <li className="flex flex-col gap-1.5">
       <div className="flex flex-col gap-0.5">
-        <span className="text-sm font-medium text-foreground">
-          {comment.author}{" "}
-          <span className="text-xs font-normal text-muted-foreground">{comment.createdAt}</span>
-        </span>
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-sm font-medium text-foreground">
+            {comment.author}{" "}
+            <span className="text-xs font-normal text-muted-foreground">{comment.createdAt}</span>
+          </span>
+          {canDelete(comment) && <CommentMenu onDelete={() => onDelete(comment.id)} />}
+        </div>
         <span className="text-sm text-foreground/80">{comment.body}</span>
         <button
           type="button"
@@ -51,10 +92,13 @@ function CommentRow({
         <ul className="flex flex-col gap-2 border-l-2 border-border pl-3">
           {comment.replies.map((reply) => (
             <li key={reply.id} className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium text-foreground">
-                {reply.author}{" "}
-                <span className="text-xs font-normal text-muted-foreground">{reply.createdAt}</span>
-              </span>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-sm font-medium text-foreground">
+                  {reply.author}{" "}
+                  <span className="text-xs font-normal text-muted-foreground">{reply.createdAt}</span>
+                </span>
+                {canDelete(reply) && <CommentMenu onDelete={() => onDelete(reply.id)} />}
+              </div>
               <span className="text-sm text-foreground/80">{reply.body}</span>
             </li>
           ))}
@@ -87,6 +131,7 @@ export function CommentThread({
   emptyText = "No discussion yet — be the first to say something.",
   commentsEnabled = true,
   commentsRequireLogin = false,
+  canModerate = false,
 }: {
   issueId?: string;
   solutionId?: string;
@@ -95,8 +140,10 @@ export function CommentThread({
   emptyText?: string;
   commentsEnabled?: boolean;
   commentsRequireLogin?: boolean;
+  /** Issue managers can delete anyone's comment. */
+  canModerate?: boolean;
 }) {
-  const { isSignedIn, profile } = useAuth();
+  const { isSignedIn, profile, user } = useAuth();
   const router = useRouter();
   const [comments, setComments] = useState(initialComments);
   const [draft, setDraft] = useState("");
@@ -115,6 +162,7 @@ export function CommentThread({
       .insert({
         issue_id: issueId ?? null,
         solution_id: solutionId ?? null,
+        author_id: user?.id ?? null,
         author_name: authorName,
         body: draft.trim(),
       })
@@ -125,7 +173,7 @@ export function CommentThread({
       return;
     }
     setComments((prev) => [
-      { id: data.id, author: data.author_name, body: data.body, createdAt: "just now" },
+      { id: data.id, author: data.author_name, authorId: data.author_id, body: data.body, createdAt: "just now" },
       ...prev,
     ]);
     setDraft("");
@@ -142,6 +190,7 @@ export function CommentThread({
         issue_id: issueId ?? null,
         solution_id: solutionId ?? null,
         parent_comment_id: parentId,
+        author_id: user?.id ?? null,
         author_name: authorName,
         body,
       })
@@ -156,10 +205,25 @@ export function CommentThread({
         c.id === parentId
           ? {
               ...c,
-              replies: [...(c.replies ?? []), { id: data.id, author: data.author_name, body: data.body, createdAt: "just now" }],
+              replies: [...(c.replies ?? []), { id: data.id, author: data.author_name, authorId: data.author_id, body: data.body, createdAt: "just now" }],
             }
           : c,
       ),
+    );
+    router.refresh();
+  }
+
+  const canDelete = (c: Comment) => canModerate || Boolean(user && c.authorId && c.authorId === user.id);
+
+  async function remove(id: string) {
+    setError(null);
+    const { error: deleteError } = await createClient().from("comments").delete().eq("id", id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+    setComments((prev) =>
+      prev.filter((c) => c.id !== id).map((c) => ({ ...c, replies: c.replies?.filter((r) => r.id !== id) })),
     );
     router.refresh();
   }
@@ -198,7 +262,7 @@ export function CommentThread({
         >
           <ul className="flex flex-col gap-4">
             {visible.map((comment) => (
-              <CommentRow key={comment.id} comment={comment} onReply={reply} />
+              <CommentRow key={comment.id} comment={comment} onReply={reply} canDelete={canDelete} onDelete={remove} />
             ))}
           </ul>
           {visibleCount < comments.length && (

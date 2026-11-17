@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { AuthGateRefresh } from "@/components/auth-gate-refresh";
 import { MyIssuesView } from "@/components/my-issues-view";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories, getIssuesOwnedBy } from "@/lib/supabase/queries";
+
+export const metadata: Metadata = {
+  title: "My issues",
+  robots: { index: false, follow: false },
+};
 
 export default async function MyIssuesPage() {
   const supabase = await createClient();
@@ -15,7 +21,7 @@ export default async function MyIssuesPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 sm:px-6 py-10">
         <header className="flex flex-col gap-2">
           <h1 className="type-title">My issues</h1>
           <p className="max-w-2xl text-muted-foreground">

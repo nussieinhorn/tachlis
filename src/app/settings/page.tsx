@@ -82,7 +82,7 @@ export default function SettingsPage() {
     return (
       <>
         <SiteHeader />
-        <main className="mx-auto flex w-full max-w-sm flex-col gap-6 px-6 py-16">
+        <main className="mx-auto flex w-full max-w-sm flex-col gap-6 px-4 sm:px-6 py-16">
           <AuthGateRefresh title="Sign in to view settings" />
         </main>
       </>
@@ -93,7 +93,7 @@ export default function SettingsPage() {
     return (
       <>
         <SiteHeader />
-        <main className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 px-6 py-20 text-center">
+        <main className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 px-4 sm:px-6 py-20 text-center">
           <p className="text-sm text-muted-foreground">Settings are only available to the site admin.</p>
           <Button variant="outline" onClick={() => router.push("/")}>
             Back to homepage
@@ -106,7 +106,7 @@ export default function SettingsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-lg flex-col gap-8 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-lg flex-col gap-8 px-4 sm:px-6 py-10">
         <h1 className="type-title">Settings</h1>
         <p className="-mt-4 text-sm text-muted-foreground">
           Site-wide options. For your own theme and notification preferences, see your{" "}

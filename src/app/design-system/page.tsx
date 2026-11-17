@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { IconPlus, IconArrowRight } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,9 +26,14 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
+export const metadata: Metadata = {
+  title: "Design system",
+  robots: { index: false, follow: false },
+};
+
 export default function ThemePage() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-14 px-6 py-14">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-14 px-4 sm:px-6 py-14">
       <header className="flex flex-col gap-6">
         <MotiveLogo />
         <h1 className="type-display max-w-4xl">The theme, in one page.</h1>

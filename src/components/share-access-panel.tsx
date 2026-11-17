@@ -61,6 +61,7 @@ export function ShareAccessPanel({
   canEdit,
   ownerName,
   triggerClassName,
+  iconOnly = false,
 }: {
   resourceType: ResourceType;
   resourceId: string;
@@ -69,6 +70,8 @@ export function ShareAccessPanel({
   canEdit: boolean;
   ownerName?: string;
   triggerClassName?: string;
+  /** Show just the share icon (label stays for screen readers). */
+  iconOnly?: boolean;
 }) {
   const { user } = useAuth();
   const router = useRouter();
@@ -223,7 +226,7 @@ export function ShareAccessPanel({
       <>
         <Button type="button" variant="outline" className={cn("w-full", triggerClassName)} onClick={() => setOpen(true)}>
           <Icon icon={IconShare} size={16} />
-          Share
+          <span className={iconOnly ? "sr-only" : undefined}>Share</span>
         </Button>
         <SharePanel open={open} onOpenChange={setOpen} title={`Share this ${label}`} />
       </>
@@ -239,8 +242,10 @@ export function ShareAccessPanel({
       <span onClick={() => setOpen(true)}>
         <Button type="button" variant="outline" className={cn("w-full", triggerClassName)}>
           <Icon icon={IconShare} size={16} />
-          Share
-          {pendingCount > 0 && ` · ${pendingCount} pending`}
+          <span className={iconOnly ? "sr-only" : undefined}>
+            Share
+            {pendingCount > 0 && ` · ${pendingCount} pending`}
+          </span>
         </Button>
       </span>
       <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-lg">

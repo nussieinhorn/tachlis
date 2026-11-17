@@ -13,7 +13,7 @@ export function RecentIssuesMarquee({ issues, categories }: { issues: Issue[]; c
   const group = (hidden: boolean) => (
     <div className="flex gap-5 pr-5" aria-hidden={hidden || undefined}>
       {issues.map((issue) => (
-        <div key={issue.id} className="flex w-[22rem] shrink-0 flex-col sm:w-[26rem] [&>a]:h-full" tabIndex={hidden ? -1 : undefined}>
+        <div key={issue.id} className="flex w-[18.5rem] shrink-0 flex-col sm:w-[26rem] [&>a]:h-full" tabIndex={hidden ? -1 : undefined}>
           <IssueCard issue={issue} categories={categoryList} />
         </div>
       ))}
@@ -21,7 +21,7 @@ export function RecentIssuesMarquee({ issues, categories }: { issues: Issue[]; c
   );
 
   return (
-    <div className="group relative -mx-6 overflow-hidden py-3 motion-reduce:overflow-x-auto">
+    <div className="group relative -mx-4 overflow-hidden sm:-mx-6 py-3 motion-reduce:overflow-x-auto">
       <div className="roll-left flex w-max group-hover:[animation-play-state:paused]">
         {group(false)}
         {group(true)}

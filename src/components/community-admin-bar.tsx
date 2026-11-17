@@ -33,7 +33,7 @@ export function CommunityAdminBar({ community, canEdit }: { community: Community
       <CreateIssueDialog
         lockedCommunityId={community.id}
         trigger={
-          <Button size="sm">
+          <Button>
             <Icon icon={IconPlus} size={16} />
             Create Issue
           </Button>

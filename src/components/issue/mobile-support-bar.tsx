@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconCheck } from "@tabler/icons-react";
+import { IconCheck, IconHeart } from "@tabler/icons-react";
 
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { ShareAccessPanel } from "@/components/share-access-panel";
 
-/** Fixed bottom bar, mobile only — appears once the user scrolls past `#support-sentinel` (placed right after the description, before the solutions section). */
+/** Sticky bar pinned under the header, mobile only. It slides in once the support card (right before the solutions) has scrolled out of view. */
 export function MobileSupportBar({
   issueId,
   issueTitle,
@@ -35,9 +35,11 @@ export function MobileSupportBar({
   useEffect(() => {
     const sentinel = document.getElementById("support-sentinel");
     if (!sentinel) return;
-    const observer = new IntersectionObserver(([entry]) => setVisible(!entry.isIntersecting), {
-      rootMargin: "0px 0px -80% 0px",
-    });
+    // Show only after the sentinel has gone off the TOP of the screen (not while it's still below).
+    const observer = new IntersectionObserver(
+      ([entry]) => setVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0),
+      { rootMargin: "-60px 0px 0px 0px" },
+    );
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, []);
@@ -74,16 +76,22 @@ export function MobileSupportBar({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
-      <div className="mx-auto flex max-w-6xl items-center gap-3">
-        <span className="flex-1 text-sm text-foreground">
-          <span key={supporterCount} className="inline-block animate-tick font-semibold tabular-nums">
+    <div className="fixed inset-x-0 top-[59px] z-30 border-b border-border bg-background/95 px-4 py-2 shadow-sm backdrop-blur animate-in slide-in-from-top-2 fade-in-0 duration-200 md:hidden">
+      <div className="mx-auto flex max-w-6xl items-center gap-2">
+        <span className="flex min-w-0 flex-1 items-baseline gap-1.5 text-sm text-muted-foreground">
+          <span key={supporterCount} className="font-heading inline-block animate-tick text-lg font-black tabular-nums text-foreground">
             {supporterCount}
-          </span> people are supporting this issue
+          </span>
+          <span className="truncate">{supporterCount === 1 ? "supporter" : "supporters"}</span>
         </span>
-        <Button size="sm" variant={supported ? "secondary" : "default"} onClick={quickSupport} disabled={supported}>
-          {supported && <Icon icon={IconCheck} size={14} className="animate-pop" />}
-          {supported ? "Supporting" : "Support"}
+        <Button
+          variant={supported ? "secondary" : "default"}
+          size="icon"
+          aria-label={supported ? "Supporting" : "Support this issue"}
+          onClick={quickSupport}
+          disabled={supported}
+        >
+          <Icon icon={supported ? IconCheck : IconHeart} size={18} className={supported ? "animate-pop" : undefined} />
         </Button>
         <ShareAccessPanel
           resourceType="issue"
@@ -92,7 +100,8 @@ export function MobileSupportBar({
           isPrivate={isPrivate}
           canEdit={canEdit}
           ownerName={ownerName}
-          triggerClassName="w-auto px-3 h-9 text-sm"
+          iconOnly
+          triggerClassName="size-9 w-9 px-0"
         />
       </div>
     </div>

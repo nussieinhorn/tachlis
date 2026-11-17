@@ -3,7 +3,6 @@ import { IconArrowRight, IconLock, IconMapPin, IconUsers } from "@tabler/icons-r
 
 import type { Community } from "@/lib/communities-data";
 import { pluralize } from "@/lib/utils";
-import { CommunityAvatar } from "@/components/community-avatar";
 import { Icon } from "@/components/ui/icon";
 
 /** The community this issue belongs to: a clickable card with its logo, what it is and how big it is. */
@@ -17,14 +16,6 @@ export function IssueCommunitySection({ community }: { community: Community }) {
         href={`/communities/${community.displayCode}`}
         className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow duration-200 hover:shadow-lg sm:flex-row sm:items-center sm:gap-5 sm:p-6"
       >
-        <CommunityAvatar
-          logoUrl={community.logoUrl}
-          tone={community.tone}
-          name={community.name}
-          className="size-14 sm:size-16"
-          iconSize={26}
-        />
-
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="type-subsection flex items-center gap-1.5 transition-colors duration-150 group-hover:text-primary">
             {isPrivate && <Icon icon={IconLock} size={16} className="text-muted-foreground" />}
@@ -47,8 +38,8 @@ export function IssueCommunitySection({ community }: { community: Community }) {
           </div>
         </div>
 
-        <span className="flex shrink-0 items-center gap-1.5 self-start rounded-full bg-foreground px-4 py-2 text-sm font-bold text-background shadow-sm transition-transform duration-200 group-hover:translate-x-0.5 sm:self-center">
-          View community
+        <span className="flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background shadow-sm transition-transform duration-200 group-hover:translate-x-0.5 sm:self-center">
+          View
           <Icon icon={IconArrowRight} size={16} />
         </span>
       </Link>

@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Icon } from "@/components/ui/icon";
 import { LocationSearch } from "@/components/location-search";
-import { isValidEmail } from "@/lib/format";
+import { COMMUNITY_NAME_MAX, isValidEmail } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -303,7 +303,7 @@ export function CreateCommunityDialog({
                         icon: IconWorld,
                         title: "Public",
                         points: [
-                          { ok: true, text: "Searchable on MOTIVE" },
+                          { ok: true, text: "Searchable on Motive" },
                           { ok: true, text: "Can be customized and appear on the homepage" },
                           { ok: true, text: "Anyone with the link can view and support it" },
                         ],
@@ -371,8 +371,14 @@ export function CreateCommunityDialog({
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Cedar Park Residents Association"
+                      maxLength={COMMUNITY_NAME_MAX}
                       autoFocus
                     />
+                    {name.length >= COMMUNITY_NAME_MAX * 0.8 && (
+                      <span className="self-end text-xs tabular-nums text-muted-foreground">
+                        {name.length}/{COMMUNITY_NAME_MAX}
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="community-description">Description</Label>

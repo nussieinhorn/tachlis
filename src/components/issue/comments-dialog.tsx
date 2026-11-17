@@ -51,6 +51,7 @@ export function CommentsDialog({
             <CommentThread
               issueId={issueId}
               initialComments={comments}
+              canModerate={canEdit}
               commentsEnabled={commentsEnabled}
               commentsRequireLogin={commentsRequireLogin}
             />

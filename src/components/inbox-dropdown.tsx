@@ -268,7 +268,7 @@ export function InboxDropdown() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="relative flex size-9 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="relative flex size-9 items-center justify-center rounded-lg text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
           aria-label="Notifications"
         >
           <Icon icon={IconBell} size={20} />
@@ -279,7 +279,7 @@ export function InboxDropdown() {
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[26rem] overflow-hidden rounded-2xl p-0 shadow-xl">
+      <DropdownMenuContent align="end" className="w-[min(26rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl p-0 shadow-xl">
         <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
           <h2 className="type-panel">Inbox</h2>
           <div className="inline-flex gap-1 rounded-full bg-muted p-1">
@@ -392,7 +392,6 @@ export function InboxDropdown() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="rounded-full"
                           aria-label="Reject"
                           onClick={() => (r.kind === "private_access" ? rejectPrivateAccess(r.id) : rejectCommunityAccess(r.id))}
                         >
@@ -401,7 +400,6 @@ export function InboxDropdown() {
                         </Button>
                         <Button
                           size="sm"
-                          className="rounded-full"
                           aria-label="Approve"
                           onClick={() => (r.kind === "private_access" ? approvePrivateAccess(r.id) : approveCommunityAccess(r.id))}
                         >
@@ -412,11 +410,11 @@ export function InboxDropdown() {
                     )}
                     {r.kind === "action_team" && (
                       <>
-                        <Button size="sm" variant="ghost" className="rounded-full" onClick={() => rejectActionTeam(r.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => rejectActionTeam(r.id)}>
                           <Icon icon={IconX} size={14} />
                           Decline
                         </Button>
-                        <Button size="sm" className="rounded-full" onClick={() => approveActionTeam(r.id)}>
+                        <Button size="sm" onClick={() => approveActionTeam(r.id)}>
                           <Icon icon={IconCheck} size={14} />
                           Approve
                         </Button>

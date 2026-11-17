@@ -31,7 +31,7 @@ function deriveLocationArea(location: string | null): Issue["locationArea"] {
 
 function threadComments(rows: CommentRow[]): Comment[] {
   const byId = new Map<string, Comment>(
-    rows.map((r) => [r.id, { id: r.id, author: r.author_name, body: r.body, createdAt: formatRelativeDate(r.created_at), replies: [] }]),
+    rows.map((r) => [r.id, { id: r.id, author: r.author_name, authorId: r.author_id, body: r.body, createdAt: formatRelativeDate(r.created_at), replies: [] }]),
   );
   const roots: Comment[] = [];
   for (const r of rows) {

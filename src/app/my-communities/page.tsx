@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { MyCommunitiesList } from "@/components/my-communities-list";
 import { AuthGateRefresh } from "@/components/auth-gate-refresh";
 import { createClient } from "@/lib/supabase/server";
 import { getCommunitiesOwnedBy, getCommunityIssueCounts } from "@/lib/supabase/queries";
+
+export const metadata: Metadata = {
+  title: "My communities",
+  robots: { index: false, follow: false },
+};
 
 export default async function MyCommunitiesPage() {
   const supabase = await createClient();
@@ -16,7 +22,7 @@ export default async function MyCommunitiesPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 sm:px-6 py-10">
         <header className="flex flex-col gap-2">
           <h1 className="type-title">My Communities</h1>
           <p className="max-w-2xl text-muted-foreground">

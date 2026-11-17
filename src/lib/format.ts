@@ -49,3 +49,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function isValidEmail(email: string): boolean {
   return EMAIL_RE.test(email.trim());
 }
+
+/** Longest allowed issue title and community name, so cards and headings stay readable. */
+export const ISSUE_TITLE_MAX = 90;
+export const COMMUNITY_NAME_MAX = 60;

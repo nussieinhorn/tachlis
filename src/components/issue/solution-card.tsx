@@ -235,16 +235,17 @@ export function SolutionCard({
         onClick={() => setOpen(true)}
       >
         <CardHeader className="px-4 pt-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-1">
+          {/* Phones: label + status/menu on one line, title full-width below. Larger screens: title beside the status. */}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1">
+            <div className="contents">
               {typeof index === "number" && (
-                <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                <span className="col-start-1 row-start-1 self-center text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                   Solution {index + 1}
                 </span>
               )}
-              <CardTitle className={headline ? "type-section" : "type-panel"}>{solution.title}</CardTitle>
+              <CardTitle className={cn("col-start-1 row-start-2 max-sm:col-span-2", headline ? "type-section" : "type-panel")}>{solution.title}</CardTitle>
             </div>
-            <div className="flex shrink-0 items-start gap-1">
+            <div className="col-start-2 row-start-1 flex shrink-0 items-center gap-1 sm:row-span-2 sm:items-start">
               {canEdit ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -283,9 +284,14 @@ export function SolutionCard({
           <div className="flex items-center gap-3">
             <Button
               size="sm"
-              variant={voted ? "secondary" : "outline"}
+              variant="outline"
               onClick={castVote}
-              className="gap-1.5"
+              className={cn(
+                "gap-1.5",
+                voted
+                  ? "border-foreground bg-foreground text-background hover:border-foreground hover:bg-foreground/90"
+                  : "border-primary/30 bg-primary/10 text-primary hover:border-primary/40 hover:bg-primary/15",
+              )}
             >
               <Icon key={String(voted)} icon={voted ? IconCheck : IconArrowUp} size={16} className="animate-pop" />
               <span key={votes} className="animate-tick tabular-nums">
@@ -333,7 +339,16 @@ export function SolutionCard({
                 </span>
                 <span className="text-sm text-muted-foreground">{votes === 1 ? "vote" : "votes"}</span>
               </div>
-              <Button size="lg" variant={voted ? "secondary" : "default"} onClick={() => castVote()}>
+              <Button
+                size="lg"
+                variant="outline"
+                className={cn(
+                  voted
+                    ? "border-foreground bg-foreground text-background hover:border-foreground hover:bg-foreground/90"
+                    : "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
+                )}
+                onClick={() => castVote()}
+              >
                 <Icon key={String(voted)} icon={voted ? IconCheck : IconArrowUp} className="animate-pop" />
                 {voted ? "Voted" : "Vote for this"}
               </Button>
@@ -406,6 +421,7 @@ export function SolutionCard({
                 initialComments={solution.comments}
                 postPlaceholder="Add a comment on this solution..."
                 emptyText="No comments yet."
+                canModerate={canEdit}
                 commentsEnabled={commentsEnabled}
                 commentsRequireLogin={commentsRequireLogin}
               />

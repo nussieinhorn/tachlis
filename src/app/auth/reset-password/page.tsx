@@ -41,7 +41,7 @@ export default function ResetPasswordPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-sm flex-col items-center gap-5 px-6 py-24 text-center">
+      <main className="mx-auto flex w-full max-w-sm flex-col items-center gap-5 px-4 sm:px-6 py-24 text-center">
         <h1 className="type-title">Set a new password</h1>
         {done ? (
           <p className="text-sm text-muted-foreground">Password updated — taking you home...</p>

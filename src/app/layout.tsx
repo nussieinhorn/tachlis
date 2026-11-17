@@ -32,10 +32,23 @@ const archivo = Archivo({
   // Variable font: every weight from 100 to 900 is available without listing them (a weight list made Vercel's build fail).
 });
 
+const SITE_DESCRIPTION =
+  "Motive helps neighbors raise local issues, propose and vote on solutions, and follow public action plans until the problem is fixed.";
+
 export const metadata: Metadata = {
-  title: "MOTIVE",
-  description:
-    "Community problem-solving platform — public issues, proposed solutions, voting, and public action tracking, from discussion to actually solved.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://tachlis.vercel.app"),
+  title: { default: "Motive: raise an issue, solve it together", template: "%s | Motive" },
+  description: SITE_DESCRIPTION,
+  applicationName: "Motive",
+  keywords: ["community issues", "local problems", "petitions", "neighborhood", "action plan", "civic engagement"],
+  openGraph: {
+    type: "website",
+    siteName: "Motive",
+    title: "Motive: raise an issue, solve it together",
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: { card: "summary", title: "Motive: raise an issue, solve it together", description: SITE_DESCRIPTION },
 };
 
 export default function RootLayout({

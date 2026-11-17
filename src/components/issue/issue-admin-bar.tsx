@@ -33,7 +33,7 @@ export function IssueAdminBar({ issue, canEdit }: { issue: Issue; canEdit: boole
         <CreateIssueDialog
           editIssue={issue}
           trigger={
-            <Button variant="outline" size="sm">
+            <Button variant="outline">
               <Icon icon={IconPencil} size={14} />
               Edit
             </Button>

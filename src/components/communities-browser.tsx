@@ -135,9 +135,16 @@ export function CommunitiesBrowser({
           onUseCurrent={useMyLocation}
           locating={locating}
           trailing={
-            <Button type="button" size="sm" onClick={useMyLocation} disabled={locating} className="h-10 px-3">
+            <Button
+              type="button"
+              size="sm"
+              aria-label="Near me"
+              onClick={useMyLocation}
+              disabled={locating}
+              className="h-10 px-3 max-sm:size-10 max-sm:px-0"
+            >
               <Icon icon={locating ? IconLoader2 : IconCurrentLocation} size={16} className={locating ? "animate-spin" : ""} />
-              {locating ? "Finding you" : "Near me"}
+              <span className="hidden sm:inline">{locating ? "Finding you" : "Near me"}</span>
             </Button>
           }
         />
@@ -163,7 +170,7 @@ export function CommunitiesBrowser({
       <div className="flex justify-center">
         <CreateCommunityDialog
           trigger={
-            <Button size="sm" className="rounded-full px-4">
+            <Button size="sm">
               <Icon icon={IconPlus} size={16} />
               New community
             </Button>

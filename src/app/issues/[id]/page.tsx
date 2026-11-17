@@ -1,4 +1,6 @@
 import { abbreviateName } from "@/lib/format";
+import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { IconMapPin, IconCalendar, IconUserCircle } from "@tabler/icons-react";
 
@@ -18,13 +20,40 @@ import { PrivateIssueGate } from "@/components/issue/private-issue-gate";
 import { getCategory } from "@/lib/mock-data";
 import { getCommunityByInternalId, getIssue, getIssueEditAccess, getIssueStub } from "@/lib/supabase/queries";
 
+// One lookup shared by the page and its metadata.
+const loadIssue = cache((id: string) => getIssue(id));
+
+const clip = (text: string, max = 155) => {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length <= max ? flat : `${flat.slice(0, max - 1).trimEnd()}…`;
+};
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const issue = await loadIssue(id);
+  if (!issue) {
+    return { title: "Private issue", robots: { index: false, follow: false } };
+  }
+  const where = issue.location ? ` in ${issue.location}` : "";
+  const description = clip(`${issue.description} Support this issue${where} and follow the solutions and action plan on Motive.`);
+  const isPrivate = issue.visibility === "private";
+  return {
+    title: issue.title,
+    description,
+    alternates: { canonical: `/issues/${issue.displayCode}` },
+    robots: isPrivate ? { index: false, follow: false } : undefined,
+    openGraph: { type: "article", title: issue.title, description, url: `/issues/${issue.displayCode}` },
+    twitter: { card: "summary", title: issue.title, description },
+  };
+}
+
 export default async function IssueDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const issue = await getIssue(id);
+  const issue = await loadIssue(id);
 
   if (!issue) {
     const stub = await getIssueStub(id);
@@ -47,7 +76,7 @@ export default async function IssueDetailPage({
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 sm:px-6 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumbs displayCode={issue.displayCode} />
           <div className="flex items-center gap-2">
@@ -55,9 +84,11 @@ export default async function IssueDetailPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[2fr_1fr] lg:gap-20">
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-3">
+        {/* On phones the two columns are flattened into one list and re-ordered with `order-*`:
+            title/description, then the support card, then solutions, plan, community, updates, links. */}
+        <div className="flex flex-col gap-12 lg:grid lg:grid-cols-[2fr_1fr] lg:items-start lg:gap-20">
+          <div className="flex flex-col gap-6 max-lg:contents">
+            <div className="flex flex-col gap-3 max-lg:order-[10]">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="gap-1">
                   <Icon icon={category.icon} size={14} />
@@ -96,11 +127,14 @@ export default async function IssueDetailPage({
               />
             </div>
 
-            <div id="support-sentinel" />
+            <div id="support-sentinel" className="max-lg:order-[25]" />
 
-            <IssueSolutionsSection issue={issue} canEdit={canEdit} />
+            <div className="max-lg:order-[30] empty:hidden">
+              <IssueSolutionsSection issue={issue} canEdit={canEdit} />
+            </div>
 
             {issue.firstChosenPromptedAt && issue.actionPlan && (canEdit || issue.actionPlanVisible) && (
+              <div className="max-lg:order-[40]">
               <ActionPlanPanel
                 issueId={issue.id}
                 actionPlanId={issue.actionPlan.id}
@@ -108,9 +142,14 @@ export default async function IssueDetailPage({
                 canEdit={canEdit}
                 actionPlanVisible={issue.actionPlanVisible}
               />
+              </div>
             )}
 
-            {community && <IssueCommunitySection community={community} />}
+            {community && (
+              <div className="max-lg:order-[45]">
+                <IssueCommunitySection community={community} />
+              </div>
+            )}
           </div>
 
           <IssueSidebar

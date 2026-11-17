@@ -198,9 +198,16 @@ export function IssueBrowser({
           onUseCurrent={useMyLocation}
           locating={locating}
           trailing={
-            <Button type="button" size="sm" onClick={useMyLocation} disabled={locating} className="h-10 px-3">
+            <Button
+              type="button"
+              size="sm"
+              aria-label="Near me"
+              onClick={useMyLocation}
+              disabled={locating}
+              className="h-10 px-3 max-sm:size-10 max-sm:px-0"
+            >
               <Icon icon={locating ? IconLoader2 : IconCurrentLocation} size={16} className={locating ? "animate-spin" : ""} />
-              {locating ? "Finding you" : "Near me"}
+              <span className="hidden sm:inline">{locating ? "Finding you" : "Near me"}</span>
             </Button>
           }
         />
@@ -224,12 +231,12 @@ export function IssueBrowser({
       )}
 
       {popularCategories.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="-mx-4 flex snap-x flex-nowrap gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
             onClick={showTrending}
             aria-pressed={sort === "trending" && categorySlugs.length === 0}
-            className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold shadow-sm transition-all ${
+            className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap shadow-sm transition-all ${
               sort === "trending" && categorySlugs.length === 0
                 ? "border-foreground bg-foreground text-background"
                 : "border-border bg-card hover:border-foreground"
@@ -246,7 +253,7 @@ export function IssueBrowser({
                 type="button"
                 onClick={() => toggleCategory(c.slug)}
                 aria-pressed={active}
-                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold shadow-sm transition-all ${
+                className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap shadow-sm transition-all ${
                   active
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-card hover:border-foreground"
@@ -265,7 +272,7 @@ export function IssueBrowser({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold shadow-sm transition-all ${
+                  className={`flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap shadow-sm transition-all ${
                     moreActive
                       ? "border-foreground bg-foreground text-background"
                       : "border-dashed border-border text-muted-foreground hover:border-foreground hover:text-foreground"

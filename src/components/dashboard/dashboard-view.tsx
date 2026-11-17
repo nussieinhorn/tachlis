@@ -17,7 +17,10 @@ import { formatRelativeTime, abbreviateName } from "@/lib/format";
 import { pluralize } from "@/lib/utils";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
+import { Reveal } from "@/components/reveal";
+import { CountUp } from "@/components/count-up";
 import { IssueCard } from "@/components/issue-card";
+import { RecentIssuesMarquee } from "@/components/recent-issues-marquee";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -31,13 +34,15 @@ const ACTIVITY_ICON = {
   vote: IconThumbUp,
 } as const;
 
-function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
+function Stat({ label, value, hint, delay = 0 }: { label: string; value: number; hint?: string; delay?: number }) {
   return (
-    <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <Reveal delay={delay} className="h-full">
+    <div className="flex h-full flex-col gap-1 rounded-2xl border border-border bg-card p-5 shadow-sm">
       <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      <span className="font-heading text-4xl font-black tabular-nums">{value}</span>
+      <CountUp value={value} className="font-heading text-4xl font-black tabular-nums" />
       {hint && <span className="text-xs font-semibold text-status-resolved">{hint}</span>}
     </div>
+    </Reveal>
   );
 }
 
@@ -75,9 +80,9 @@ export function DashboardView({
   const hasIssues = data.issues.length > 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 sm:px-6 py-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
+        <div className="flex animate-fade-up flex-col gap-1">
           <h1 className="type-title">Welcome back, {firstName}</h1>
         </div>
       </header>
@@ -85,7 +90,8 @@ export function DashboardView({
       {hasIssues ? (
         <>
           <section className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
-            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <Reveal delay={80}>
+            <div className="flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-1">
                   <h2 className="type-subsection">Support growth</h2>
@@ -99,13 +105,12 @@ export function DashboardView({
               </div>
               <AreaChart values={data.totalSeries} className="h-52" />
             </div>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-              <div className="grid grid-cols-2 gap-4">
-                <Stat label="Supporters" value={data.totals.supporters} />
-                <Stat label="Issues" value={data.issues.length} />
-                <Stat label="Solutions" value={data.totals.solutions} />
-                <Stat label="Votes" value={data.totals.votes} />
-              </div>
+            </Reveal>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <Stat label="Supporters" value={data.totals.supporters} delay={160} />
+              <Stat label="Issues" value={data.issues.length} delay={240} />
+              <Stat label="Solutions" value={data.totals.solutions} delay={320} />
+              <Stat label="Votes" value={data.totals.votes} delay={400} />
             </div>
           </section>
 
@@ -114,12 +119,13 @@ export function DashboardView({
               <div className="flex items-center justify-between">
                 <h2 className="type-subsection">My issues</h2>
               </div>
-              <div className="grid gap-5 lg:grid-cols-2">
-              {data.issues.slice(0, 6).map((issue) => (
+              {/* Phones: a swipeable row of cards. Desktop: a two-column grid. */}
+              <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 sm:scroll-px-6 lg:mx-0 lg:grid lg:grid-cols-2 lg:gap-5 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
+              {data.issues.slice(0, 6).map((issue, i) => (
+                <Reveal key={issue.id} delay={(i % 2) * 100} className="h-auto w-[84%] shrink-0 snap-start sm:w-[60%] lg:h-full lg:w-auto">
                 <Link
-                  key={issue.id}
                   href={`/issues/${issue.displayCode}`}
-                  className="group flex flex-col gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow duration-200 hover:shadow-lg sm:p-8"
+                  className="group flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow duration-200 hover:shadow-lg sm:gap-5 sm:p-8"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={issue.status} />
@@ -134,7 +140,7 @@ export function DashboardView({
                     {issue.title}
                   </h3>
                   <div className="flex flex-wrap items-end justify-between gap-6 border-t border-border pt-5">
-                    <div className="flex gap-8">
+                    <div className="flex gap-6 sm:gap-8">
                       <div className="flex flex-col">
                         <span className="font-heading text-3xl font-black tabular-nums">{issue.supporterCount}</span>
                         <span className="text-xs text-muted-foreground">supporters</span>
@@ -154,12 +160,14 @@ export function DashboardView({
                     <Sparkline values={issue.supportSeries} className="h-10 w-32 text-foreground" />
                   </div>
                 </Link>
+                </Reveal>
               ))}
               </div>
-              <div className="flex flex-wrap items-center justify-center gap-3">
+              <Reveal>
+              <div className="flex flex-wrap items-center gap-3">
                 <Button asChild variant="outline">
                   <Link href="/my-issues">
-                    View all issues ({data.issues.length})
+                    Manage all my issues
                     <Icon icon={IconArrowRight} size={16} />
                   </Link>
                 </Button>
@@ -172,6 +180,7 @@ export function DashboardView({
                   }
                 />
               </div>
+              </Reveal>
             </div>
           </section>
         </>
@@ -190,12 +199,12 @@ export function DashboardView({
             <p className="text-sm text-muted-foreground">You don&apos;t manage any communities yet.</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {data.communities.slice(0, 4).map((c) => (
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 sm:scroll-px-6 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
+            {data.communities.slice(0, 4).map((c, i) => (
+              <Reveal key={c.id} delay={i * 90} className="h-auto w-[72%] shrink-0 snap-start sm:w-[40%] lg:h-full lg:w-auto">
               <Link
-                key={c.id}
                 href={`/communities/${c.displayCode}`}
-                className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow duration-200 hover:shadow-lg"
+                className="group flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow duration-200 hover:shadow-lg"
               >
                 <CommunityAvatar logoUrl={c.logoUrl} tone={c.tone} name={c.name} className="size-10" iconSize={18} />
                 <span className="type-subsection line-clamp-2 transition-colors group-hover:text-primary">{c.name}</span>
@@ -208,19 +217,21 @@ export function DashboardView({
                   </span>
                 </span>
               </Link>
+              </Reveal>
             ))}
           </div>
         )}
-        <div className="flex flex-wrap items-center justify-center gap-3">
+        <Reveal>
+        <div className="flex flex-wrap items-center gap-3">
           {data.communities.length > 0 && (
             <Button asChild variant="outline">
               <Link href="/my-communities">
-                View all my communities ({data.communities.length})
+                Manage all my communities
                 <Icon icon={IconArrowRight} size={16} />
               </Link>
             </Button>
           )}
-          <Button asChild variant={data.communities.length > 0 ? "outline" : "default"}>
+          <Button asChild variant="outline">
             <Link href="/communities">
               Discover public communities
               <Icon icon={IconArrowRight} size={16} />
@@ -228,27 +239,34 @@ export function DashboardView({
           </Button>
           <CreateCommunityDialog
             trigger={
-              <Button variant="ghost">
+              <Button>
                 <Icon icon={IconPlus} size={16} />
-                Create a community
+                Create a new community
               </Button>
             }
           />
         </div>
+        </Reveal>
       </section>
 
       <section className="flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <h2 className="type-subsection">Discover public issues</h2>
           <Link href="/issues" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-            All public issues <Icon icon={IconArrowRight} size={14} />
+            All <Icon icon={IconArrowRight} size={14} />
           </Link>
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {suggestedIssues.slice(0, 4).map((issue) => (
-            <IssueCard key={issue.id} issue={issue} categories={categoryList} />
-          ))}
-        </div>
+        <Reveal>
+        {suggestedIssues.length >= 3 ? (
+          <RecentIssuesMarquee issues={suggestedIssues.slice(0, 8)} categories={categories} />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {suggestedIssues.map((issue) => (
+              <IssueCard key={issue.id} issue={issue} categories={categoryList} />
+            ))}
+          </div>
+        )}
+        </Reveal>
       </section>
     </div>
   );

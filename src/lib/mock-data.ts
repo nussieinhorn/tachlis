@@ -95,6 +95,8 @@ export const INTENT_TAGS: { value: IntentTag; label: string }[] = [
 export type Comment = {
   id: string;
   author: string;
+  /** The signed-in author's id, when there is one (guest comments have none). */
+  authorId?: string | null;
   body: string;
   createdAt: string;
   replies?: Comment[];

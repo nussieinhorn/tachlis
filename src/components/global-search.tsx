@@ -8,7 +8,7 @@ import type { Category, Issue } from "@/lib/mock-data";
 import type { Community } from "@/lib/communities-data";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
-import { shortLabel, type NominatimResult } from "@/components/location-search";
+import { searchPlaces, shortLabel, type NominatimResult } from "@/components/location-search";
 import { cn } from "@/lib/utils";
 
 type Item =
@@ -24,7 +24,7 @@ export function GlobalSearch({
   issues,
   categories,
   communities = [],
-  placeholder = "Search issues, places or topics",
+  placeholder = "Search issues, places, ZIP codes or topics",
   query,
   onQuery,
   onPickPlace,
@@ -66,11 +66,7 @@ export function GlobalSearch({
     const controller = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&featureType=city&limit=4&q=${encodeURIComponent(query)}`,
-          { signal: controller.signal },
-        );
-        if (res.ok) setPlaces(await res.json());
+        setPlaces(await searchPlaces(query, controller.signal, 4));
       } catch {
         /* aborted or offline */
       } finally {
@@ -142,7 +138,7 @@ export function GlobalSearch({
         value={query}
         autoComplete="off"
         placeholder={placeholder}
-        className="h-14 rounded-2xl border-2 border-foreground bg-background pr-36 pl-12 text-lg font-semibold shadow-md placeholder:font-medium focus-visible:border-primary focus-visible:ring-primary/30"
+        className="h-13 rounded-2xl border-2 border-foreground bg-background pr-14 pl-11 text-base font-semibold shadow-md sm:h-14 sm:pr-36 sm:pl-12 sm:text-lg placeholder:font-medium focus-visible:border-primary focus-visible:ring-primary/30"
         onChange={(e) => {
           onQuery(e.target.value);
           setOpen(true);

@@ -13,6 +13,7 @@ export type NominatimResult = {
   lat?: string;
   lon?: string;
   address?: {
+    postcode?: string;
     city?: string;
     town?: string;
     village?: string;
@@ -25,7 +26,12 @@ export type NominatimResult = {
 
 /** "Lakewood Township" -> "Lakewood", so labels match how people type places. */
 function plainCity(city: string): string {
-  return city.replace(/\s+(township|twp\.?|city|town|borough|village)$/i, "").trim() || city;
+  return (
+    city
+      .replace(/^(town|township|village|city|borough) of\s+/i, "")
+      .replace(/\s+(township|twp\.?|city|town|borough|village)$/i, "")
+      .trim() || city
+  );
 }
 
 export function shortLabel(r: NominatimResult): string {
@@ -36,6 +42,27 @@ export function shortLabel(r: NominatimResult): string {
     return abbreviateLocation(label) ?? label;
   }
   return r.display_name.split(",").slice(0, 2).join(",").trim();
+}
+
+const ZIP_RE = /^\d{5}(-\d{4})?$/;
+
+/** True when the text is a US ZIP code (12345 or 12345-6789). */
+export function isZip(text: string): boolean {
+  return ZIP_RE.test(text.trim());
+}
+
+/**
+ * Looks up places from OpenStreetMap's free Nominatim geocoder: any city, town or village by name,
+ * or a US ZIP code (searched as a postal code). Returns short "City, ST" style results.
+ */
+export async function searchPlaces(text: string, signal: AbortSignal, limit = 5): Promise<NominatimResult[]> {
+  const q = text.trim();
+  const url = isZip(q)
+    ? `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=us&limit=${limit}&postalcode=${encodeURIComponent(q.slice(0, 5))}`
+    : `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&featureType=city&limit=${limit}&q=${encodeURIComponent(q)}`;
+  const res = await fetch(url, { signal });
+  if (!res.ok) return [];
+  return (await res.json()) as NominatimResult[];
 }
 
 // Free, keyless geocoding via OpenStreetMap's Nominatim — city/town granularity only, short "City, ST" results.
@@ -50,7 +77,7 @@ export function LocationSearch({
   onClear,
   onUseCurrent,
   locating = false,
-  placeholder = "Search city, state...",
+  placeholder = "Search city, state or ZIP...",
   large = false,
   trailing,
 }: {
@@ -100,12 +127,7 @@ export function LocationSearch({
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&featureType=city&limit=5&q=${encodeURIComponent(query)}`,
-          { signal: controller.signal },
-        );
-        if (!res.ok) return;
-        const data: NominatimResult[] = await res.json();
+        const data = await searchPlaces(query, controller.signal, 5);
         setResults(data);
         setActive(data.length > 0 ? 0 : -1);
       } catch {
@@ -254,7 +276,7 @@ export function LocationSearch({
                   </span>
                   <span className="font-medium">{shortLabel(r)}</span>
                   <span className="ml-auto truncate text-xs text-muted-foreground">
-                    {r.display_name.split(",").slice(-2).join(",").trim()}
+                    {r.address?.postcode && isZip(query) ? `ZIP ${r.address.postcode}` : r.display_name.split(",").slice(-2).join(",").trim()}
                   </span>
                 </button>
               </li>

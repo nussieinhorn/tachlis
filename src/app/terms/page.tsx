@@ -1,18 +1,22 @@
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 
-export const metadata = { title: "Terms of use · MOTIVE" };
+export const metadata: Metadata = {
+  title: "Terms of use",
+  description: "The simple rules for using Motive: what you can post, how accounts work and what to expect from the service.",
+};
 
 export default function TermsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-14">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6 py-14">
         <h1 className="type-title">Terms of use</h1>
         <p className="text-sm text-muted-foreground">Last updated: {new Date().getFullYear()}. Plain-language draft.</p>
         <section className="flex flex-col gap-2">
-          <h2 className="type-subsection">Using MOTIVE</h2>
+          <h2 className="type-subsection">Using Motive</h2>
           <p className="text-foreground/80 leading-relaxed">
-            MOTIVE is a place to raise community problems, propose solutions, vote and track action. By using it you
+            Motive is a place to raise community problems, propose solutions, vote and track action. By using it you
             agree to use it honestly and respectfully.
           </p>
         </section>
@@ -34,7 +38,7 @@ export default function TermsPage() {
         <section className="flex flex-col gap-2">
           <h2 className="type-subsection">No guarantees</h2>
           <p className="text-foreground/80 leading-relaxed">
-            MOTIVE is provided as is. Issues and solutions are posted by community members and are not verified or
+            Motive is provided as is. Issues and solutions are posted by community members and are not verified or
             endorsed by us. We are not liable for decisions made based on content here.
           </p>
         </section>

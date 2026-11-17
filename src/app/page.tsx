@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { IconArrowRight, IconBulb, IconSpeakerphone, IconUsersGroup } from "@tabler/icons-react";
 
@@ -36,6 +37,12 @@ const WHY = [
     body: "Keep it public for the whole town or private for your own community. You decide who can see it and who can help.",
   },
 ];
+
+export const metadata: Metadata = {
+  title: { absolute: "Motive: raise an issue, solve it together" },
+  description:
+    "Post a problem in your community, rally support, vote on the best solution and follow the action plan in public until it's fixed. Free to start.",
+};
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const { view } = await searchParams;
@@ -84,7 +91,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
       <SiteHeader />
       <main className="flex w-full flex-col">
         {user && <HomeSwitcher active="public" />}
-        <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-6 pt-20 pb-24 text-center">
+        <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 sm:px-6 pt-20 pb-24 text-center">
           <h1 className="type-display animate-fade-up max-w-4xl text-balance">
             Raise an issue, solve it together.
           </h1>
@@ -116,7 +123,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
         </section>
 
         {recent.length > 0 && (
-          <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 pb-32">
+          <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 sm:px-6 pb-32">
             <div className="flex items-center justify-between gap-4">
               <h2 className="type-section">Top issues now</h2>
               <Button asChild variant="outline" className="shrink-0">
@@ -132,19 +139,19 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
           </section>
         )}
 
-        <section className="mx-auto w-full max-w-6xl px-6 pb-32">
+        <section className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-16 pb-44 sm:pt-24 sm:pb-52">
           <Reveal>
             <ActionPlanShowcase />
           </Reveal>
         </section>
 
-        <section className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 pb-32">
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 sm:px-6 pb-32">
           <Reveal className="flex flex-col gap-2 text-center">
             <h2 className="type-feature mx-auto max-w-3xl text-balance">
               Stop complaining in the group chat. Start fixing it.
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-              Every neighborhood has problems everyone talks about and nobody owns. MOTIVE gives them an owner, a vote and a plan.
+              Every neighborhood has problems everyone talks about and nobody owns. Motive gives them an owner, a vote and a plan.
             </p>
           </Reveal>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
