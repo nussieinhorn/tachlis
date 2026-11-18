@@ -61,7 +61,7 @@ export function ActionPlanShowcase() {
       </div>
 
       {/* The illustration */}
-      <div aria-hidden="true" className="pointer-events-none relative mx-auto w-full max-w-lg select-none py-6 sm:py-10">
+      <div aria-hidden="true" className="pointer-events-none relative mx-auto w-full max-w-lg select-none overflow-x-clip py-6 sm:py-10">
         {/* soft colour glow behind the card */}
         <div className="absolute -top-2 -right-6 size-56 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute -bottom-4 -left-8 size-48 rounded-full bg-status-action/8 blur-3xl" />

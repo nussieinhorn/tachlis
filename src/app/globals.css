@@ -269,15 +269,14 @@
 }
 
 @layer base {
-  /* One global dial for phones: every rem-based size (text, headings, spacing) shrinks ~6% below the sm breakpoint. */
   html {
-    font-size: 93.75%;
     -webkit-text-size-adjust: 100%;
   }
-  @media (min-width: 40rem) {
-    html {
-      font-size: 100%;
-    }
+  /* Safety net: nothing may make the page wider than the screen. On iPhone, even 8px of sideways overflow
+     makes Safari zoom the whole page out to fit. `clip` (unlike `hidden`) keeps sticky headers working. */
+  html,
+  body {
+    overflow-x: clip;
   }
   * {
     @apply border-border outline-ring/50;
