@@ -10,15 +10,7 @@ import { ActionPlanShowcase } from "@/components/action-plan-showcase";
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { HomeSwitcher } from "@/components/home-switcher";
-import { DashboardView } from "@/components/dashboard/dashboard-view";
-import { createClient } from "@/lib/supabase/server";
-import {
-  getCategories,
-  getDashboardData,
-  getIssues,
-  pickSuggestedIssues,
-} from "@/lib/supabase/queries";
+import { getCategories, getIssues } from "@/lib/supabase/queries";
 
 const WHY = [
   {
@@ -44,43 +36,8 @@ export const metadata: Metadata = {
     "Post a problem in your community, rally support, vote on the best solution and follow the action plan in public until it's fixed. Free to start.",
 };
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
-  const { view } = await searchParams;
-  const supabase = await createClient();
-  // getClaims verifies the session token locally, so deciding who's signed in costs no network round trip.
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const userId = claimsData?.claims?.sub ?? null;
-  const user = userId ? { id: userId } : null;
-
-  // Signed-in people land on their dashboard; ?view=home shows the public homepage instead.
-  if (user && view !== "home") {
-    const [data, categories, allIssues, profile] = await Promise.all([
-      getDashboardData(user.id),
-      getCategories(),
-      getIssues(),
-      supabase.from("profiles").select("name").eq("id", user.id).maybeSingle(),
-    ]);
-    const suggestedIssues = pickSuggestedIssues(
-      allIssues,
-      data.issues.map((i) => i.id),
-      4,
-    );
-    return (
-      <>
-        <SiteHeader />
-        <main className="flex w-full flex-col">
-          <HomeSwitcher active="dashboard" />
-          <DashboardView
-            name={profile.data?.name ?? ""}
-            data={data}
-            categories={categories}
-            suggestedIssues={suggestedIssues}
-          />
-        </main>
-      </>
-    );
-  }
-
+export default async function Home() {
+  // The homepage is the same for everyone. Signed-in people reach their dashboard from the account menu.
   const [issues, categories] = await Promise.all([getIssues(), getCategories()]);
   const recent = issues.filter((i) => i.visibility === "public" && i.showOnHomepage && i.status !== "resolved")
     .sort((a, b) => b.supporterCount - a.supporterCount)
@@ -90,7 +47,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
     <>
       <SiteHeader />
       <main className="flex w-full flex-col">
-        {user && <HomeSwitcher active="public" />}
         <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 sm:px-6 pt-20 pb-24 text-center">
           <h1 className="type-display animate-fade-up max-w-4xl text-balance">
             Raise an issue, solve it together.

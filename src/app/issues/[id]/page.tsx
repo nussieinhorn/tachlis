@@ -16,6 +16,7 @@ import { ActionPlanPanel } from "@/components/issue/action-plan-panel";
 import { IssueSolutionsSection } from "@/components/issue/issue-solutions-section";
 import { MobileSupportBar } from "@/components/issue/mobile-support-bar";
 import { IssueCommunitySection } from "@/components/issue/issue-community-section";
+import { IssueSettingsProvider } from "@/components/issue/issue-settings-context";
 import { PrivateIssueGate } from "@/components/issue/private-issue-gate";
 import { getCategory } from "@/lib/mock-data";
 import { getCommunityByInternalId, getIssue, getIssueEditAccess, getIssueStub } from "@/lib/supabase/queries";
@@ -70,12 +71,22 @@ export default async function IssueDetailPage({
     issue.communityId ? getCommunityByInternalId(issue.communityId) : Promise.resolve(undefined),
     getIssueEditAccess(issue.id),
   ]);
+  // "Voting closes" counts through the end of that day.
+  const votingClosed = issue.votingCloseDate ? new Date(issue.votingCloseDate).setHours(23, 59, 59, 999) < Date.now() : false;
+
 
   const category = getCategory(issue.categorySlug);
 
   return (
     <>
       <SiteHeader />
+      <IssueSettingsProvider
+        value={{
+          voteRequiresLogin: issue.voteRequiresLogin,
+          votingClosed: votingClosed,
+          allowSuggestSolutions: issue.allowSuggestSolutions,
+        }}
+      >
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 sm:px-6 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumbs displayCode={issue.displayCode} />
@@ -168,9 +179,11 @@ export default async function IssueDetailPage({
             links={issue.links}
             commentsEnabled={issue.commentsEnabled}
             commentsRequireLogin={issue.commentsRequireLogin}
+            supportRequiresLogin={issue.supportRequiresLogin}
           />
         </div>
       </main>
+      </IssueSettingsProvider>
 
       <MobileSupportBar
         issueId={issue.id}
@@ -179,6 +192,7 @@ export default async function IssueDetailPage({
         canEdit={canEdit}
         ownerName={issue.createdBy || undefined}
         initialSupporterCount={issue.supporterCount}
+        supportRequiresLogin={issue.supportRequiresLogin}
       />
     </>
   );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   IconHome,
+  IconLayoutDashboard,
   IconLogin,
   IconLogout,
   IconMenu2,
@@ -142,7 +143,8 @@ function MobileMenu({
           />
         ) : (
           <nav className="flex flex-col">
-            {row("/", signedIn ? "Dashboard" : "Home", IconHome)}
+            {row("/", "Home", IconHome)}
+            {signedIn && row("/dashboard", "Dashboard", IconLayoutDashboard)}
             {row("/issues", "Issues", IconFileText)}
             {row("/communities", "Communities", IconUsersGroup)}
             {signedIn && (
@@ -292,6 +294,12 @@ export function SiteHeader() {
                         </div>
                       </div>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard">
+                          <MenuIcon icon={IconLayoutDashboard} />
+                          Dashboard
+                        </Link>
+                      </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/my-issues">
                           <MenuIcon icon={IconList} />

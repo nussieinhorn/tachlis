@@ -3,6 +3,7 @@ import { JoinPanel } from "@/components/issue/join-panel";
 import { AdminUpdates } from "@/components/issue/admin-updates";
 import { CommentsDialog } from "@/components/issue/comments-dialog";
 import { IssueLinksSection } from "@/components/issue/issue-links-section";
+import { VolunteersDialog } from "@/components/issue/volunteers-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function IssueSidebar({
@@ -21,6 +22,7 @@ export function IssueSidebar({
   links,
   commentsEnabled,
   commentsRequireLogin,
+  supportRequiresLogin = false,
 }: {
   issueId: string;
   issueTitle: string;
@@ -37,12 +39,13 @@ export function IssueSidebar({
   links?: { id: string; label: string; url: string }[];
   commentsEnabled: boolean;
   commentsRequireLogin: boolean;
+  supportRequiresLogin?: boolean;
 }) {
   const showCommentsTab = commentsEnabled || canEdit;
 
   return (
     <aside className="flex flex-col gap-6 max-lg:contents">
-      <Card className="max-lg:order-[20]">
+      <Card id="support-card" className="max-lg:order-[20]">
         <CardContent className="max-sm:px-5 max-sm:pt-5 max-sm:pb-5 pt-6 pb-6">
           <JoinPanel
             issueId={issueId}
@@ -55,9 +58,16 @@ export function IssueSidebar({
             visitCount={visitCount}
             viewCount={viewCount}
             supporterBreakdown={supporterBreakdown}
+            supportRequiresLogin={supportRequiresLogin}
           />
         </CardContent>
       </Card>
+
+      {canEdit && (
+        <div className="max-lg:order-[22] empty:hidden">
+          <VolunteersDialog issueId={issueId} count={supporterBreakdown?.willingToHelp ?? 0} />
+        </div>
+      )}
 
       {/* Updates and comments sit open on the page, with no box or rule. */}
       <div className="flex flex-col gap-5 max-lg:order-[50]">

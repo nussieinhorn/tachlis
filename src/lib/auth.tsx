@@ -67,11 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = createClient();
 
     async function loadProfile(userId: string) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, name, email, phone, theme_preference, notify_types, email_notify_types")
-        .eq("id", userId)
-        .single();
+      // Email, phone and preferences are private: they come through a function that only returns the caller's own row.
+      const { data: rows, error: profileError } = await supabase.rpc("get_my_profile");
+      const data = rows?.[0];
+      // The sign-in is still valid but the account behind it is gone (for example it was deleted in another tab): sign out cleanly.
+      if (!profileError && !data) {
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        return;
+      }
       setProfile(
         data
           ? {

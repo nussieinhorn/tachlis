@@ -6,7 +6,7 @@ import { IconCheck, IconX } from "@tabler/icons-react";
 
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
-import { AuthGate } from "@/components/auth-gate";
+import { SignInPrompt } from "@/components/sign-in-prompt";
 import { SiteHeader } from "@/components/site-header";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ function AcceptInvite() {
       {!token ? (
         <p className="text-sm text-muted-foreground">This invite link is missing its token.</p>
       ) : !isSignedIn ? (
-        <AuthGate
+        <SignInPrompt
           title="Sign in to accept this invite"
           description="Sign in with the email address the invite was sent to."
           onSignedIn={() => setStatus("pending")}

@@ -117,7 +117,7 @@ export type Solution = {
   hidden?: boolean;
   deleted?: boolean;
   reviewStatus?: "pending" | "approved" | "rejected";
-  submitter?: { name: string; email: string; phone?: string; location?: string | null };
+  submitter?: { name: string; email: string; phone?: string; location?: string | null; userId?: string };
   createdAt: string;
   sortOrder?: number;
 };
@@ -153,6 +153,7 @@ export type ActionPlan = {
 };
 
 export type Update = {
+  id?: string;
   date: string;
   body: string;
   title?: string;
@@ -162,6 +163,7 @@ export type Update = {
 
 export type Issue = {
   id: string;
+  ownerId?: string;
   displayCode: string;
   communityId?: string;
   title: string;

@@ -143,6 +143,7 @@ export function LocationSearch({
   }, [query]);
 
   const showCurrentRow = Boolean(onUseCurrent) && query.trim().length < 3;
+  // The suggestion list sits in the flow under the field, so a dialog's scroll area can never hide or clip it.
   const showDropdown = open && (loading || results.length > 0 || showCurrentRow);
 
   function pick(r: NominatimResult) {
@@ -228,7 +229,7 @@ export function LocationSearch({
       </div>
 
       {showDropdown && (
-        <ul className="absolute top-full left-0 z-50 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover p-1.5 shadow-xl">
+        <ul className="relative z-50 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover p-1.5 shadow-xl">
           {showCurrentRow && (
             <li>
               <button

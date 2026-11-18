@@ -219,10 +219,12 @@ function MyProfileSection() {
 
   async function handleDelete() {
     const { error: err } = await deleteAccount();
-    if (!err) {
-      router.push("/");
-      router.refresh();
+    if (err) {
+      setError(`We couldn't delete your account: ${err}`);
+      return;
     }
+    router.push("/");
+    router.refresh();
   }
 
   return (
@@ -298,12 +300,12 @@ function MyProfileSection() {
       <section className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-5">
         <h2 className="type-eyebrow text-destructive">Danger zone</h2>
         <p className="text-sm text-muted-foreground">
-          Deleting your account is permanent — your issues and solutions stay, but you&apos;ll lose access to
-          everything tied to this login.
+          Deleting your account is permanent. Your issues and communities are deleted with it; solutions and
+          comments you added to other people&apos;s issues stay, without your name.
         </p>
         <ConfirmDialog
           title="Delete your account?"
-          description="This can't be undone. You'll be signed out immediately."
+          description="This permanently deletes your account, every issue and community you own (with their solutions, comments and updates), and your votes and supports. Solutions and comments you added to other people's issues stay, but without your name attached. This can't be undone, and you'll be signed out immediately."
           confirmLabel="Delete account"
           onConfirm={handleDelete}
           trigger={

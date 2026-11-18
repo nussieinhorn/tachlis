@@ -17,6 +17,7 @@ import type { Community } from "@/lib/communities-data";
 import { CommunityAvatar } from "@/components/community-avatar";
 import { pluralize } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useCanDelete } from "@/lib/use-permissions";
 import { Icon } from "@/components/ui/icon";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -39,6 +40,7 @@ export function CommunityCard({
 }) {
   const [deleted, setDeleted] = useState(false);
   const router = useRouter();
+  const canDelete = useCanDelete(community.ownerId);
 
   async function deleteCommunity() {
     const supabase = createClient();
@@ -60,7 +62,7 @@ export function CommunityCard({
   return (
     <div className="group relative flex h-full flex-col gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow duration-200 hover:shadow-lg">
       <div className="flex items-start gap-4">
-        <CommunityAvatar logoUrl={community.logoUrl} tone={community.tone} name={community.name} />
+        <CommunityAvatar tone={community.tone} name={community.name} />
 
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           {/* The name link stretches over the whole card, so the entire card is clickable. */}
@@ -102,6 +104,7 @@ export function CommunityCard({
                   </DropdownMenuItem>
                 }
               />
+              {canDelete && (
               <ConfirmDialog
                 title="Delete this community?"
                 description={`"${community.name}" will be permanently deleted. This can't be undone.`}
@@ -113,6 +116,7 @@ export function CommunityCard({
                   </DropdownMenuItem>
                 }
               />
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

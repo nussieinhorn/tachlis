@@ -121,7 +121,7 @@ export function DashboardView({
               </div>
               {/* Phones: a swipeable row of cards. Desktop: a two-column grid. */}
               <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 sm:scroll-px-6 lg:mx-0 lg:grid lg:grid-cols-2 lg:gap-5 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
-              {data.issues.slice(0, 6).map((issue, i) => (
+              {data.issues.slice(0, 4).map((issue, i) => (
                 <Reveal key={issue.id} delay={(i % 2) * 100} className="h-auto w-[84%] shrink-0 snap-start sm:w-[60%] lg:h-full lg:w-auto">
                 <Link
                   href={`/issues/${issue.displayCode}`}
@@ -206,7 +206,7 @@ export function DashboardView({
                 href={`/communities/${c.displayCode}`}
                 className="group flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow duration-200 hover:shadow-lg"
               >
-                <CommunityAvatar logoUrl={c.logoUrl} tone={c.tone} name={c.name} className="size-10" iconSize={18} />
+                <CommunityAvatar tone={c.tone} name={c.name} className="size-10" iconSize={18} />
                 <span className="type-subsection line-clamp-2 transition-colors group-hover:text-primary">{c.name}</span>
                 <span className="mt-auto flex items-center gap-3 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">

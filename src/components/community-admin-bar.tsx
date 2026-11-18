@@ -5,6 +5,7 @@ import { IconDots, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 
 import type { Community } from "@/lib/communities-data";
 import { Button } from "@/components/ui/button";
+import { useCanDelete } from "@/lib/use-permissions";
 import { Icon } from "@/components/ui/icon";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CreateCommunityDialog } from "@/components/create-community-dialog";
@@ -19,6 +20,7 @@ import {
 
 export function CommunityAdminBar({ community, canEdit }: { community: Community; canEdit: boolean }) {
   const router = useRouter();
+  const canDelete = useCanDelete(community.ownerId);
 
   if (!canEdit) return null;
 
@@ -55,6 +57,7 @@ export function CommunityAdminBar({ community, canEdit }: { community: Community
               </DropdownMenuItem>
             }
           />
+          {canDelete && (
           <ConfirmDialog
             title="Delete this community?"
             description={`"${community.name}" will be permanently deleted. Issues linked to it won't be deleted, but they'll lose their community link. This can't be undone.`}
@@ -66,6 +69,7 @@ export function CommunityAdminBar({ community, canEdit }: { community: Community
               </DropdownMenuItem>
             }
           />
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

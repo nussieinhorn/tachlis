@@ -12,7 +12,7 @@ export function MyCommunityRow({ community, issueCount }: { community: Community
       href={`/communities/${community.displayCode}`}
       className="flex w-full items-center gap-4 rounded-xl border border-border bg-card p-5 hover:bg-accent"
     >
-      <CommunityAvatar logoUrl={community.logoUrl} tone={community.tone} name={community.name} />
+      <CommunityAvatar tone={community.tone} name={community.name} />
       <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
         <span className="flex items-center gap-1.5 truncate font-heading text-lg font-semibold text-foreground">
           {community.privacy === "private" && <Icon icon={IconLock} size={16} className="shrink-0" />}

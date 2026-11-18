@@ -303,7 +303,7 @@ export function CreateIssueDialog({
       .single();
     if (insertError || !data) {
       setSubmitting(false);
-      setError(insertError?.message ?? "Something went wrong.");
+      setError(/foreign key|owner_id/i.test(insertError?.message ?? "") ? "Your session is out of date. Please sign out and sign in again." : (insertError?.message ?? "Something went wrong."));
       return;
     }
 
@@ -317,13 +317,7 @@ export function CreateIssueDialog({
         .select("token")
         .single();
       if (invite) {
-        supabase.functions.invoke("send-transactional-email", {
-          body: {
-            type: "invite",
-            to: email,
-            data: { resourceTitle: title.trim(), resourceType: "issue", role: "editor", link: `${origin}/invite/accept?token=${invite.token}` },
-          },
-        }).catch(() => {});
+        supabase.functions.invoke("send-transactional-email", { body: { type: "invite", token: invite.token } }).catch(() => {});
       }
     }
 
@@ -555,25 +549,16 @@ export function CreateIssueDialog({
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-4">
-        <h4 className="type-eyebrow">Timeline</h4>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="go-live">Goes live</Label>
-            <Input id="go-live" type="date" value={goLiveDate} onChange={(e) => setGoLiveDate(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="voting-close">Voting closes</Label>
-            <Input
-              id="voting-close"
-              type="date"
-              value={votingCloseDate}
-              onChange={(e) => setVotingCloseDate(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="hidden-date">Hidden after</Label>
-            <Input id="hidden-date" type="date" value={hiddenDate} onChange={(e) => setHiddenDate(e.target.value)} />
-          </div>
+        <h4 className="type-eyebrow">Voting</h4>
+        <div className="flex max-w-xs flex-col gap-1.5">
+          <Label htmlFor="voting-close">Voting closes (optional)</Label>
+          <Input
+            id="voting-close"
+            type="date"
+            value={votingCloseDate}
+            onChange={(e) => setVotingCloseDate(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">After this day, nobody can add or change votes.</p>
         </div>
       </div>
 
@@ -668,7 +653,7 @@ export function CreateIssueDialog({
               </p>
               <div className="flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2">
                 <span className="flex-1 truncate text-left text-sm text-muted-foreground">
-                  tachlis.org/issues/{editIssue?.id ?? createdId}
+                  {publishedUrl.replace(/^https?:\/\//, "")}/issues/{editIssue?.displayCode ?? createdId}
                 </span>
                 <button type="button" onClick={copyLink} aria-label="Copy link">
                   <Icon icon={copied ? IconCheck : IconLink} size={16} />
@@ -678,7 +663,7 @@ export function CreateIssueDialog({
                 {BIG_SHARE_TARGETS.map((target) => (
                   <a
                     key={target.label}
-                    href={`${target.urlPrefix}${encodeURIComponent(`${publishedUrl}/issues/${editIssue?.id ?? createdId}`)}`}
+                    href={`${target.urlPrefix}${encodeURIComponent(`${publishedUrl}/issues/${editIssue?.displayCode ?? createdId}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex flex-col items-center gap-1.5 rounded-xl border border-border px-2 py-4 text-xs font-medium text-foreground transition-colors hover:border-primary hover:bg-accent"

@@ -7,14 +7,16 @@ import { IconArrowLeft, IconLock } from "@tabler/icons-react";
 
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
-import { AuthGate } from "@/components/auth-gate";
+import { SignInPrompt } from "@/components/sign-in-prompt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Icon } from "@/components/ui/icon";
-import { siteUrl } from "@/lib/site-url";
 
-export function PrivateIssueGate({ issueId }: { issueId: string }) {
+/** The "this is private" screen for issues and communities, with a request-access form. */
+export function PrivateIssueGate({ issueId, kind = "issue" }: { issueId: string; kind?: "issue" | "community" }) {
+  const requestTable = kind === "issue" ? "private_access_requests" : "community_access_requests";
+  const fk = kind === "issue" ? "issue_id" : "community_id";
   const { isSignedIn, user } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState(user?.email ?? "");
@@ -31,9 +33,9 @@ export function PrivateIssueGate({ issueId }: { issueId: string }) {
     if (!user) return;
     const supabase = createClient();
     supabase
-      .from("private_access_requests")
+      .from(requestTable as "private_access_requests")
       .select("status")
-      .eq("issue_id", issueId)
+      .eq(fk as "issue_id", issueId)
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -48,26 +50,20 @@ export function PrivateIssueGate({ issueId }: { issueId: string }) {
     // A rejected/revoked request already has a row (issue_id, user_id is unique) — re-requesting updates it back to pending.
     const { error: writeError } = requestStatus
       ? await supabase
-          .from("private_access_requests")
+          .from(requestTable as "private_access_requests")
           .update({ status: "pending", message: message.trim() || null })
-          .eq("issue_id", issueId)
+          .eq(fk as "issue_id", issueId)
           .eq("user_id", user.id)
       : await supabase
-          .from("private_access_requests")
-          .insert({ issue_id: issueId, user_id: user.id, message: message.trim() || null });
+          .from(requestTable as "private_access_requests")
+          .insert({ [fk]: issueId, user_id: user.id, message: message.trim() || null } as never);
     if (writeError) {
       setError(writeError.message);
       return;
     }
-    const origin = siteUrl();
     try {
       await supabase.functions.invoke("send-transactional-email", {
-        body: {
-          type: "access_requested",
-          resourceId: issueId,
-          resourceType: "issue",
-          data: { requesterName: user.email ?? "Someone", link: `${origin}/` },
-        },
+        body: { type: "access_requested", kind, resourceId: issueId },
       });
     } catch {
       // Non-fatal — the request was already recorded, email delivery is best-effort.
@@ -85,15 +81,14 @@ export function PrivateIssueGate({ issueId }: { issueId: string }) {
         </div>
         <h1 className="type-title">This is private</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          You need to request access to view it. Check your email — if someone approves your request,
-          you&apos;ll receive an email with a link back here.
+          You need to request access to view it. Once the owner approves your request, come back to this page to see it.
         </p>
       </div>
 
       {!isSignedIn ? (
-        <AuthGate
+        <SignInPrompt
           title="Sign in to request access"
-          description="You'll need an account to request access to this private issue."
+          description={`You'll need an account to request access to this private ${kind}.`}
           onSignedIn={() => router.refresh()}
         />
       ) : submitted || requestStatus === "pending" ? (

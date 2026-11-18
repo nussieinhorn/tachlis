@@ -6,6 +6,8 @@ import { IconLock, IconMapPin, IconUsers, IconUsersGroup } from "@tabler/icons-r
 import { CommunityAvatar } from "@/components/community-avatar";
 import { pluralize } from "@/lib/utils";
 import { SiteHeader } from "@/components/site-header";
+import { PrivateIssueGate } from "@/components/issue/private-issue-gate";
+import { createClient } from "@/lib/supabase/server";
 import { IssueCard } from "@/components/issue-card";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
@@ -19,7 +21,7 @@ const loadCommunity = cache((id: string) => getCommunity(id));
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const community = await loadCommunity(id);
-  if (!community) return { title: "Community not found", robots: { index: false, follow: false } };
+  if (!community) return { title: "Community", robots: { index: false, follow: false } };
   const base = community.description?.trim() || "A community organizing around shared local issues.";
   const where = community.location ? ` Based in ${community.location}.` : "";
   const description = `${base}${where} Follow its issues, solutions and action plans on Motive.`.replace(/\s+/g, " ").slice(0, 158);
@@ -40,7 +42,18 @@ export default async function CommunityDetailPage({
 }) {
   const { id } = await params;
   const community = await loadCommunity(id);
-  if (!community) notFound();
+  if (!community) {
+    // Private communities answer with a request-access screen instead of a bare 404.
+    const supabase = await createClient();
+    const { data: stub } = await supabase.rpc("get_community_stub", { p_display_code: id });
+    if (!stub?.[0] || stub[0].privacy !== "private") notFound();
+    return (
+      <>
+        <SiteHeader />
+        <PrivateIssueGate issueId={stub[0].id} kind="community" />
+      </>
+    );
+  }
 
   const [issues, canEdit] = await Promise.all([getIssuesByCommunity(community.id), getCommunityEditAccess(community.id)]);
 
@@ -52,7 +65,7 @@ export default async function CommunityDetailPage({
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 sm:px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-4">
-            <CommunityAvatar logoUrl={community.logoUrl} tone={community.tone} name={community.name} className="size-16" iconSize={28} />
+            <CommunityAvatar tone={community.tone} name={community.name} className="size-16" iconSize={28} />
             <div className="flex min-w-0 max-w-xl flex-col gap-1.5">
               <h1 className="type-title flex items-center gap-2 text-balance">
                 {isPrivate && <Icon icon={IconLock} size={20} className="text-muted-foreground" />}

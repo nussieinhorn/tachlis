@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconCheck, IconPlus, IconSparkles, IconX } from "@tabler/icons-react";
+import { IconCheck, IconPlus, IconX } from "@tabler/icons-react";
 
 import type { SolutionStatus } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
@@ -21,17 +21,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/ui/icon";
+import { useIssueSettings } from "@/components/issue/issue-settings-context";
 
 type ProConItem = { id: string; text: string; source: "ai" | "manual" };
 
-// Placeholder heuristic — swap for a real generation call once there's a backend.
-function generatePlaceholderProsCons(title: string): { pros: string[]; cons: string[] } {
-  const subject = title.trim() || "this solution";
-  return {
-    pros: [`Directly addresses "${subject}"`, "Could be organized largely by volunteers"],
-    cons: ["Needs community buy-in to get started", "Details still need to be worked out"],
-  };
-}
 
 const STATUS_OPTIONS: { value: SolutionStatus; label: string }[] = [
   { value: "proposed", label: "Proposed" },
@@ -50,6 +43,7 @@ export function SuggestSolution({
   canEdit: boolean;
 }) {
   const { isSignedIn, user } = useAuth();
+  const { allowSuggestSolutions } = useIssueSettings();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -60,22 +54,11 @@ export function SuggestSolution({
   const [newPro, setNewPro] = useState("");
   const [newCon, setNewCon] = useState("");
   const [phone, setPhone] = useState("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [status, setStatus] = useState<SolutionStatus>("proposed");
   const [submitting, setSubmitting] = useState(false);
 
-  const hasProsCons = pros.length > 0 || cons.length > 0;
 
-  function generate() {
-    const result = generatePlaceholderProsCons(title || description);
-    setPros((prev) => [
-      ...prev.filter((p) => p.source === "manual"),
-      ...result.pros.map((text, i) => ({ id: `ai-pro-${Date.now()}-${i}`, text, source: "ai" as const })),
-    ]);
-    setCons((prev) => [
-      ...prev.filter((c) => c.source === "manual"),
-      ...result.cons.map((text, i) => ({ id: `ai-con-${Date.now()}-${i}`, text, source: "ai" as const })),
-    ]);
-  }
 
   function addManualPro() {
     if (!newPro.trim()) return;
@@ -124,10 +107,16 @@ export function SuggestSolution({
       status: "proposed",
       review_status: "pending",
       submitted_by: user.id,
-      submitter_phone: phone.trim() || null,
     });
+    if (error) {
+      setSubmitting(false);
+      setSubmitError(/row-level security|violates/i.test(error.message) ? "This issue isn't accepting new solutions right now." : error.message);
+      return;
+    }
+    // A phone number is kept on the person's private profile, visible only to the issue's organizers.
+    if (phone.trim()) await supabase.from("profiles").update({ phone: phone.trim() }).eq("id", user.id);
     setSubmitting(false);
-    if (error) return;
+    setSubmitError(null);
     setSubmitted(true);
   }
 
@@ -146,11 +135,18 @@ export function SuggestSolution({
       submitted_by: user.id,
     });
     setSubmitting(false);
-    if (error) return;
+    if (error) {
+      setSubmitError(error.message);
+      return;
+    }
+    setSubmitError(null);
     reset(false);
   }
 
   const triggerLabel = "Suggest solution";
+
+  // The organizer can turn suggestions off; they can still add solutions themselves.
+  if (!canEdit && !allowSuggestSolutions) return null;
 
   return (
     <>
@@ -256,17 +252,6 @@ export function SuggestSolution({
                   </div>
                 )}
 
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="w-fit"
-                  onClick={generate}
-                  disabled={!title.trim() && !description.trim()}
-                >
-                  <Icon icon={IconSparkles} size={16} />
-                  {hasProsCons ? "Regenerate pros & cons" : "Generate pros & cons"}
-                </Button>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
@@ -348,6 +333,7 @@ export function SuggestSolution({
                 )}
               </div>
 
+              {submitError && <p className="text-sm text-destructive">{submitError}</p>}
               <DialogFooter>
                 {canEdit ? (
                   <Button onClick={submitAdmin} disabled={!title.trim() || !description.trim() || submitting}>

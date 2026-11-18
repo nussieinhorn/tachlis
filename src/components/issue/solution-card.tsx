@@ -35,6 +35,8 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { CommentThread } from "@/components/issue/comment-thread";
+import { useIssueSettings } from "@/components/issue/issue-settings-context";
+import { AuthGate } from "@/components/auth-gate";
 import { SolutionEditDialog } from "@/components/issue/solution-edit-dialog";
 import { ChosenSolutionDialog } from "@/components/issue/chosen-solution-dialog";
 import type { VariantProps } from "class-variance-authority";
@@ -70,6 +72,8 @@ export function SolutionCard({
   commentsRequireLogin?: boolean;
 }) {
   const { user } = useAuth();
+  const { voteRequiresLogin, votingClosed } = useIssueSettings();
+  const [signInOpen, setSignInOpen] = useState(false);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -117,8 +121,14 @@ export function SolutionCard({
 
   async function castVote(e?: React.MouseEvent) {
     e?.stopPropagation();
+    if (votingClosed) return;
     if (voted) {
-      setUnvoteOpen(true);
+      // Guests have no way to take a vote back (nothing ties it to them), so only signed-in people get the undo.
+      if (user) setUnvoteOpen(true);
+      return;
+    }
+    if (voteRequiresLogin && !user) {
+      setSignInOpen(true);
       return;
     }
     // Optimistic: flip the button and count instantly, then sync; undo if the save fails.
@@ -286,6 +296,8 @@ export function SolutionCard({
               size="sm"
               variant="outline"
               onClick={castVote}
+              disabled={votingClosed && !voted}
+              title={votingClosed ? "Voting has closed" : undefined}
               className={cn(
                 "gap-1.5",
                 voted
@@ -446,6 +458,16 @@ export function SolutionCard({
         issueId={issueId}
         solutionId={solution.id}
       />
+
+      <Dialog open={signInOpen} onOpenChange={setSignInOpen}>
+        <DialogContent className="sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Sign in to vote</DialogTitle>
+            <DialogDescription>The organizer asks voters to have an account.</DialogDescription>
+          </DialogHeader>
+          <AuthGate onSignedIn={() => setSignInOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={unvoteOpen} onOpenChange={setUnvoteOpen}>
         <DialogContent>

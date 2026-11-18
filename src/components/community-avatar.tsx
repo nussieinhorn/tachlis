@@ -4,30 +4,22 @@ import { COMMUNITY_TONE_CLASSES, type CommunityTone } from "@/lib/communities-da
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
-/** A community's logo: the uploaded image when there is one, otherwise a coloured circle with an icon. */
+/** A community's mark: a coloured circle with an icon. (No uploaded images, by design.) */
 export function CommunityAvatar({
-  logoUrl,
   tone,
   name,
   className,
   iconSize = 22,
 }: {
-  logoUrl?: string | null;
   tone: CommunityTone;
-  name: string;
+  name?: string;
   className?: string;
   iconSize?: number;
 }) {
-  return logoUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={logoUrl}
-      alt={`${name} logo`}
-      className={cn("size-12 shrink-0 rounded-full border border-border bg-card object-cover", className)}
-    />
-  ) : (
+  return (
     <div
       aria-hidden="true"
+      title={name}
       className={cn(
         "flex size-12 shrink-0 items-center justify-center rounded-full text-white",
         COMMUNITY_TONE_CLASSES[tone],

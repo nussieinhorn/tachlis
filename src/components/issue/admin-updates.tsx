@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconSpeakerphone } from "@tabler/icons-react";
+import { IconDots, IconPencil, IconSpeakerphone, IconTrash } from "@tabler/icons-react";
 
 import type { Update } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
@@ -14,6 +14,8 @@ import { Icon } from "@/components/ui/icon";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertsSignup } from "@/components/issue/alerts-signup";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const PAGE_SIZE = 5;
 const HEADLINE_MAX = 80;
@@ -45,20 +47,69 @@ export function AdminUpdates({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // After a refresh the server hands us the saved rows (with ids) — use them.
+  useEffect(() => {
+    setUpdates(initialUpdates);
+  }, [initialUpdates]);
+
+  function startNew() {
+    setEditingId(null);
+    setTitle("");
+    setDraft("");
+    setError(null);
+    setOpen(true);
+  }
+
+  function startEdit(update: Update) {
+    setEditingId(update.id ?? null);
+    setTitle(update.title ?? "");
+    setDraft(update.body);
+    setError(null);
+    setOpen(true);
+  }
+
+  async function removeUpdate(id: string) {
+    const { error: deleteError } = await createClient().from("issue_updates").delete().eq("id", id);
+    if (deleteError) return;
+    setUpdates((prev) => prev.filter((u) => u.id !== id));
+    router.refresh();
+  }
 
   async function post() {
     if (!title.trim() || !draft.trim() || !user || submitting) return;
     setSubmitting(true);
     const supabase = createClient();
-    const { error } = await supabase
-      .from("issue_updates")
-      .insert({ issue_id: issueId, author_id: user.id, title: title.trim() || null, body: draft.trim() });
-    setSubmitting(false);
-    if (error) return;
-    setUpdates((prev) => [
-      { date: "Just now", body: draft.trim(), title: title.trim() || undefined, at: new Date().toISOString() },
-      ...prev,
-    ]);
+    if (editingId) {
+      const { error: saveError } = await supabase
+        .from("issue_updates")
+        .update({ title: title.trim(), body: draft.trim() })
+        .eq("id", editingId);
+      setSubmitting(false);
+      if (saveError) {
+        setError(saveError.message);
+        return;
+      }
+      setUpdates((prev) => prev.map((u) => (u.id === editingId ? { ...u, title: title.trim(), body: draft.trim() } : u)));
+    } else {
+      const { data: created, error: insertError } = await supabase
+        .from("issue_updates")
+        .insert({ issue_id: issueId, author_id: user.id, title: title.trim() || null, body: draft.trim() })
+        .select("id")
+        .single();
+      setSubmitting(false);
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+      setUpdates((prev) => [
+        { id: created?.id, date: "Just now", body: draft.trim(), title: title.trim() || undefined, at: new Date().toISOString() },
+        ...prev,
+      ]);
+    }
+    setEditingId(null);
     setTitle("");
     setDraft("");
     setOpen(false);
@@ -72,7 +123,7 @@ export function AdminUpdates({
       <div className="flex items-center justify-between gap-3">
         <h2 className="type-panel">Updates</h2>
         {canEdit ? (
-          <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+          <Button type="button" variant="outline" onClick={startNew}>
             <Icon icon={IconSpeakerphone} size={16} />
             New Update
           </Button>
@@ -85,7 +136,7 @@ export function AdminUpdates({
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Post an official update</DialogTitle>
+              <DialogTitle>{editingId ? "Edit update" : "Post an official update"}</DialogTitle>
               <DialogDescription>
                 This is published on the issue&apos;s public timeline and sent to everyone following it
                 {authorName ? `, from ${authorName}` : ""}. Keep it clear and factual.
@@ -117,12 +168,13 @@ export function AdminUpdates({
                 </span>
               </div>
             </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
               <Button type="button" onClick={post} disabled={!title.trim() || !draft.trim() || submitting}>
-                {submitting ? "Publishing..." : "Publish update"}
+                {submitting ? (editingId ? "Saving..." : "Publishing...") : editingId ? "Save changes" : "Publish update"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -163,11 +215,43 @@ export function AdminUpdates({
                   <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="type-label leading-snug">{update.title ?? "Update"}</h3>
-                      {isNew && (
-                        <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase">
-                          New
-                        </span>
-                      )}
+                      <div className="flex shrink-0 items-center gap-1">
+                        {isNew && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase">
+                            New
+                          </span>
+                        )}
+                        {canEdit && update.id && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                aria-label="Update options"
+                                className="-mt-1 -mr-1.5 flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                              >
+                                <Icon icon={IconDots} size={16} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onSelect={() => startEdit(update)}>
+                                <Icon icon={IconPencil} size={16} />
+                                Edit
+                              </DropdownMenuItem>
+                              <ConfirmDialog
+                                title="Delete this update?"
+                                description="It will be removed from the timeline for everyone. This can't be undone."
+                                onConfirm={() => removeUpdate(update.id!)}
+                                trigger={
+                                  <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
+                                    <Icon icon={IconTrash} size={16} />
+                                    Delete
+                                  </DropdownMenuItem>
+                                }
+                              />
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
                     <p className="text-sm leading-relaxed text-muted-foreground">{update.body}</p>
                     <p className="text-xs text-muted-foreground/80">

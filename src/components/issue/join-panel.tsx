@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/ui/icon";
 import { ShareAccessPanel } from "@/components/share-access-panel";
+import { AuthGate } from "@/components/auth-gate";
 
 const LEVELS: {
   value: IntentTag;
@@ -58,6 +59,13 @@ const LEVELS: {
 
 type DialogState = "options" | "contact" | "thanks";
 
+/** Turns raw database errors into something a person can act on. */
+function friendlyError(message?: string): string {
+  if (!message) return "Something went wrong. Please try again.";
+  if (/row-level security|violates/i.test(message)) return "You need to sign in to do that.";
+  return message;
+}
+
 export function JoinPanel({
   issueId,
   issueTitle,
@@ -69,6 +77,7 @@ export function JoinPanel({
   visitCount,
   viewCount,
   supporterBreakdown,
+  supportRequiresLogin = false,
 }: {
   issueId: string;
   issueTitle: string;
@@ -80,9 +89,12 @@ export function JoinPanel({
   visitCount: number;
   viewCount: number;
   supporterBreakdown?: { justSupport: number; resonates: number; willingToHelp: number };
+  /** The issue owner turned on "support requires login". */
+  supportRequiresLogin?: boolean;
 }) {
   const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
   const [unsupportOpen, setUnsupportOpen] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [supported, setSupported] = useState(false);
@@ -115,6 +127,11 @@ export function JoinPanel({
   }, [user, issueId]);
 
   async function chooseOption(tag: IntentTag) {
+    if (supportRequiresLogin && !user) {
+      setOpen(false);
+      setSignInOpen(true);
+      return;
+    }
     if (tag === "willing-to-help" && !user) {
       setPendingTag(tag);
       setDialogState("contact");
@@ -134,9 +151,6 @@ export function JoinPanel({
         issue_id: issueId,
         user_id: user?.id ?? null,
         level: tag,
-        contact_name: useProfileContact ? profile!.name : null,
-        contact_email: useProfileContact ? profile!.email : null,
-        contact_phone: useProfileContact ? profile!.phone : null,
       })
       .select("id")
       .single();
@@ -144,10 +158,19 @@ export function JoinPanel({
       setSupported(false);
       setSupporterCount((c) => Math.max(0, c - 1));
       setDialogState("options");
-      setError(insertError.message);
+      setError(friendlyError(insertError.message));
       return;
     }
     setSupportRowId(data?.id ?? null);
+    // A volunteer's contact details live in a private table that only the issue's organizers can read.
+    if (useProfileContact && data?.id && profile) {
+      await supabase.from("issue_support_contacts").insert({
+        support_id: data.id,
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+      });
+    }
     setTimeout(() => setOpen(false), 1200);
   }
 
@@ -161,16 +184,19 @@ export function JoinPanel({
         issue_id: issueId,
         user_id: user?.id ?? null,
         level: pendingTag,
-        contact_name: name.trim(),
-        contact_email: email.trim(),
-        contact_phone: phone.trim() || null,
       })
       .select("id")
       .single();
-    if (insertError) {
-      setError(insertError.message);
+    if (insertError || !data) {
+      setError(friendlyError(insertError?.message));
       return;
     }
+    await supabase.from("issue_support_contacts").insert({
+      support_id: data.id,
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim() || null,
+    });
     setSupported(true);
     setSupportRowId(data?.id ?? null);
     setSupporterCount((c) => c + 1);
@@ -264,7 +290,12 @@ export function JoinPanel({
           size="lg"
           variant={supported ? "secondary" : "default"}
           className="h-11 flex-1 text-base"
-          onClick={() => (supported ? setUnsupportOpen(true) : setOpen(true))}
+          disabled={supported && !user}
+          onClick={() => {
+            if (supported) setUnsupportOpen(true);
+            else if (supportRequiresLogin && !user) setSignInOpen(true);
+            else setOpen(true);
+          }}
         >
           <Icon icon={supported ? IconCheck : IconHeart} size={18} className={supported ? "animate-pop" : undefined} />
           {supported ? "Supporting" : "Support"}
@@ -281,6 +312,16 @@ export function JoinPanel({
           />
         </div>
       </div>
+
+      <Dialog open={signInOpen} onOpenChange={setSignInOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Sign in to support this issue</DialogTitle>
+            <DialogDescription>The organizer asks supporters to have an account.</DialogDescription>
+          </DialogHeader>
+          <AuthGate onSignedIn={() => setSignInOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={resetDialog}>
         <DialogContent>

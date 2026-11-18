@@ -21,7 +21,7 @@ type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
 type SolutionRow = Database["public"]["Tables"]["solutions"]["Row"] & {
   comments: CommentRow[];
   solution_votes: { count: number }[];
-  submitter: { name: string; email: string } | null;
+  submitter: { name: string } | null;
 };
 
 function deriveLocationArea(location: string | null): Issue["locationArea"] {
@@ -43,6 +43,21 @@ function threadComments(rows: CommentRow[]): Comment[] {
   return roots;
 }
 
+/** Fills in submitters' email/phone. The database only returns them to people who manage the issue. */
+async function attachSubmitterContacts(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  solutions: Solution[],
+): Promise<Solution[]> {
+  const ids = [...new Set(solutions.map((s) => s.submitter?.userId).filter(Boolean))] as string[];
+  if (ids.length === 0) return solutions;
+  const { data } = await supabase.rpc("profile_contacts", { p_ids: ids });
+  const byId = new Map((data ?? []).map((c) => [c.id, c]));
+  return solutions.map((s) => {
+    const c = s.submitter?.userId ? byId.get(s.submitter.userId) : undefined;
+    return c && s.submitter ? { ...s, submitter: { ...s.submitter, email: c.email, phone: c.phone ?? undefined } } : s;
+  });
+}
+
 function mapSolution(row: SolutionRow): Solution {
   return {
     id: row.id,
@@ -57,12 +72,13 @@ function mapSolution(row: SolutionRow): Solution {
     hidden: row.hidden,
     deleted: row.deleted,
     reviewStatus: row.review_status as Solution["reviewStatus"],
+    // Email and phone are filled in separately, and only for the issue's organizers (see attachSubmitterContacts).
     submitter: row.submitter
       ? {
           name: row.submitter.name,
-          email: row.submitter.email,
-          phone: row.submitter_phone ?? undefined,
+          email: "",
           location: row.submitter_location,
+          userId: row.submitted_by ?? undefined,
         }
       : undefined,
     createdAt: row.created_at,
@@ -80,7 +96,6 @@ export function mapCommunity(row: CommunityRow, memberCount: number, ownerName?:
     privacy: row.privacy as Community["privacy"],
     memberCount,
     tone: row.tone as Community["tone"],
-    logoUrl: row.logo_url ?? undefined,
     latitude: row.latitude,
     longitude: row.longitude,
     ownerId: row.owner_id ?? undefined,
@@ -233,6 +248,7 @@ export async function getIssueStub(
 function mapIssueRow(row: IssueRow, supporterCount: number, ownerName?: string): Issue {
   return {
     id: row.id,
+    ownerId: row.owner_id,
     displayCode: row.display_code,
     communityId: row.community_id ?? undefined,
     title: row.title,
@@ -317,12 +333,12 @@ export async function getIssue(code: string): Promise<Issue | undefined> {
     .select(
       `*,
       issue_supports(level, user_id),
-      solutions(*, comments(*), solution_votes(count), submitter:profiles!solutions_submitted_by_fkey(name, email)),
+      solutions(*, comments(*), solution_votes(count), submitter:profiles!solutions_submitted_by_fkey(name)),
       comments!comments_issue_id_fkey(*),
       issue_updates(*),
       issue_links(*),
       action_plans(*, action_tasks(*)),
-      action_team_members(*),
+      action_team_members(id, issue_id, name, role, status, created_at),
       owner:profiles!issues_owner_id_fkey(name)`,
     )
     .eq("display_code", code)
@@ -341,14 +357,14 @@ export async function getIssue(code: string): Promise<Issue | undefined> {
     willingToHelp: supports.filter((s) => s.level === "willing-to-help").length,
   };
 
-  const solutions = (data.solutions as unknown as SolutionRow[])
-    .map(mapSolution)
-    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const solutions = (
+    await attachSubmitterContacts(supabase, (data.solutions as unknown as SolutionRow[]).map(mapSolution))
+  ).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   const chosenSolutionIds = solutions.filter((s) => s.status === "chosen").map((s) => s.id);
 
   const updates: Update[] = (data.issue_updates as Database["public"]["Tables"]["issue_updates"]["Row"][])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map((u) => ({ date: formatRelativeDate(u.created_at), body: u.body, title: u.title ?? undefined, at: u.created_at }));
+    .map((u) => ({ id: u.id, date: formatRelativeDate(u.created_at), body: u.body, title: u.title ?? undefined, at: u.created_at }));
 
   const actionPlanRow = data.action_plans as
     | (Database["public"]["Tables"]["action_plans"]["Row"] & {
@@ -356,7 +372,11 @@ export async function getIssue(code: string): Promise<Issue | undefined> {
       })
     | null;
 
-  const actionTeamMembers = data.action_team_members as Database["public"]["Tables"]["action_team_members"]["Row"][];
+  type TeamMemberRow = Omit<Database["public"]["Tables"]["action_team_members"]["Row"], "email" | "phone">;
+  const actionTeamMembers = data.action_team_members as TeamMemberRow[];
+  // Team members' contact details are private: this only returns rows to the issue's organizers.
+  const { data: teamContacts } = await supabase.rpc("action_team_contacts", { p_issue_id: data.id });
+  const contactById = new Map((teamContacts ?? []).map((c) => [c.id, c]));
 
   const actionPlan: ActionPlan | undefined = actionPlanRow
     ? {
@@ -374,8 +394,8 @@ export async function getIssue(code: string): Promise<Issue | undefined> {
         teamMembers: actionTeamMembers.map((m) => ({
           id: m.id,
           name: m.name,
-          email: m.email,
-          phone: m.phone,
+          email: contactById.get(m.id)?.email ?? null,
+          phone: contactById.get(m.id)?.phone ?? null,
           hidden: m.status === "hidden",
         })),
       }
@@ -407,13 +427,13 @@ export async function getPendingSolutions(issueId: string): Promise<Solution[]> 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("solutions")
-    .select("*, comments(*), solution_votes(count), submitter:profiles!solutions_submitted_by_fkey(name, email)")
+    .select("*, comments(*), solution_votes(count), submitter:profiles!solutions_submitted_by_fkey(name)")
     .eq("issue_id", issueId)
     .eq("review_status", "pending")
     .eq("deleted", false)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
-  return (data as unknown as SolutionRow[]).map(mapSolution);
+  return attachSubmitterContacts(supabase, (data as unknown as SolutionRow[]).map(mapSolution));
 }
 
 export type IdeaPreview = {

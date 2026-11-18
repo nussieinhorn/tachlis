@@ -18,6 +18,7 @@ export function MobileSupportBar({
   canEdit,
   ownerName,
   initialSupporterCount,
+  supportRequiresLogin = false,
 }: {
   issueId: string;
   issueTitle: string;
@@ -25,6 +26,7 @@ export function MobileSupportBar({
   canEdit: boolean;
   ownerName?: string;
   initialSupporterCount: number;
+  supportRequiresLogin?: boolean;
 }) {
   const { user } = useAuth();
   const router = useRouter();
@@ -58,6 +60,11 @@ export function MobileSupportBar({
 
   async function quickSupport() {
     if (supported) return;
+    if (supportRequiresLogin && !user) {
+      // This issue asks supporters to sign in — bring them to the support card, which has the sign-in prompt.
+      document.getElementById("support-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     // Optimistic: respond instantly, undo if the save fails.
     setSupported(true);
     setSupporterCount((c) => c + 1);

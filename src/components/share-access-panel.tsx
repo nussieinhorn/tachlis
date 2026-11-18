@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconShare, IconCrown, IconCheck, IconX, IconChevronDown, IconMailForward, IconBan } from "@tabler/icons-react";
+import { IconShare, IconCrown, IconCheck, IconX, IconChevronDown, IconMailForward, IconBan, IconLink } from "@tabler/icons-react";
 
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
@@ -40,11 +40,10 @@ const TABLES: Record<ResourceType, { editors: "issue_editors" | "community_edito
   community: { editors: "community_editors", requests: "community_access_requests", fk: "community_id" },
 };
 
-async function sendInviteEmail(payload: {
-  type: "invite" | "access_approved" | "access_requested";
-  to: string;
-  data: { resourceTitle?: string; resourceType?: ResourceType; role?: Role; link: string; requesterName?: string };
-}) {
+/** The email function builds every message from the database itself, so we only tell it which record to mail about. */
+async function sendInviteEmail(payload:
+  | { type: "invite"; token: string }
+  | { type: "access_approved"; kind: ResourceType; resourceId: string; userId: string }) {
   const supabase = createClient();
   try {
     await supabase.functions.invoke("send-transactional-email", { body: payload });
@@ -87,6 +86,7 @@ export function ShareAccessPanel({
   const [roleChoice, setRoleChoice] = useState<Record<string, Role>>({});
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [copiedInvite, setCopiedInvite] = useState<string | null>(null);
 
   const table = TABLES[resourceType];
   const label = resourceType === "issue" ? "issue" : "community";
@@ -101,11 +101,11 @@ export function ShareAccessPanel({
     const [editorsRes, requestsRes, invitesRes] = await Promise.all([
       supabase
         .from(editorTable)
-        .select(`user_id, member:profiles!${editorTable}_user_id_fkey(name, email)`)
+        .select(`user_id, member:profiles!${editorTable}_user_id_fkey(name)`)
         .eq(fk as never, resourceId),
       supabase
         .from(requestTable)
-        .select(`id, status, message, user_id, requester:profiles!${requestTable}_user_id_fkey(name, email)`)
+        .select(`id, status, message, user_id, requester:profiles!${requestTable}_user_id_fkey(name)`)
         .eq(fk as never, resourceId),
       supabase
         .from("pending_invites")
@@ -115,16 +115,21 @@ export function ShareAccessPanel({
         .eq("status", "pending"),
     ]);
 
+    // Emails are private; the database only hands them to people who manage this resource.
+    const ids = [...new Set([...(editorsRes.data ?? []).map((r) => r.user_id), ...(requestsRes.data ?? []).map((r) => r.user_id)])];
+    const { data: contacts } = ids.length ? await supabase.rpc("profile_contacts", { p_ids: ids }) : { data: [] };
+    const emailOf = new Map((contacts ?? []).map((c) => [c.id, c.email]));
+
     setEditors(
       (editorsRes.data ?? []).map((r) => {
-        const member = r.member as unknown as { name: string; email: string } | null;
-        return { userId: r.user_id, name: member?.name ?? "", email: member?.email ?? "" };
+        const member = r.member as unknown as { name: string } | null;
+        return { userId: r.user_id, name: member?.name ?? "", email: emailOf.get(r.user_id) ?? "" };
       }),
     );
 
     const requests = (requestsRes.data ?? []).map((r) => {
-      const requester = r.requester as unknown as { name: string; email: string } | null;
-      return { id: r.id, userId: r.user_id, name: requester?.name ?? "", email: requester?.email ?? "", message: r.message, status: r.status };
+      const requester = r.requester as unknown as { name: string } | null;
+      return { id: r.id, userId: r.user_id, name: requester?.name ?? "", email: emailOf.get(r.user_id) ?? "", message: r.message, status: r.status };
     });
     setApprovedViewers(requests.filter((r) => r.status === "approved"));
     setPending(requests.filter((r) => r.status === "pending"));
@@ -146,13 +151,7 @@ export function ShareAccessPanel({
     if (role === "editor") {
       await supabase.from(table.editors).insert({ [table.fk]: resourceId, user_id: request.userId } as never);
     }
-    if (request.email) {
-      sendInviteEmail({
-        type: "access_approved",
-        to: request.email,
-        data: { resourceTitle, resourceType, link: `${origin}/${resourceType === "community" ? "communities" : "issues"}` },
-      });
-    }
+    sendInviteEmail({ type: "access_approved", kind: resourceType, resourceId, userId: request.userId });
     await load();
     router.refresh();
   }
@@ -203,20 +202,25 @@ export function ShareAccessPanel({
     if (!user) return;
     setSending(true);
     const supabase = createClient();
+    const failed: string[] = [];
     for (const email of emails) {
       const { data, error: insertError } = await supabase
         .from("pending_invites")
         .insert({ email, resource_type: resourceType, resource_id: resourceId, role: inviteRole, invited_by: user.id })
         .select("token")
         .single();
-      if (insertError || !data) continue;
-      await sendInviteEmail({
-        type: "invite",
-        to: email,
-        data: { resourceTitle, resourceType, role: inviteRole, link: `${origin}/invite/accept?token=${data.token}` },
-      });
+      if (insertError || !data) {
+        failed.push(email);
+        continue;
+      }
+      await sendInviteEmail({ type: "invite", token: data.token });
     }
     setSending(false);
+    if (failed.length > 0) {
+      setError(`Couldn't invite ${failed.join(", ")}. Check that you have permission and try again.`);
+      await load();
+      return;
+    }
     setInviteEmails("");
     await load();
   }
@@ -311,6 +315,19 @@ export function ShareAccessPanel({
                         <span className="truncate text-sm font-medium text-foreground">{inv.email}</span>
                         <span className="text-xs text-muted-foreground capitalize">{inv.role} · awaiting acceptance</span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(`${siteUrl()}/invite/accept?token=${inv.token}`);
+                          setCopiedInvite(inv.id);
+                          setTimeout(() => setCopiedInvite(null), 1500);
+                        }}
+                        className="ml-auto rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label="Copy invite link"
+                        title="Copy invite link"
+                      >
+                        <Icon icon={copiedInvite === inv.id ? IconCheck : IconLink} size={16} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => revokeInvite(inv.id)}

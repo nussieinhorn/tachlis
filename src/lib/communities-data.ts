@@ -18,7 +18,6 @@ export type Community = {
   privacy: "public" | "private";
   memberCount: number;
   tone: CommunityTone;
-  logoUrl?: string;
   latitude?: number | null;
   longitude?: number | null;
   ownerId?: string;

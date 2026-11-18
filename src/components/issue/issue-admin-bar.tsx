@@ -6,6 +6,7 @@ import { IconCopy, IconDots, IconPencil, IconTrash } from "@tabler/icons-react";
 import type { Issue } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useCanDelete } from "@/lib/use-permissions";
 import { Icon } from "@/components/ui/icon";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CreateIssueDialog } from "@/components/issue/create-issue-dialog";
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function IssueAdminBar({ issue, canEdit }: { issue: Issue; canEdit: boolean }) {
+  const canDelete = useCanDelete(issue.ownerId);
   const router = useRouter();
 
   if (!canEdit) return null;
@@ -55,7 +57,8 @@ export function IssueAdminBar({ issue, canEdit }: { issue: Issue; canEdit: boole
                 </DropdownMenuItem>
               }
             />
-            <ConfirmDialog
+            {canDelete && (
+              <ConfirmDialog
               title="Delete this issue?"
               description={`"${issue.title}" and everything on it — solutions, comments, updates — will be permanently deleted. This can't be undone.`}
               onConfirm={deleteIssue}
@@ -69,6 +72,7 @@ export function IssueAdminBar({ issue, canEdit }: { issue: Issue; canEdit: boole
                 </DropdownMenuItem>
               }
             />
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -258,7 +258,6 @@ export type Database = {
           latitude: number | null
           location: string | null
           longitude: number | null
-          logo_url: string | null
           name: string
           owner_id: string | null
           privacy: string
@@ -273,7 +272,6 @@ export type Database = {
           latitude?: number | null
           location?: string | null
           longitude?: number | null
-          logo_url?: string | null
           name: string
           owner_id?: string | null
           privacy?: string
@@ -288,7 +286,6 @@ export type Database = {
           latitude?: number | null
           location?: string | null
           longitude?: number | null
-          logo_url?: string | null
           name?: string
           owner_id?: string | null
           privacy?: string
@@ -505,11 +502,32 @@ export type Database = {
         }
         Relationships: []
       }
+      issue_support_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          name: string | null
+          phone: string | null
+          support_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          name?: string | null
+          phone?: string | null
+          support_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          name?: string | null
+          phone?: string | null
+          support_id?: string
+        }
+        Relationships: []
+      }
       issue_supports: {
         Row: {
-          contact_email: string | null
-          contact_name: string | null
-          contact_phone: string | null
           created_at: string
           id: string
           issue_id: string
@@ -517,9 +535,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          contact_email?: string | null
-          contact_name?: string | null
-          contact_phone?: string | null
           created_at?: string
           id?: string
           issue_id: string
@@ -527,9 +542,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          contact_email?: string | null
-          contact_name?: string | null
-          contact_phone?: string | null
           created_at?: string
           id?: string
           issue_id?: string
@@ -955,9 +967,8 @@ export type Database = {
           review_status: string
           sort_order: number
           status: string
-          submitted_by: string
+          submitted_by: string | null
           submitter_location: string | null
-          submitter_phone: string | null
           title: string
           updated_at: string
         }
@@ -975,9 +986,8 @@ export type Database = {
           review_status?: string
           sort_order?: number
           status?: string
-          submitted_by: string
+          submitted_by: string | null
           submitter_location?: string | null
-          submitter_phone?: string | null
           title: string
           updated_at?: string
         }
@@ -995,9 +1005,8 @@ export type Database = {
           review_status?: string
           sort_order?: number
           status?: string
-          submitted_by?: string
+          submitted_by?: string | null
           submitter_location?: string | null
-          submitter_phone?: string | null
           title?: string
           updated_at?: string
         }
@@ -1023,52 +1032,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_profile: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          name: string
+          email: string
+          phone: string | null
+          theme_preference: string
+          notify_types: string[]
+          email_notify_types: string[]
+        }[]
+      }
+      profile_contacts: {
+        Args: { p_ids: string[] }
+        Returns: { id: string; email: string; phone: string | null }[]
+      }
+      action_team_contacts: {
+        Args: { p_issue_id: string }
+        Returns: { id: string; email: string | null; phone: string | null }[]
+      }
+      get_community_stub: {
+        Args: { p_display_code: string }
+        Returns: { id: string; privacy: string; display_code: string }[]
+      }
       accept_pending_invite: {
         Args: { p_token: string }
         Returns: {
           display_code: string
           resource_type: string
         }[]
-      }
-      comment_target_issue: {
-        Args: { p_issue_id: string; p_solution_id: string }
-        Returns: {
-          action_plan_visible: boolean
-          allow_suggest_solutions: boolean
-          category_slug: string
-          comments_enabled: boolean
-          comments_require_login: boolean
-          community_id: string | null
-          created_at: string
-          description: string
-          description_more: string | null
-          display_code: string
-          first_chosen_prompted_at: string | null
-          go_live_date: string | null
-          hidden_date: string | null
-          id: string
-          location: string | null
-          owner_id: string
-          share_count: number
-          show_hidden_solutions_after_chosen: boolean
-          show_in_search: boolean
-          show_on_homepage: boolean
-          status: string
-          support_requires_login: boolean
-          title: string
-          updated_at: string
-          view_count: number
-          visibility: string
-          visit_count: number
-          vote_requires_login: boolean
-          voting_close_date: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "issues"
-          isOneToOne: true
-          isSetofReturn: false
-        }
       }
       delete_own_account: { Args: never; Returns: undefined }
       get_issue_stub: {

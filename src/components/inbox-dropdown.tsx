@@ -108,11 +108,11 @@ export function InboxDropdown() {
     Promise.all([
       supabase
         .from("private_access_requests")
-        .select("id, user_id, issue:issues(id, display_code, title), requester:profiles!private_access_requests_user_id_fkey(name, email)")
+        .select("id, user_id, issue:issues(id, display_code, title), requester:profiles!private_access_requests_user_id_fkey(name)")
         .eq("status", "pending"),
       supabase
         .from("community_access_requests")
-        .select("id, user_id, community:communities(id, display_code, name), requester:profiles!community_access_requests_user_id_fkey(name, email)")
+        .select("id, user_id, community:communities(id, display_code, name), requester:profiles!community_access_requests_user_id_fkey(name)")
         .eq("status", "pending"),
       supabase
         .from("action_team_requests")
@@ -123,10 +123,14 @@ export function InboxDropdown() {
       supabase.from("issue_editors").select("issue_id").eq("user_id", user.id),
       supabase.from("communities").select("id").eq("owner_id", user.id),
       supabase.from("community_editors").select("community_id").eq("user_id", user.id),
-    ]).then(([pa, ca, atr, isSuperAdmin, ownedIssues, editedIssues, ownedCommunities, editedCommunities]) => {
+    ]).then(async ([pa, ca, atr, isSuperAdmin, ownedIssues, editedIssues, ownedCommunities, editedCommunities]) => {
+      // Requesters' emails are private; the database returns them only to the people who manage the resource.
+      const requesterIds = [...new Set([...(pa.data ?? []), ...(ca.data ?? [])].map((r) => r.user_id))];
+      const { data: contacts } = requesterIds.length ? await supabase.rpc("profile_contacts", { p_ids: requesterIds }) : { data: [] };
+      const emailOf = new Map((contacts ?? []).map((c) => [c.id, c.email]));
       const paRows: RequestRow[] = (pa.data ?? []).map((r) => {
         const issue = r.issue as { id: string; display_code: string; title: string } | null;
-        const requester = r.requester as { name: string; email: string } | null;
+        const requester = r.requester as { name: string } | null;
         return {
           id: r.id,
           kind: "private_access",
@@ -135,13 +139,13 @@ export function InboxDropdown() {
           targetTitle: issue?.title ?? "",
           userId: r.user_id,
           name: requester?.name ?? "",
-          email: requester?.email ?? "",
+          email: emailOf.get(r.user_id) ?? "",
           message: null,
         };
       });
       const caRows: RequestRow[] = (ca.data ?? []).map((r) => {
         const community = r.community as { id: string; display_code: string; name: string } | null;
-        const requester = r.requester as { name: string; email: string } | null;
+        const requester = r.requester as { name: string } | null;
         return {
           id: r.id,
           kind: "community_access",
@@ -150,7 +154,7 @@ export function InboxDropdown() {
           targetTitle: community?.name ?? "",
           userId: r.user_id,
           name: requester?.name ?? "",
-          email: requester?.email ?? "",
+          email: emailOf.get(r.user_id) ?? "",
           message: null,
         };
       });

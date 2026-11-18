@@ -142,19 +142,22 @@ export function ManageSolutionsDialog({
     const supabase = createClient();
     supabase
       .from("solutions")
-      .select("id, title, description, submitter:profiles!solutions_submitted_by_fkey(name, email)")
+      .select("id, title, description, submitted_by, submitter:profiles!solutions_submitted_by_fkey(name)")
       .eq("issue_id", issueId)
       .eq("review_status", "pending")
       .eq("deleted", false)
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
+        const ids = [...new Set((data ?? []).map((r) => r.submitted_by).filter(Boolean))] as string[];
+        const { data: contacts } = ids.length ? await supabase.rpc("profile_contacts", { p_ids: ids }) : { data: [] };
+        const emailOf = new Map((contacts ?? []).map((c) => [c.id, c.email]));
         setPending(
           (data ?? []).map((row) => ({
             id: row.id,
             title: row.title,
             description: row.description,
-            submitterName: (row.submitter as { name: string; email: string } | null)?.name ?? null,
-            submitterEmail: (row.submitter as { name: string; email: string } | null)?.email ?? null,
+            submitterName: (row.submitter as { name: string } | null)?.name ?? null,
+            submitterEmail: row.submitted_by ? (emailOf.get(row.submitted_by) ?? null) : null,
           })),
         );
       });
